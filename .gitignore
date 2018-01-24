@@ -102,3 +102,12 @@ ENV/
 
 #pycharm
 .idea*
+
+#project specific
+*.csv
+*.pdf
+*.jpg
+*.jpeg
+*.doc
+*.docx
+*.html
