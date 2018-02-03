@@ -111,3 +111,4 @@ ENV/
 *.doc
 *.docx
 *.html
+.pytest_cache*
