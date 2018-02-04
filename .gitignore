@@ -105,7 +105,6 @@ ENV/
 
 #project specific
 *.csv
-*.pdf
 *.jpg
 *.jpeg
 *.doc
