@@ -35,6 +35,8 @@ wheels/
 pip-log.txt
 pip-delete-this-directory.txt
 
+.pytest_cache*
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -103,11 +105,15 @@ ENV/
 #pycharm
 .idea*
 
-#project specific
+# data protection: don't upload any scans etc
 *.csv
+!*demo_exam_results.csv
 *.jpg
 *.jpeg
 *.doc
 *.docx
 *.html
-.pytest_cache*
+*.pdf
+
+# add exceptions to the data protection rules for demo folders which have been anonymised
+!src/tests/in/*
