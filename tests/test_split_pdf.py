@@ -1,5 +1,5 @@
 from unittest import TestCase
-import bin.omr_utils
+from bin.omr_utils import *
 
 class TestSplit_pdf(TestCase):
     def test_split_pdf(self):
