@@ -2,8 +2,9 @@ from unittest import TestCase
 from demo.make_simple_report import run_demo
 import os
 import re
+import pytest
 
-
+@pytest.mark.skipif(bool(os.environ.get('TRAVIS'))==True,reason="cannot test in headless mode due to mpld3")
 class TestDemoMakeSimpleReport(TestCase):
     def test_make_simple_report(self):
         os.chdir('demo/make_simple_report')
