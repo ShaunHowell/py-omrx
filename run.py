@@ -6,5 +6,3 @@
 # todo: merge demo.py in again, into demo folder
 # todo: setup travis ci testing
 
-import bin.omr_utils
-
