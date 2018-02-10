@@ -5,3 +5,4 @@ seaborn
 pdfrw
 mpld3
 jinja2
+Pillow
