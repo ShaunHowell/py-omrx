@@ -16,7 +16,7 @@ class TestDemoMakeSimpleReport(TestCase):
             print('simple report demo raised an exception')
             raise
         os.chdir('../..')
-        with open('tests/in/demo_make_simple_report_out.html') as correct_file:
+        with open('tests/res/demo_make_simple_report_out/good_1.html') as correct_file:
             correct_file_contents = correct_file.read()
             correct_file_contents = re.sub('(?:<script>.+</script>)|(?:fig_[^"]+)', '', correct_file_contents,
                                            flags=re.S)

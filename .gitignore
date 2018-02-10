@@ -37,6 +37,9 @@ pip-delete-this-directory.txt
 
 .pytest_cache*
 
+# Temp files
+temp/*
+
 # Test outputs
 *tests/out/*
 
@@ -110,13 +113,18 @@ ENV/
 
 # data protection: don't upload any scans etc
 *.csv
-!*demo_exam_results.csv
 *.jpg
 *.jpeg
+*.png
 *.doc
 *.docx
 *.html
 *.pdf
 
 # add exceptions to the data protection rules for demo folders which have been anonymised
-!src/tests/in/*
+!src/demo/make_simple_report/data/exam_results/*
+!src/tests/res/demo_make_simple_report_out/*
+!src/tests/res/images_from_pdf_in/*
+!src/tests/res/optimise_quality_in/*
+!src/tests/res/preprocess_folder_in/*
+
