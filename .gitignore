@@ -37,6 +37,9 @@ pip-delete-this-directory.txt
 
 .pytest_cache*
 
+# Test outputs
+*tests/out/*
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
