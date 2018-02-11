@@ -2,6 +2,7 @@ import subprocess
 from pathlib import Path
 from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 import sys
+import os
 
 
 def get_converter_path():
@@ -33,43 +34,51 @@ def images_from_pdf(input_file_path, output_folder_path, density=300):
 
 
 def optimise_quality(input_file_path, output_file_path=None, overwrite=False):
+    assert Path(input_file_path).suffix.lower() in ['.png', '.jpg', '.jpeg'], 'input file must be a valid image'
+    if output_file_path:
+        assert Path(output_file_path).suffix.lower() in ['.png', '.jpg',
+                                                         '.jpeg'], 'output path must be an image file name'
     im = Image.open(input_file_path)
-    im2 = im.rotate(-90, expand=1)
-    im2 = ImageOps.autocontrast(im2)
-    im2 = ImageEnhance.Brightness(im2).enhance(1.05)
-    im2 = ImageOps.equalize(im2)
+    im = im.rotate(-90, expand=1)
+    im = ImageOps.autocontrast(im)
+    im = ImageEnhance.Brightness(im).enhance(1.05)
+    im = ImageOps.equalize(im)
     a, b, c = 1, 0.1, 0.05
     k = [0, 0, 0, 0, 0,
          0, c, b, c, 0,
          0, b, a, b, 0,
          0, c, b, c, 0,
          0, 0, 0, 0, 0]
-    im2 = im2.filter(ImageFilter.Kernel((5, 5), k))
-    im2 = im2.filter(ImageFilter.Kernel((5, 5), k))
-    im2 = im2.filter(ImageFilter.Kernel((5, 5), k))
-    im2 = im2.filter(ImageFilter.MaxFilter(3))
-    im2 = im2.filter(ImageFilter.MaxFilter(3))
-    im2 = im2.filter(ImageFilter.MaxFilter(3))
-    im2 = im2.convert('1')
-    im2 = im2.filter(ImageFilter.MinFilter(3))
-    im2 = im2.filter(ImageFilter.MinFilter(3))
+    im = im.filter(ImageFilter.Kernel((5, 5), k))
+    im = im.filter(ImageFilter.Kernel((5, 5), k))
+    im = im.filter(ImageFilter.Kernel((5, 5), k))
+    im = im.filter(ImageFilter.MaxFilter(3))
+    im = im.filter(ImageFilter.MaxFilter(3))
+    im = im.filter(ImageFilter.MaxFilter(3))
+    im = im.convert('1')
+    im = im.filter(ImageFilter.MinFilter(3))
+    im = im.filter(ImageFilter.MinFilter(3))
     if output_file_path:
         if Path(output_file_path).exists() and not overwrite:
             raise Exception('can\'t save {}. Overwrite not set as True'.format(Path(output_file_path).stem))
+        else:
+            im.save(output_file_path)
     elif not output_file_path and not overwrite:
         raise Exception('can\'t save {}. Overwrite not set as True'.format(Path(output_file_path).stem))
-    print('saving')
-    im2.save(output_file_path)
+    else:
+        im.save(input_file_path)
 
 
 def preprocess_folder(input_folder, output_folder):
+    assert len(os.listdir(output_folder)) == 0, 'output folder must be empty'
     # extract images from pdf
     for file_path in Path(input_folder).iterdir():
         if file_path.suffix.lower() == '.pdf':
             images_from_pdf(str(file_path), output_folder)
-
-            # optimise quality of all images (e.g. brightness)
-            # crop and rotate all images to only OMR form
+    # optimise quality of all images (e.g. brightness)
+    for file_path in Path(output_folder).iterdir():
+        optimise_quality(str(file_path), overwrite=True)
+        # crop and rotate all images to only OMR form
 
 
 if __name__ == '__main__' and sys.argv[1] == 'dev':

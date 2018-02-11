@@ -127,4 +127,4 @@ ENV/
 !src/tests/res/images_from_pdf_in/*
 !src/tests/res/optimise_quality_in/*
 !src/tests/res/preprocess_folder_in/*
-
+!src/tests/res/optimise_quality_out/*
