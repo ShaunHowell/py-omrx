@@ -128,3 +128,5 @@ ENV/
 !src/tests/res/optimise_quality_in/*
 !src/tests/res/preprocess_folder_in/*
 !src/tests/res/optimise_quality_out/*
+!src/demo/omr_data_extraction/data/ext/*
+!src/demo/omr_data_extraction/data/images/*

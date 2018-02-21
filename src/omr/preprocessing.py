@@ -21,10 +21,10 @@ def get_converter_path():
 
 def images_from_pdf(input_file_path, output_folder_path, density=300):
     image_name = str(Path(input_file_path).stem)
-    output_file_pattern = '{}.png'.format(Path(output_folder_path) / (image_name + '_%03d'))
+    output_file_pattern = '{}.png'.format(Path(output_folder_path) / (image_name.replace(' ', '_') + '_%03d'))
     converter_path = get_converter_path()
-    cmd_string = '{} convert -density {} {} +adjoin {}'.format(converter_path, density, input_file_path,
-                                                               output_file_pattern)
+    cmd_string = '{} convert -density {} "{}" +adjoin "{}"'.format(converter_path, density, input_file_path,
+                                                                   output_file_pattern)
     try:
         subprocess.check_call(cmd_string, shell=True)
     except subprocess.CalledProcessError:
@@ -74,11 +74,13 @@ def preprocess_folder(input_folder, output_folder):
     # extract images from pdf
     for file_path in Path(input_folder).iterdir():
         if file_path.suffix.lower() == '.pdf':
+            print('extracting images from {}'.format(file_path.stem))
             images_from_pdf(str(file_path), output_folder)
     # optimise quality of all images (e.g. brightness)
-    for file_path in Path(output_folder).iterdir():
-        optimise_quality(str(file_path), overwrite=True)
-        # crop and rotate all images to only OMR form
+    # for file_path in Path(output_folder).iterdir():
+    #     optimise_quality(str(file_path), overwrite=True)
+    # crop and rotate all images to only OMR form
+    print('folder preprocessed')
 
 
 if __name__ == '__main__' and sys.argv[1] == 'dev':
