@@ -66,12 +66,6 @@ def answers_from_image(input_file_path, form_design):
     cnts = cnts[0] if imutils.is_cv2() else cnts[1]
     docCnt = None
     assert len(cnts) > 0, 'no contours found when looking for outer box'
-    # for i, cnt in enumerate(sorted(cnts, key=cv2.contourArea, reverse=True)):
-    #     cv2.drawContours(image,[cnt],-1,(255,0,0),5)
-    #     if i>110 or i == len(cnts)-1:
-    #
-    #         input()
-    # cnts = [cv2.approxPolyDP(c, 0.05 * cv2.arcLength(c, True), True) for c in cnts]
     for c in sorted(cnts, key=cv2.contourArea, reverse=True):
         perim = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.05 * perim, True)
@@ -79,22 +73,19 @@ def answers_from_image(input_file_path, form_design):
             docCnt = approx
             break
     if type(docCnt) != np.ndarray: raise Exception('no suitable outer contour found')
-    cv2.drawContours(image, [docCnt], -1, (255, 0, 0), 3)
-    Image.fromarray(image).show()
-    cv2.imwrite('../temp/output_1.png', image)
+
     # perspective transform
     shrink = 20
-    original_cropped = four_point_transform(image, docCnt.reshape(4, 2))
-    original_cropped = original_cropped[shrink:-shrink, shrink:-shrink]
+    # original_cropped = four_point_transform(image, docCnt.reshape(4, 2))
+    # original_cropped = original_cropped[shrink:-shrink, shrink:-shrink]
     grey_cropped = four_point_transform(gray, docCnt.reshape(4, 2))
     grey_cropped = grey_cropped[shrink:-shrink, shrink:-shrink]
-    # Image.fromarray(original_cropped).show()
+
     # binarise
     thresh = cv2.threshold(grey_cropped, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
 
     # find the paper code
     paper_code_box = thresh[105:165, 280:500]
-    cv2.imwrite('../temp/output_2.png', paper_code_box)
     code_circles = cv2.HoughCircles(paper_code_box, cv2.HOUGH_GRADIENT, 1, 50,
                                     param1=50,
                                     param2=8,
@@ -112,6 +103,7 @@ def answers_from_image(input_file_path, form_design):
         if average > 0.5:
             paper_code = paper_code + 2 ** i
 
+    # set variables for main omr processes
     form_design = form_design[str(paper_code)]
     bubbles_per_row = form_design['code'] + form_design['questions']
     left_margin = 60
@@ -124,10 +116,7 @@ def answers_from_image(input_file_path, form_design):
     innerBoxCnts = innerBoxCnts[0] if imutils.is_cv2() else innerBoxCnts[1]
     innerBoxCnts = sorted(innerBoxCnts, key=cv2.contourArea, reverse=True)
     inner_boxes = []
-    cv2.drawContours(original_cropped, innerBoxCnts, -1, (255, 0, 0), 3)
-    Image.fromarray(original_cropped).show()
-    cv2.imwrite('../temp/output_3.png', original_cropped)
-    for c in sorted(innerBoxCnts[:3], key=lambda cnt: cv2.boundingRect(cnt.copy())[1],reverse=True):
+    for c in sorted(innerBoxCnts[:3], key=lambda cnt: cv2.boundingRect(cnt.copy())[1], reverse=True):
         perim = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.02 * perim, True)
         if len(approx) == 4:
@@ -146,13 +135,7 @@ def answers_from_image(input_file_path, form_design):
                                    minRadius=14,
                                    maxRadius=24)
         circles = np.uint16(np.around(circles))[0]
-        temp_box = cv2.cvtColor(inner_box, cv2.COLOR_GRAY2RGB)
         circles = filter_circles(circles, form_design, pixels_per_box=64)
-        for i in circles:
-            cv2.circle(temp_box, (i[0], i[1]), i[2], (0, 255, 0), 2)
-            cv2.circle(temp_box, (i[0], i[1]), 2, (0, 0, 255), 3)
-        Image.fromarray(temp_box).show()
-        cv2.imwrite('../temp/output_4.png',temp_box)
         # sort circles top-to-bottom
         circles = np.array(sorted(circles, key=lambda circle: circle[1]))
         inner_box_answers = {}
@@ -180,34 +163,38 @@ def answers_from_image(input_file_path, form_design):
                     best_confidence = average
                 bubbles_processed += 1
             if best_confidence < 0.5:
-                print('low confidence: q {}, box {}, file {}'.format(question_number, box_no,Path(input_file_path).name),file=sys.stderr)
+                print('low confidence: q {}, box {}, file {}'.format(question_number + 1, box_no + 1,
+                                                                     Path(input_file_path).name), file=sys.stderr)
                 if question_number < len(form_design['code']):
                     inner_box_answers.update({'c_{}'.format(question_number + 1): np.nan})
                 else:
                     inner_box_answers.update({'q_{}'.format(question_number - len(form_design['code']) + 1): np.nan})
         inner_box_answers.update({'file_name': Path(input_file_path).stem,
                                   'paper_code': paper_code,
-                                  'box_no': box_no+1})
+                                  'box_no': box_no + 1})
         answers = answers.append(pd.Series(inner_box_answers), ignore_index=True)
-    ok = True
-    if answers.isnull().sum().sum() > 0 or len(answers)< 3:
+    ok = True  # TODO: make this raise instead of returning ok, and handle it at the next function up
+    if answers.isnull().sum().sum() > 0 or len(answers) < 3:
         ok = False
     return answers, ok
 
 
-def answers_from_images(input_folder, form_design_path):
+def answers_from_images(input_folder, form_design_path, output_folder=None):
     form_design = json.load(open(form_design_path))
     answers = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no'])
     for file_path in Path(input_folder).iterdir():
         try:
             im_answers, ok = answers_from_image(str(file_path), form_design)
             if not ok:
-                print('problem with {}, please see above'.format(Path(file_path).name),file=sys.stderr)
+                print('problem with {}, please see above'.format(Path(file_path).name), file=sys.stderr)
             answers = answers.append(im_answers)
         except Exception as e:
-            print('couldn\'t extract data from {}: check input file'.format(Path(file_path).name),file=sys.stderr)
-            print('error message: ',e,file=sys.stderr)
-
+            print('couldn\'t extract data from {}: check input file'.format(Path(file_path).name), file=sys.stderr)
+            print('error message: ', e, file=sys.stderr)
+    if output_folder:
+        if not Path(output_folder).exists():
+            Path(output_folder).mkdir(parents=True)
+        answers.to_csv(str(Path(output_folder) / 'demo_output.csv'), index=False)
     return answers
 
 
@@ -216,8 +203,8 @@ if __name__ == '__main__' and sys.argv[1] == 'dev':
     answers, ok = answers_from_image('demo/omr_data_extraction/data/images/good_2.png', form_design)
     print(answers.to_string())
 
-# temp_box = cv2.cvtColor(paper_code_box, cv2.COLOR_GRAY2RGB)
-#     for i in code_circles:
-#         cv2.circle(temp_box, (i[0], i[1]), i[2], (0, 255, 0), 2)
-#         cv2.circle(temp_box, (i[0], i[1]), 2, (0, 0, 255), 3)
-# Image.fromarray(temp_box).show()
+    # temp_box = cv2.cvtColor(paper_code_box, cv2.COLOR_GRAY2RGB)
+    #     for i in code_circles:
+    #         cv2.circle(temp_box, (i[0], i[1]), i[2], (0, 255, 0), 2)
+    #         cv2.circle(temp_box, (i[0], i[1]), 2, (0, 0, 255), 3)
+    # Image.fromarray(temp_box).show()
