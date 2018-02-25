@@ -130,3 +130,9 @@ ENV/
 !src/tests/res/optimise_quality_out/*
 !src/demo/omr_data_extraction/data/ext/*
 !src/demo/omr_data_extraction/data/images/*
+!src/demo/data_extract_and_merge/data/scans/*
+!src/demo/data_extract_and_merge/data/ext/*
+!src/demo/full_pdf_folder_extraction/data/scans/*
+!src/demo/full_pdf_folder_extraction/data/ext/*
+!src/demo/pdf_to_report_1/data/scans/*
+!src/demo/pdf_to_report_1/data/ext/*

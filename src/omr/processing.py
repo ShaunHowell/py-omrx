@@ -11,6 +11,10 @@ from scipy.spatial import KDTree
 import pandas as pd
 
 
+class OmrException(Exception):
+    pass
+
+
 def closest_circle(x, y, circles):
     circle_coords = np.array(circles)[:, :2]
     d, i = KDTree(circle_coords).query([x, y], )
@@ -51,7 +55,7 @@ def filter_circles(circles, form_design, pixels_per_box=64):
     return filtered_circles
 
 
-def answers_from_image(input_file_path, form_design):
+def answers_from_image(input_file_path, form_design, debug = False):
     assert Path(input_file_path).exists(), 'check input file path'
     answers = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no'])
 
@@ -59,10 +63,10 @@ def answers_from_image(input_file_path, form_design):
     image = cv2.imread(input_file_path)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    edged = cv2.Canny(blurred, 75, 200)
+    edged = cv2.Canny(blurred, threshold1=75, threshold2=200, L2gradient=True)
 
     # find outer bounding box
-    cnts = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[0] if imutils.is_cv2() else cnts[1]
     docCnt = None
     assert len(cnts) > 0, 'no contours found when looking for outer box'
@@ -72,7 +76,14 @@ def answers_from_image(input_file_path, form_design):
         if len(approx) == 4:
             docCnt = approx
             break
-    if type(docCnt) != np.ndarray: raise Exception('no suitable outer contour found')
+    if type(docCnt) != np.ndarray or perim < 9500:
+        if debug:
+            Image.fromarray(edged).show()
+            for i, c in enumerate(sorted(cnts, key=cv2.contourArea, reverse=True)):
+                cv2.drawContours(image, [c], -1, color=(0, 0, 100 + (155) * i / len(cnts)), thickness=1)
+            cv2.drawContours(image, sorted(cnts, key=cv2.contourArea, reverse=True), 0, color=(0, 255, 0), thickness=4)
+            Image.fromarray(image).show()
+        raise OmrException('no suitable outer contour found')
 
     # perspective transform
     shrink = 20
@@ -102,6 +113,17 @@ def answers_from_image(input_file_path, form_design):
         # check if positive detection
         if average > 0.5:
             paper_code = paper_code + 2 ** i
+    if paper_code <= 0:
+        if debug:
+            temp_box = cv2.cvtColor(paper_code_box, cv2.COLOR_GRAY2RGB)
+            for i in code_circles:
+                cv2.circle(temp_box, (i[0], i[1]), i[2], (0, 255, 0), 2)
+                cv2.circle(temp_box, (i[0], i[1]), 2, (0, 0, 255), 3)
+            Image.fromarray(temp_box).show()
+            cv2.drawContours(image, cnts, -1, color=(0, 0, 255), thickness=2)
+            cv2.drawContours(image, cnts, 0, color=(0, 255, 0), thickness=4)
+            Image.fromarray(image).show()
+        raise OmrException('paper code not detected properly, please check file {}'.format(Path(input_file_path).name))
 
     # set variables for main omr processes
     form_design = form_design[str(paper_code)]
@@ -183,6 +205,7 @@ def answers_from_images(input_folder, form_design_path, output_folder=None):
     form_design = json.load(open(form_design_path))
     answers = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no'])
     for file_path in Path(input_folder).iterdir():
+        print('INFO: processing image {}'.format(file_path.name))
         try:
             im_answers, ok = answers_from_image(str(file_path), form_design)
             if not ok:
@@ -194,7 +217,7 @@ def answers_from_images(input_folder, form_design_path, output_folder=None):
     if output_folder:
         if not Path(output_folder).exists():
             Path(output_folder).mkdir(parents=True)
-        answers.to_csv(str(Path(output_folder) / 'demo_output.csv'), index=False)
+        answers.to_csv(str(Path(output_folder) / 'omr_output.csv'), index=False)
     return answers
 
 

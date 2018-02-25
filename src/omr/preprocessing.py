@@ -70,17 +70,20 @@ def optimise_quality(input_file_path, output_file_path=None, overwrite=False):
 
 
 def preprocess_folder(input_folder, output_folder):
-    assert len(os.listdir(output_folder)) == 0, 'output folder must be empty'
+    if not Path(output_folder).exists():
+        Path(output_folder).mkdir()
+    else:
+        assert len(os.listdir(output_folder)) == 0, 'output folder must be empty'
     # extract images from pdf
     for file_path in Path(input_folder).iterdir():
         if file_path.suffix.lower() == '.pdf':
-            print('extracting images from {}'.format(file_path.stem))
+            print('INFO: extracting images from {}'.format(file_path.name))
             images_from_pdf(str(file_path), output_folder)
     # optimise quality of all images (e.g. brightness)
     # for file_path in Path(output_folder).iterdir():
     #     optimise_quality(str(file_path), overwrite=True)
     # crop and rotate all images to only OMR form
-    print('folder preprocessed')
+    print('INFO: folder preprocessed')
 
 
 if __name__ == '__main__' and sys.argv[1] == 'dev':
