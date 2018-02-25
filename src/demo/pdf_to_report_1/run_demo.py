@@ -2,7 +2,6 @@ from omr.preprocessing import preprocess_folder
 from omr.processing import answers_from_images
 from analysis.preprocessing import preprocess
 from analysis.processing import *
-import pandas as pd
 import os
 from pathlib import Path
 

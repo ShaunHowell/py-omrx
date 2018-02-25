@@ -120,6 +120,7 @@ ENV/
 *.docx
 *.html
 *.pdf
+*.css
 
 # add exceptions to the data protection rules for demo folders which have been anonymised
 !src/demo/make_simple_report/data/exam_results/*
