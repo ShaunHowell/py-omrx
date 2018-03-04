@@ -21,18 +21,18 @@ def closest_circle(x, y, circles):
     return circles[i]
 
 
-def expected_circle_locations(form_design, pixels_per_box):
+def expected_circle_locations(circles_per_header_row, circles_per_q_row, pixels_per_box):
     exp_loc = []
     y = 0
     w = pixels_per_box
-    for row, num_options in enumerate(form_design['code']):
+    for row, num_options in enumerate(circles_per_header_row):
         x = 0
         for column in range(num_options):
             exp_loc.append([x + w / 2, y + w / 2])
             x += w
         y += w
     y += w
-    for row, num_options in enumerate(form_design['questions']):
+    for row, num_options in enumerate(circles_per_q_row):
         x = 0
         for column in range(num_options):
             exp_loc.append([x + w / 2, y + w / 2])
@@ -41,10 +41,10 @@ def expected_circle_locations(form_design, pixels_per_box):
     return exp_loc
 
 
-def filter_circles(circles, form_design, pixels_per_box=64):
+def filter_circles(circles, circles_per_header_row, circles_per_q_row, pixels_per_box=64):
     circles = circles.copy().tolist()
     assert len(np.array(circles).shape) == 2, 'shape must be (n,3), [} was passed'.format(np.array(circles).shape)
-    expected_locations = expected_circle_locations(form_design, pixels_per_box)
+    expected_locations = expected_circle_locations(circles_per_header_row, circles_per_q_row, pixels_per_box)
     filtered_circles = []
     for x, y in expected_locations:
         best_match = closest_circle(x, y, circles)
@@ -55,18 +55,8 @@ def filter_circles(circles, form_design, pixels_per_box=64):
     return filtered_circles
 
 
-def answers_from_image(input_file_path, form_design, debug = False):
-    assert Path(input_file_path).exists(), 'check input file path'
-    answers = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no'])
-
-    # prep image
-    image = cv2.imread(input_file_path)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    edged = cv2.Canny(blurred, threshold1=75, threshold2=200, L2gradient=True)
-
-    # find outer bounding box
-    cnts = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+def get_outer_box_contour(edged_image, original_image=None, debug=False):
+    cnts = cv2.findContours(edged_image.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[0] if imutils.is_cv2() else cnts[1]
     docCnt = None
     assert len(cnts) > 0, 'no contours found when looking for outer box'
@@ -78,25 +68,33 @@ def answers_from_image(input_file_path, form_design, debug = False):
             break
     if type(docCnt) != np.ndarray or perim < 9500:
         if debug:
-            Image.fromarray(edged).show()
+            Image.fromarray(edged_image).show()
             for i, c in enumerate(sorted(cnts, key=cv2.contourArea, reverse=True)):
-                cv2.drawContours(image, [c], -1, color=(0, 0, 100 + (155) * i / len(cnts)), thickness=1)
-            cv2.drawContours(image, sorted(cnts, key=cv2.contourArea, reverse=True), 0, color=(0, 255, 0), thickness=4)
-            Image.fromarray(image).show()
+                cv2.drawContours(original_image, [c], -1, color=(0, 0, 100 + (155) * i / len(cnts)), thickness=1)
+            cv2.drawContours(original_image, sorted(cnts, key=cv2.contourArea, reverse=True), 0, color=(0, 255, 0),
+                             thickness=4)
+            Image.fromarray(original_image).show()
         raise OmrException('no suitable outer contour found')
+    return docCnt
 
-    # perspective transform
+
+def get_outer_box(original_image, debug=False):
+    gray = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    edged = cv2.Canny(blurred, threshold1=75, threshold2=200, L2gradient=True)
+    outer_box_contour = get_outer_box_contour(edged, original_image, debug)
     shrink = 20
-    # original_cropped = four_point_transform(image, docCnt.reshape(4, 2))
-    # original_cropped = original_cropped[shrink:-shrink, shrink:-shrink]
-    grey_cropped = four_point_transform(gray, docCnt.reshape(4, 2))
+    original_cropped = four_point_transform(original_image, outer_box_contour.reshape(4, 2))
+    original_cropped = original_cropped[shrink:-shrink, shrink:-shrink]
+    grey_cropped = four_point_transform(gray, outer_box_contour.reshape(4, 2))
     grey_cropped = grey_cropped[shrink:-shrink, shrink:-shrink]
+    return grey_cropped, original_cropped
 
+
+def get_paper_code(greyscale_outer_box, debug=False):
     # binarise
-    thresh = cv2.threshold(grey_cropped, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
-
-    # find the paper code
-    paper_code_box = thresh[105:165, 280:500]
+    binary_outer_box = cv2.threshold(greyscale_outer_box, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+    paper_code_box = binary_outer_box[105:165, 280:500]
     code_circles = cv2.HoughCircles(paper_code_box, cv2.HOUGH_GRADIENT, 1, 50,
                                     param1=50,
                                     param2=8,
@@ -115,26 +113,25 @@ def answers_from_image(input_file_path, form_design, debug = False):
             paper_code = paper_code + 2 ** i
     if paper_code <= 0:
         if debug:
-            temp_box = cv2.cvtColor(paper_code_box, cv2.COLOR_GRAY2RGB)
+            blurred = cv2.GaussianBlur(greyscale_outer_box, (5, 5), 0)
+            edged = cv2.Canny(blurred, threshold1=75, threshold2=200, L2gradient=True)
+            cnts = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+            cnts = cnts[0] if imutils.is_cv2() else cnts[1]
+            temp_code_box = cv2.cvtColor(paper_code_box, cv2.COLOR_GRAY2RGB)
             for i in code_circles:
-                cv2.circle(temp_box, (i[0], i[1]), i[2], (0, 255, 0), 2)
-                cv2.circle(temp_box, (i[0], i[1]), 2, (0, 0, 255), 3)
-            Image.fromarray(temp_box).show()
-            cv2.drawContours(image, cnts, -1, color=(0, 0, 255), thickness=2)
-            cv2.drawContours(image, cnts, 0, color=(0, 255, 0), thickness=4)
-            Image.fromarray(image).show()
-        raise OmrException('paper code not detected properly, please check file {}'.format(Path(input_file_path).name))
+                cv2.circle(temp_code_box, (i[0], i[1]), i[2], (0, 255, 0), 2)
+                cv2.circle(temp_code_box, (i[0], i[1]), 2, (0, 0, 255), 3)
+            Image.fromarray(temp_code_box).show()
+            cv2.drawContours(greyscale_outer_box, cnts, -1, color=(0, 0, 255), thickness=2)
+            cv2.drawContours(greyscale_outer_box, cnts, 0, color=(0, 255, 0), thickness=4)
+            Image.fromarray(greyscale_outer_box).show()
+        raise OmrException('paper code not detected properly, please check file')
+    return paper_code
 
-    # set variables for main omr processes
-    form_design = form_design[str(paper_code)]
-    bubbles_per_row = form_design['code'] + form_design['questions']
-    left_margin = 60
-    top_margin = 130
-    pixels_per_row = 65
-    height = (len(bubbles_per_row) + 1) * pixels_per_row + 5  # plus 1 for middle buffer
 
-    # find inner bounding boxes
-    innerBoxCnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+def get_inner_boxes(greyscale_outer_box):
+    binary_outer_box = cv2.threshold(greyscale_outer_box, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+    innerBoxCnts = cv2.findContours(binary_outer_box.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     innerBoxCnts = innerBoxCnts[0] if imutils.is_cv2() else innerBoxCnts[1]
     innerBoxCnts = sorted(innerBoxCnts, key=cv2.contourArea, reverse=True)
     inner_boxes = []
@@ -143,62 +140,99 @@ def answers_from_image(input_file_path, form_design, debug = False):
         approx = cv2.approxPolyDP(c, 0.02 * perim, True)
         if len(approx) == 4:
             inner_box_cnt = approx
-            inner_boxes.append(four_point_transform(thresh.copy(), inner_box_cnt.reshape(4, 2)))
+            inner_boxes.append(four_point_transform(binary_outer_box.copy(), inner_box_cnt.reshape(4, 2)))
+    return inner_boxes
 
-    # extract data from inner boxes
+
+def get_answers_from_inner_box(inner_box, circles_per_header_row, circles_per_q_row):
+    circles = cv2.HoughCircles(inner_box, cv2.HOUGH_GRADIENT, 1, 50,
+                               param1=50,
+                               param2=8,
+                               minRadius=14,
+                               maxRadius=24)
+    circles = np.uint16(np.around(circles))[0]
+    circles = filter_circles(circles, circles_per_header_row, circles_per_q_row , pixels_per_box=64)
+    temp = cv2.cvtColor(inner_box, cv2.COLOR_GRAY2RGB)
+    [cv2.circle(temp, (circ[0], circ[1]), circ[2], (0, 255, 0), thickness=2) for circ in circles]
+    # Image.fromarray(temp).show()
+    # input('showing box, press enter to continue')
+
+    # sort circles top-to-bottom
+    circles = np.array(sorted(circles, key=lambda circle: circle[1]))
+    inner_box_answers = {}
+    # bubbles_per_row = 2
+    bubbles_processed = 0
+    for question_number, num_bubbles in enumerate(circles_per_header_row+circles_per_q_row):
+        question_circles = np.array(
+            sorted(circles[bubbles_processed:bubbles_processed + num_bubbles], key=lambda circle: circle[0]))
+        filled_circle = None
+        best_confidence = 0
+        for option_number, circle in enumerate(question_circles):
+            # mask outside current bubble
+            mask = np.zeros(inner_box.shape, dtype="uint8")
+            cv2.circle(mask, (circle[0], circle[1]), circle[2], 255, -1)
+            mask = cv2.bitwise_and(inner_box, inner_box, mask=mask)
+            average = cv2.countNonZero(mask) / (circle[2] * circle[2] * 3.14)
+            # check if best positive detection
+            if filled_circle is None or average > filled_circle[0]:
+                filled_circle = (average, option_number)
+                if question_number < len(circles_per_header_row):
+                    inner_box_answers.update({'c_{}'.format(question_number + 1): option_number})
+                else:
+                    inner_box_answers.update(
+                        {'q_{}'.format(question_number - len(circles_per_header_row) + 1): option_number})
+                best_confidence = average
+            bubbles_processed += 1
+        if best_confidence < 0.5:
+            print('low confidence: q {}'.format(question_number + 1), file=sys.stderr)
+            if question_number < len(circles_per_header_row):
+                inner_box_answers.update({'c_{}'.format(question_number + 1): np.nan})
+            else:
+                inner_box_answers.update({'q_{}'.format(question_number - len(circles_per_header_row) + 1): np.nan})
+    print('answers from inner box:\n', inner_box_answers)
+    return pd.DataFrame(inner_box_answers, index = [0])
+
+
+def get_answers_from_inner_boxes(inner_boxes, form_design):
+    circles_per_row = form_design['code'] + form_design['questions']
+    left_margin = 60
+    top_margin = 130
+    pixels_per_row = 65
+    height = (len(circles_per_row) + 1) * pixels_per_row + 5  # plus 1 for middle buffer
+    answers = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no'])
     for box_no, inner_box in enumerate(inner_boxes):
-        # rotate 90 via Pillow
         inner_box = np.array(Image.fromarray(inner_box).rotate(-90, expand=True))
         inner_box = inner_box[top_margin:top_margin + height, left_margin:]
-        # find bubbles
-        circles = cv2.HoughCircles(inner_box, cv2.HOUGH_GRADIENT, 1, 50,
-                                   param1=50,
-                                   param2=8,
-                                   minRadius=14,
-                                   maxRadius=24)
-        circles = np.uint16(np.around(circles))[0]
-        circles = filter_circles(circles, form_design, pixels_per_box=64)
-        # sort circles top-to-bottom
-        circles = np.array(sorted(circles, key=lambda circle: circle[1]))
-        inner_box_answers = {}
-        # bubbles_per_row = 2
-        bubbles_processed = 0
-        for question_number, num_bubbles in enumerate(bubbles_per_row):
-            question_circles = np.array(
-                sorted(circles[bubbles_processed:bubbles_processed + num_bubbles], key=lambda circle: circle[0]))
-            filled_circle = None
-            best_confidence = 0
-            for option_number, circle in enumerate(question_circles):
-                # mask outside current bubble
-                mask = np.zeros(inner_box.shape, dtype="uint8")
-                cv2.circle(mask, (circle[0], circle[1]), circle[2], 255, -1)
-                mask = cv2.bitwise_and(inner_box, inner_box, mask=mask)
-                average = cv2.countNonZero(mask) / (circle[2] * circle[2] * 3.14)
-                # check if best positive detection
-                if filled_circle is None or average > filled_circle[0]:
-                    filled_circle = (average, option_number)
-                    if question_number < len(form_design['code']):
-                        inner_box_answers.update({'c_{}'.format(question_number + 1): option_number})
-                    else:
-                        inner_box_answers.update(
-                            {'q_{}'.format(question_number - len(form_design['code']) + 1): option_number})
-                    best_confidence = average
-                bubbles_processed += 1
-            if best_confidence < 0.5:
-                print('low confidence: q {}, box {}, file {}'.format(question_number + 1, box_no + 1,
-                                                                     Path(input_file_path).name), file=sys.stderr)
-                if question_number < len(form_design['code']):
-                    inner_box_answers.update({'c_{}'.format(question_number + 1): np.nan})
-                else:
-                    inner_box_answers.update({'q_{}'.format(question_number - len(form_design['code']) + 1): np.nan})
-        inner_box_answers.update({'file_name': Path(input_file_path).stem,
-                                  'paper_code': paper_code,
-                                  'box_no': box_no + 1})
-        answers = answers.append(pd.Series(inner_box_answers), ignore_index=True)
+        inner_box_answers = get_answers_from_inner_box(inner_box, form_design['code'],form_design['questions'])
+        inner_box_answers['box_no'] = box_no+1
+        answers=answers.append(inner_box_answers)
     ok = True  # TODO: make this raise instead of returning ok, and handle it at the next function up
     if answers.isnull().sum().sum() > 0 or len(answers) < 3:
         ok = False
-    return answers, ok
+    return  answers
+
+
+def answers_from_image(input_file_path, form_design, debug=False):
+    assert Path(input_file_path).exists(), 'check input file path'
+    image = cv2.imread(input_file_path)
+    try:
+        grey_outer_box, rgb_outer_box = get_outer_box(image, debug)
+    except OmrException as e:
+        raise OmrException('no suitable outer contour found:\n{}'.format(e))
+    try:
+        paper_code = get_paper_code(grey_outer_box)
+    except OmrException as e:
+        raise OmrException(
+            'paper code not detected properly, please check file {}:\n{}'.format(Path(input_file_path).name, e))
+    form_design = form_design[str(paper_code)]
+    try:
+        inner_boxes = get_inner_boxes(grey_outer_box)
+    except OmrException as e:
+        raise OmrException('couldn\'t find inner boxes correctly:\n{}'.format(e))
+    answers = get_answers_from_inner_boxes(inner_boxes, form_design)
+    answers['file_name'] = Path(input_file_path).stem
+    answers['paper_code'] = paper_code
+    return answers
 
 
 def answers_from_images(input_folder, form_design_path, output_folder=None):
@@ -207,11 +241,11 @@ def answers_from_images(input_folder, form_design_path, output_folder=None):
     for file_path in Path(input_folder).iterdir():
         print('INFO: processing image {}'.format(file_path.name))
         try:
-            im_answers, ok = answers_from_image(str(file_path), form_design)
-            if not ok:
-                print('problem with {}, please see above'.format(Path(file_path).name), file=sys.stderr)
+            im_answers = answers_from_image(str(file_path), form_design)
+            # if not ok:
+            #     print('problem with {}, please see above'.format(Path(file_path).name), file=sys.stderr)
             answers = answers.append(im_answers)
-        except Exception as e:
+        except OmrException as e:
             print('couldn\'t extract data from {}: check input file'.format(Path(file_path).name), file=sys.stderr)
             print('error message: ', e, file=sys.stderr)
     if output_folder:
