@@ -9,9 +9,14 @@ from PIL import Image
 from pathlib import Path
 from scipy.spatial import KDTree
 import pandas as pd
+from scipy.spatial.distance import euclidean
 
 
 class OmrException(Exception):
+    pass
+
+
+class OmrValidationException(OmrException):
     pass
 
 
@@ -79,15 +84,37 @@ def get_outer_box_contour(edged_image, original_image=None, debug=False):
 
 
 def get_outer_box(original_image, debug=False):
-    gray = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    edged = cv2.Canny(blurred, threshold1=75, threshold2=200, L2gradient=True)
-    outer_box_contour = get_outer_box_contour(edged, original_image, debug)
-    shrink = 20
-    original_cropped = four_point_transform(original_image, outer_box_contour.reshape(4, 2))
-    original_cropped = original_cropped[shrink:-shrink, shrink:-shrink]
-    grey_cropped = four_point_transform(gray, outer_box_contour.reshape(4, 2))
-    grey_cropped = grey_cropped[shrink:-shrink, shrink:-shrink]
+    portrait = False
+    i = 0
+    while not portrait and i<2:
+        gray = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        edged = cv2.Canny(blurred, threshold1=75, threshold2=200, L2gradient=True)
+        outer_box_contour = get_outer_box_contour(edged, original_image, debug)
+        tl, bl, br, tr = outer_box_contour[0], outer_box_contour[1], outer_box_contour[2], outer_box_contour[3]
+        heights = sorted([euclidean(bl,tl), euclidean(br,tr)])
+        widths = sorted([euclidean(tr,tl),euclidean(br,bl)])
+        try:
+            assert heights[1] / heights[0] < 1.05
+            assert widths[1] / widths[0] < 1.05
+        except:
+            # print('outer contour: {}'.format(outer_box_contour.tolist()))
+            # cv2.drawContours(original_image, [outer_box_contour], -1, (0, 0, 255), 3)
+            # Image.fromarray(original_image).show()
+            raise OmrValidationException('good outer box not found')
+        shrink = 20
+        original_cropped = four_point_transform(original_image, outer_box_contour.reshape(4, 2))
+        original_cropped = original_cropped[shrink:-shrink, shrink:-shrink]
+        grey_cropped = four_point_transform(gray, outer_box_contour.reshape(4, 2))
+        grey_cropped = grey_cropped[shrink:-shrink, shrink:-shrink]
+        height, width, = grey_cropped.shape
+        if height > width:
+            portrait = True
+        else:
+            original_image = np.array(Image.fromarray(original_image).rotate(90, expand=True))
+        i += 1
+    if not portrait:
+        raise OmrValidationException('portrait outer box not found')
     return grey_cropped, original_cropped
 
 
@@ -130,39 +157,62 @@ def get_paper_code(greyscale_outer_box, debug=False):
 
 
 def get_inner_boxes(greyscale_outer_box):
-    binary_outer_box = cv2.threshold(greyscale_outer_box, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
-    innerBoxCnts = cv2.findContours(binary_outer_box.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    innerBoxCnts = innerBoxCnts[0] if imutils.is_cv2() else innerBoxCnts[1]
-    innerBoxCnts = sorted(innerBoxCnts, key=cv2.contourArea, reverse=True)
-    inner_boxes = []
-    for c in sorted(innerBoxCnts[:3], key=lambda cnt: cv2.boundingRect(cnt.copy())[1], reverse=True):
-        perim = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.02 * perim, True)
-        if len(approx) == 4:
-            inner_box_cnt = approx
-            inner_boxes.append(four_point_transform(binary_outer_box.copy(), inner_box_cnt.reshape(4, 2)))
+    box_1_cnt = [[[42, 2102]], [[46, 2775]], [[1978, 2773]], [[1976, 2101]]]
+    box_2_cnt = [[[44, 1257]], [[46, 1925]], [[1979, 1923]], [[1977, 1253]]]
+    box_3_cnt = [[[42, 412]], [[42, 1077]], [[1979, 1074]], [[1979, 410]]]
+    # binary_outer_box = cv2.threshold(greyscale_outer_box, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+    # candidate_cnts = cv2.findContours(binary_outer_box.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # candidate_cnts = candidate_cnts[0] if imutils.is_cv2() else candidate_cnts[1]
+    # candidate_cnts = sorted(candidate_cnts, key=cv2.contourArea, reverse=True)
+    # inner_boxes = []
+    inner_box_cnts = [np.array(box_1_cnt), np.array(box_2_cnt), np.array(box_3_cnt)]
+    # for c in sorted(candidate_cnts[:3], key=lambda cnt: cv2.boundingRect(cnt.copy())[1], reverse=True):
+    #     perim = cv2.arcLength(c, True)
+    #     approx = cv2.approxPolyDP(c, 0.02 * perim, True)
+    #     if len(approx) == 4:
+    #         inner_box_cnt = approx
+    #         inner_boxes.append(four_point_transform(binary_outer_box.copy(), inner_box_cnt.reshape(4, 2)))
+    #         inner_box_cnts.append(inner_box_cnt)
+    inner_boxes = [four_point_transform(greyscale_outer_box.copy(), cnt.reshape(4, 2)) for cnt in inner_box_cnts]
+    temp_box = cv2.cvtColor(greyscale_outer_box, cv2.COLOR_GRAY2RGB)
+    # cv2.drawContours(temp_box, candidate_cnts, -1, (0, 255, 0), 3)
+    cv2.drawContours(temp_box, inner_box_cnts, -1, (0, 0, 255), 3)
+    Image.fromarray(temp_box).show()
     return inner_boxes
 
 
 def get_answers_from_inner_box(inner_box, circles_per_header_row, circles_per_q_row):
+    # Find circles
+    inner_box = cv2.threshold(inner_box, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
     circles = cv2.HoughCircles(inner_box, cv2.HOUGH_GRADIENT, 1, 50,
                                param1=50,
                                param2=8,
                                minRadius=14,
                                maxRadius=24)
     circles = np.uint16(np.around(circles))[0]
-    circles = filter_circles(circles, circles_per_header_row, circles_per_q_row , pixels_per_box=64)
+    circles = filter_circles(circles, circles_per_header_row, circles_per_q_row, pixels_per_box=64)
+
+    # Draw circles for visualisation
     temp = cv2.cvtColor(inner_box, cv2.COLOR_GRAY2RGB)
     [cv2.circle(temp, (circ[0], circ[1]), circ[2], (0, 255, 0), thickness=2) for circ in circles]
     # Image.fromarray(temp).show()
-    # input('showing box, press enter to continue')
+
+
+    # Check region outside of circles doesn't have too many marks, or image quality is probably poor
+    mask = np.ones(inner_box.shape, dtype="uint8")
+    [cv2.circle(mask, (circ[0], circ[1]), int(circ[2]*1.3), 0, -1) for circ in circles]
+    mask = cv2.bitwise_and(inner_box, inner_box, mask=mask)
+    noise = sum((mask/255).flatten().tolist())*100/mask.size
+    if noise > 13: # FIXME: needs manual calibration for each new excel form change
+        print('mask mark percentage: ', sum((mask / 255).flatten().tolist()) * 100 / mask.size)
+        raise OmrValidationException('too many marks found outside of circles')
 
     # sort circles top-to-bottom
     circles = np.array(sorted(circles, key=lambda circle: circle[1]))
     inner_box_answers = {}
     # bubbles_per_row = 2
     bubbles_processed = 0
-    for question_number, num_bubbles in enumerate(circles_per_header_row+circles_per_q_row):
+    for question_number, num_bubbles in enumerate(circles_per_header_row + circles_per_q_row):
         question_circles = np.array(
             sorted(circles[bubbles_processed:bubbles_processed + num_bubbles], key=lambda circle: circle[0]))
         filled_circle = None
@@ -184,13 +234,12 @@ def get_answers_from_inner_box(inner_box, circles_per_header_row, circles_per_q_
                 best_confidence = average
             bubbles_processed += 1
         if best_confidence < 0.5:
-            print('low confidence: q {}'.format(question_number + 1), file=sys.stderr)
+            print('low confidence: row {}'.format(question_number + 1), file=sys.stderr)
             if question_number < len(circles_per_header_row):
                 inner_box_answers.update({'c_{}'.format(question_number + 1): np.nan})
             else:
                 inner_box_answers.update({'q_{}'.format(question_number - len(circles_per_header_row) + 1): np.nan})
-    print('answers from inner box:\n', inner_box_answers)
-    return pd.DataFrame(inner_box_answers, index = [0])
+    return pd.DataFrame(inner_box_answers, index=[0])
 
 
 def get_answers_from_inner_boxes(inner_boxes, form_design):
@@ -203,16 +252,16 @@ def get_answers_from_inner_boxes(inner_boxes, form_design):
     for box_no, inner_box in enumerate(inner_boxes):
         inner_box = np.array(Image.fromarray(inner_box).rotate(-90, expand=True))
         inner_box = inner_box[top_margin:top_margin + height, left_margin:]
-        inner_box_answers = get_answers_from_inner_box(inner_box, form_design['code'],form_design['questions'])
-        inner_box_answers['box_no'] = box_no+1
-        answers=answers.append(inner_box_answers)
+        inner_box_answers = get_answers_from_inner_box(inner_box, form_design['code'], form_design['questions'])
+        inner_box_answers['box_no'] = box_no + 1
+        answers = answers.append(inner_box_answers)
     ok = True  # TODO: make this raise instead of returning ok, and handle it at the next function up
     if answers.isnull().sum().sum() > 0 or len(answers) < 3:
         ok = False
-    return  answers
+    return answers
 
 
-def answers_from_image(input_file_path, form_design, debug=False):
+def answers_from_image(input_file_path, form_designs, debug=False):
     assert Path(input_file_path).exists(), 'check input file path'
     image = cv2.imread(input_file_path)
     try:
@@ -224,7 +273,7 @@ def answers_from_image(input_file_path, form_design, debug=False):
     except OmrException as e:
         raise OmrException(
             'paper code not detected properly, please check file {}:\n{}'.format(Path(input_file_path).name, e))
-    form_design = form_design[str(paper_code)]
+    form_design = form_designs[str(paper_code)]
     try:
         inner_boxes = get_inner_boxes(grey_outer_box)
     except OmrException as e:
