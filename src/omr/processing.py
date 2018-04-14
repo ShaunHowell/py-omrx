@@ -263,7 +263,7 @@ def get_answers_from_inner_boxes(inner_boxes, form_design):
             inner_box_answers['box_no'] = box_no + 1
         except OmrException:
             print('Couldn\'t extract answers from box {}'.format(box_no+1),file=sys.stderr)
-            inner_box_answers = pd.DataFrame([[box_no+1,True]], columns=['box_no','error'])
+            inner_box_answers = pd.DataFrame([[box_no+1,True]], columns=['box_no','omr_error'])
         answers = answers.append(inner_box_answers)
     ok = True  # TODO: make this raise instead of returning ok, and handle it at the next function up
     if answers.isnull().sum().sum() > 0 or len(answers) < 3:
@@ -330,6 +330,7 @@ def get_answers_from_inner_box(inner_box, circles_per_header_row, circles_per_q_
                 inner_box_answers.update({'c_{}'.format(question_number + 1): np.nan})
             else:
                 inner_box_answers.update({'q_{}'.format(question_number - len(circles_per_header_row) + 1): np.nan})
+            inner_box_answers.update({'omr_error':True})
     return pd.DataFrame(inner_box_answers, index=[0])
 
 
