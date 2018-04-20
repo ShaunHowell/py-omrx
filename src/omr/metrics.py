@@ -18,13 +18,15 @@ def find_omr_accuracy(omr_output_location, manual_location, form_design_loc):
     num_incorrect_responses = 0
     num_abstentions = 0
     merged_df['row_wrong'] = 0
+    merged_df['abstentions'] = 0
     for q_id in omr_df.filter(regex='[c_|q_][0-9]').columns.values.tolist():
         print('processing question ', q_id)
         for i, row in merged_df.iterrows():
             if pd.isnull(row['{}_x'.format(q_id)]):
                 continue
-            if pd.isnull(row['{}_y'.format(q_id)]):
+            if int(row['{}_y'.format(q_id)])==-3:
                 num_abstentions += 1
+                merged_df.ix[i, 'abstentions'] = merged_df.ix[i, 'abstentions'] + 1
                 continue
             if int(row['{}_x'.format(q_id)]) == int(row['{}_y'.format(q_id)]):
                 num_correct_responses += 1
@@ -33,7 +35,11 @@ def find_omr_accuracy(omr_output_location, manual_location, form_design_loc):
                 merged_df.ix[i, 'row_wrong'] = merged_df.ix[i, 'row_wrong'] + 1
     assert num_incorrect_responses + num_abstentions + num_correct_responses == merged_df['num_circles'].sum(), \
         'wrong number of answers somehow'
-    print(num_incorrect_responses, num_abstentions, num_correct_responses)
+    print('incorrect: {}, abstentions: {},'
+          ' correct: {}, total: {}'.format(num_incorrect_responses,
+                                           num_abstentions,
+                                           num_correct_responses,
+                                           num_incorrect_responses+ num_abstentions+num_correct_responses))
     print(merged_df.to_string())
 
 

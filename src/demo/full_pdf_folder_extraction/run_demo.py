@@ -1,5 +1,5 @@
 from omr.preprocessing import preprocess_folder
-from omr.processing import answers_from_images
+from omr.processing import process_images_folder
 import os
 from pathlib import Path
 
@@ -9,7 +9,7 @@ for file_path in Path('data/images').iterdir():
 
 preprocess_folder('data/scans', 'data/images')
 
-answers = answers_from_images('data/images','data/ext/omr_form_designs.json','data/exam_results')
+answers = process_images_folder('data/images', 'data/ext/omr_form_designs.json', 'data/exam_results')
 
 print(answers.to_string())
 print('output csv should be in data/exam_results.csv')
