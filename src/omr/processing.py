@@ -23,7 +23,9 @@ class OmrValidationException(OmrException):
     pass
 
 
-def closest_circle(x, y, circles, max_distance=np.inf):
+def nearby_circle(x, y, circles, max_distance=np.inf):
+    if len(circles) == 0:
+        raise OmrValidationException('no more candidate circles available')
     circle_coords = np.array(circles)[:, :2]
     d, i = KDTree(circle_coords).query([x, y], distance_upper_bound=max_distance)
     if d != np.inf:
@@ -37,7 +39,7 @@ def expected_circle_locations(circles_per_header_row, circles_per_q_row, bubble_
     exp_loc = []
     spacing_width = bubble_spacing[0]
     spacing_height = bubble_spacing[1]
-    top_left_position = top_left_position if top_left_position is not None else [0,0]
+    top_left_position = top_left_position if top_left_position is not None else [0, 0]
     y = top_left_position[1]
     for row, num_options in enumerate(circles_per_header_row):
         x = top_left_position[0]
@@ -75,25 +77,39 @@ def circles_from_grid(x_coords, y_coords, circles_per_header_row, circles_per_q_
     return circles
 
 
-def get_good_circles(candidate_circles, circles_per_header_row, circles_per_q_row, inner_box_shape):
+def get_good_circles(candidate_circles, circles_per_header_row, circles_per_q_row, inner_box_shape, debug_image):
     candidate_circles = sorted(candidate_circles.copy().tolist(), key=lambda circ: circ[0] + circ[1])
     assert len(np.array(candidate_circles).shape) == 2, 'shape must be (n,3), [} was passed'.format(
         np.array(candidate_circles).shape)
+    bubble_box_width = inner_box_shape[1] / max(circles_per_q_row + circles_per_header_row)
+    bubble_box_height = inner_box_shape[0] / (27) # number of rows in inner box
+    max_circle_search_distance = max([bubble_box_height, bubble_box_width]) * 0.5
+    bubble_spacing = [0.995 * bubble_box_width, 1.00 * bubble_box_height]
+    top_left_position = [int(0.53 * bubble_box_width), int(0.65 * bubble_box_height)]
+    # print('bubble box shape: w:{}, h:{}'.format(bubble_box_width, bubble_box_height))
+    # print('bubble spacing: {}'.format(bubble_spacing))
+    # print('top left pos: {}'.format(top_left_position))
     expected_locations = expected_circle_locations(circles_per_header_row,
                                                    circles_per_q_row,
-                                                   [66.5, 64],
-                                                   [51, 100])
+                                                   bubble_spacing,
+                                                   top_left_position)
+    # temp_image = cv2.cvtColor(debug_image, cv2.COLOR_GRAY2RGB)
+    # [cv2.circle(temp_image,tuple(loc),2,(255,0,0), -1) for loc in expected_locations]
+    # [cv2.circle(temp_image,(circ[0],circ[1]),circ[2],(0,255,0), 2) for circ in candidate_circles]
+    # plt.imshow(temp_image)
+    # plt.show()
     filtered_circles = []
-    box_width = inner_box_shape[1] / max(circles_per_q_row + circles_per_header_row)
-    box_height = inner_box_shape[0] / (len(circles_per_q_row + circles_per_header_row) + 1)
-    max_circle_search_distance = max([box_height, box_width]) * 0.4
     for x, y in expected_locations:
-        best_match = closest_circle(x, y, candidate_circles, max_circle_search_distance)
-        if best_match:
-            filtered_circles.append(best_match)
-            candidate_circles.remove(best_match)
+        try:
+            good_match = nearby_circle(x, y, candidate_circles, max_circle_search_distance)
+            if good_match:
+                filtered_circles.append(good_match)
+                candidate_circles.remove(good_match)
+        except OmrValidationException as e:
+            print('WARNING: Found too few circles')
+            break
     if len(filtered_circles) < len(circles_per_header_row + circles_per_q_row) * 0.5:
-        raise OmrValidationException('too few circles found on first pass')
+        raise OmrValidationException('less than half the expected circles found')
     y_coords = [circ[1] for circ in filtered_circles]
     x_coords = [circ[0] for circ in filtered_circles]
     try:
@@ -123,8 +139,13 @@ def get_outer_box_contour(edged_image):
         if len(approx) == 4:
             docCnt = approx
             break
-    if type(docCnt) != np.ndarray or perim < 9500:
-        raise OmrException('no suitable outer contour found')
+    if type(docCnt) != np.ndarray or perim < 7400:
+        # temp_image = cv2.cvtColor(edged_image, cv2.COLOR_GRAY2RGB)
+        # cv2.drawContours(temp_image, [docCnt], -1, (255, 0, 0), 3)
+        # plt.imshow(temp_image)
+        # plt.show()
+        raise OmrException('no suitable outer contour found, '
+                           'biggest outer contour had perim of {}'.format(perim))
     return docCnt
 
 
@@ -163,15 +184,24 @@ def get_outer_box(original_image):
 
 
 def get_paper_code(greyscale_outer_box):
+    height, width = greyscale_outer_box.shape
+    h1, h2 = int(height * 105 / 3507), int(height * 175 / 3057)
+    w1, w2 = int(width * 0.145), int(width * 0.250)
+    r1, r2 = int(height * 0.0042), int(height * 0.0054)
+    min_dist = int(height * 0.0114)
     binary_outer_box = cv2.threshold(greyscale_outer_box, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
-    paper_code_box = binary_outer_box[105:175, 280:510]
-    code_circles = cv2.HoughCircles(paper_code_box, cv2.HOUGH_GRADIENT, 1, 40,
+    paper_code_box = binary_outer_box[h1:h2, w1:w2]
+    # temp_image = Image.fromarray(paper_code_box)
+    # plt.imshow(temp_image)
+    # plt.show()
+    code_circles = cv2.HoughCircles(paper_code_box, cv2.HOUGH_GRADIENT, 1,
+                                    min_dist,
                                     param1=150,
                                     param2=5,
-                                    minRadius=15,
-                                    maxRadius=19)
+                                    minRadius=r1,
+                                    maxRadius=r2)
     code_circles = np.uint16(np.around(code_circles))[0]
-    code_circles = np.array(sorted(code_circles, key=lambda circle: circle[0], reverse=False))  # read left to right
+    code_circles = np.array(sorted(code_circles, key=lambda circle: circle[0], reverse=True))  # read left to right
     assert len(code_circles) == 3, 'found {} circles whilst trying ' \
                                    'to find paper code, should be 3'.format(len(code_circles))
     paper_code = 0
@@ -185,12 +215,15 @@ def get_paper_code(greyscale_outer_box):
             paper_code = paper_code + 2 ** i
     if paper_code <= 0:
         raise OmrException('paper code not detected properly, please check file')
+    # print('INFO: paper code: {}'.format(paper_code))
     return paper_code
 
 
 def get_inner_boxes(greyscale_outer_box):
-    box_height, box_width = 1927, 749 # height & width of inner boxes when they're portrait
-    bl_1, bl_2, bl_3 = [42, 2995], [43, 2071], [43, 1154] # bottom left corner coords with page portrait
+    h, w = greyscale_outer_box.shape
+    box_height, box_width = 0.96 * w, 0.234 * h  # height & width of inner boxes when they're portrait
+    bl_1, bl_2, bl_3 = [0.017 * w, 0.948 * h], [0.017 * w, 0.655 * h], [0.017 * w,
+                                                                        0.363 * h]  # bottom left corner coords with page portrait
     box_1_cnt = [[bl_1], [[bl_1[0], bl_1[1] - box_width]], [[bl_1[0] + box_height, bl_1[1] - box_width]],
                  [[bl_1[0] + box_height, bl_1[1]]]]
     box_2_cnt = [[bl_2], [[bl_2[0], bl_2[1] - box_width]], [[bl_2[0] + box_height, bl_2[1] - box_width]],
@@ -199,27 +232,38 @@ def get_inner_boxes(greyscale_outer_box):
                  [[bl_3[0] + box_height, bl_3[1]]]]
     inner_box_cnts = [np.array(box_1_cnt), np.array(box_2_cnt), np.array(box_3_cnt)]
     inner_boxes = [four_point_transform(greyscale_outer_box.copy(), cnt.reshape(4, 2)) for cnt in inner_box_cnts]
+
+    # temp_image = cv2.cvtColor(greyscale_outer_box, cv2.COLOR_GRAY2RGB)
+    # cv2.drawContours(temp_image, inner_box_cnts, -1, (255, 0, 0), 3)
+    # [plt.imshow(temp_image) for temp_image in inner_boxes]
+    plt.show()
     return inner_boxes
 
 
 def process_boxes(inner_boxes, form_design):
     circles_per_row = form_design['code'] + form_design['questions']
-    left_margin = 60
-    top_margin = 130
-    pixels_per_row = 65
-    height = (len(circles_per_row) + 2) * pixels_per_row  # plus 2 for middle buffer and top buffer
-    answers = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no','omr_error','marker_error'])
+    answers = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no', 'omr_error', 'marker_error'])
     for box_no, inner_box in enumerate(inner_boxes):
+        h, w = inner_box.shape
+        left_margin = int(0.101 * h)
+        top_margin = int(0.1 * w)
+        # pixels_per_row = int(0.085 * h)
+        # height = (len(circles_per_row) + 1) * pixels_per_row  # plus 2 for middle buffer and top buffer
+
         inner_box = np.array(Image.fromarray(inner_box).rotate(-90, expand=True))
-        inner_box = inner_box[top_margin:top_margin + height, left_margin:]
+        inner_box = inner_box[top_margin:, left_margin:]
+        # plt.imshow(inner_box)
+        # plt.show()
         try:
             inner_box_answers = process_inner_box(inner_box, form_design['code'], form_design['questions'])
             inner_box_answers['box_no'] = box_no + 1
-        except OmrException:
+        except OmrException as e:
             print('Couldn\'t extract answers from box {}'.format(box_no + 1), file=sys.stderr)
+            print('error: {}'.format(e))
             inner_box_answers = pd.DataFrame([[box_no + 1, True]], columns=['box_no', 'omr_error'])
         answers = answers.append(inner_box_answers)
-    if answers.drop(['omr_error','marker_error','file_name','paper_code'],axis=1).isnull().sum().sum() > 0 or len(answers) < 3:
+    if answers.drop(['omr_error', 'marker_error', 'file_name', 'paper_code'], axis=1).isnull().sum().sum() > 0 or len(
+            answers) < 3:
         raise OmrException('Must be no nulls in answers and must be 3 boxes processed')
     return answers
 
@@ -233,31 +277,34 @@ def process_circle(inner_box, circle):
 
 def response_from_darknesses(darknesses):
     if max(darknesses) < 0.09:
-        return -1
-    filled_circles = list(filter(lambda d:d>0.25, darknesses))
-    if len(filled_circles)>1:
-        return -2
-    if len(filled_circles)<1:
-        return -3
+        return -1 # -1 means the row doesn't have a response
+    filled_circles = list(filter(lambda d: d > 0.25, darknesses))
+    if len(filled_circles) > 1:
+        return -2 # -2 means more than one response detected
+    if len(filled_circles) < 1:
+        return -3 # -3 means the omr algorithm couldn't work out the filled in box (abstention)
     darknesses = enumerate(darknesses)
     darknesses = sorted(darknesses, key=lambda circle: circle[1])
-    if darknesses[-1][1]/darknesses[-2][1] < 1.6:
-        return -3
+    if darknesses[-1][1] / darknesses[-2][1] < 1.6:
+        return -3 # -3 because there wasn't enough difference between the 1st and 2nd darkest circles
     return darknesses[-1][0]
 
 
 def process_inner_box(inner_box, circles_per_header_row, circles_per_q_row):
+    h, w = inner_box.shape
+    min_dist = int(0.036 * h)
+    r1, r2 = int(0.008 * h), int(0.011 * h)
     inner_box = cv2.threshold(inner_box, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
     circles = cv2.HoughCircles(inner_box, cv2.HOUGH_GRADIENT,
                                dp=1,
-                               minDist=50,
+                               minDist=min_dist,
                                param1=50,
                                param2=8,
-                               minRadius=15,
-                               maxRadius=20)
+                               minRadius=r1,
+                               maxRadius=r2)
     circles = np.uint16(np.around(circles))[0]
     circles = get_good_circles(circles, circles_per_header_row, circles_per_q_row,
-                               inner_box_shape=inner_box.shape)
+                               inner_box_shape=inner_box.shape, debug_image=inner_box)
     # Check region outside of circles doesn't have too many marks, or image quality is probably poor
     mask = np.ones(inner_box.shape, dtype="uint8")
     [cv2.circle(mask, (circ[0], circ[1]), int(circ[2] * 1.3), 0, -1) for circ in circles]
@@ -279,10 +326,10 @@ def process_inner_box(inner_box, circles_per_header_row, circles_per_q_row):
             bubbles_processed += 1
         # determine response based on circle darknesses
         response = response_from_darknesses(darknesses)
-        print('Row {}, darknesses: {}, response: {}'.format(question_number, list(enumerate(darknesses)), response))
+        # print('Row {}, darknesses: {}, response: {}'.format(question_number, list(enumerate(darknesses)), response))
         if response == -3:
             inner_box_answers.update({'omr_error': True})
-        if response in [-1,-2]:
+        if response in [-1, -2]:
             inner_box_answers.update({'marker_error': True})
         if question_number < len(circles_per_header_row):
             inner_box_answers.update({'c_{:0>2}'.format(question_number + 1): response})
@@ -294,6 +341,7 @@ def process_inner_box(inner_box, circles_per_header_row, circles_per_q_row):
 
 def process_image(input_file_path, form_designs):
     assert Path(input_file_path).exists(), 'check input file path'
+    # if 'L2' not in input_file_path: return
     image = cv2.imread(input_file_path)
     try:
         grey_outer_box, rgb_outer_box = get_outer_box(image)
@@ -305,6 +353,8 @@ def process_image(input_file_path, form_designs):
         raise OmrException(
             'paper code not detected properly, please check file {}:\n{}'.format(Path(input_file_path).name, e))
     form_design = form_designs[str(paper_code)]
+    # print('INFO: form design:')
+    # pprint.pprint(form_design)
     try:
         inner_boxes = get_inner_boxes(grey_outer_box)
     except OmrException as e:
@@ -317,20 +367,33 @@ def process_image(input_file_path, form_designs):
 
 def process_images_folder(input_folder, form_design_path, output_folder=None):
     form_design = json.load(open(form_design_path))
-    answers = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no'])
-    for file_path in Path(input_folder).iterdir():
-        print('INFO: processing image {}'.format(file_path.name))
+    answers_df = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no'])
+    img_files = list(Path(input_folder).iterdir())
+    error_files = []
+    print('{} files to process'.format(len(img_files)))
+    for i , file_path in enumerate(img_files):
+        print('INFO: processing image {} {}'.format(i, file_path.name))
         try:
             im_answers = process_image(str(file_path), form_design)
-            answers = answers.append(im_answers)
+            answers_df = answers_df.append(im_answers)
         except OmrException as e:
+            error_files.append(str(file_path.stem))
             print('couldn\'t extract data from {}: check input file'.format(Path(file_path).name), file=sys.stderr)
             print('error message: ', e, file=sys.stderr)
+    assert len(answers_df) > 0, 'could not extract any data from the images'
+    error_df = pd.DataFrame(index=error_files,columns=answers_df.columns.tolist())
+    error_df = pd.concat([error_df]*3, axis=0).sort_index()
+    error_df['omr_error'] = True
+    error_df['box_no'] = [1,2,3] * int(len(error_df)/3)
+    error_df['file_name'] = error_df.index.tolist()
+    error_df['marker_error'] = np.nan
+    error_df.loc[:, ~error_df.columns.isin(['file_name', 'omr_error', 'box_no', 'marker_error'])] = -3
+    answers_df = pd.concat([answers_df,error_df],axis=0)
     if output_folder:
         if not Path(output_folder).exists():
             Path(output_folder).mkdir(parents=True)
-        answers.to_csv(str(Path(output_folder) / 'omr_output.csv'), index=False)
-    return answers
+        answers_df.to_csv(str(Path(output_folder) / 'omr_output.csv'), index=False)
+    return answers_df
 
 # if __name__ == '__main__' and sys.argv[1] == 'dev':
 # form_design = json.load(open('demo/omr_data_extraction/data/ext/omr_form_designs.json'))

@@ -11,20 +11,21 @@ def find_omr_accuracy(omr_output_location, manual_location, form_design_loc):
     form_designs = json.load(open(form_design_loc))
     circles_per_box = {int(code): len(config['code'] + config['questions']) for code, config in form_designs.items()}
     merged_df['num_circles'] = merged_df['paper_code_x'].map(circles_per_box)
-    print(omr_df.to_string())
-    print(man_df.to_string())
+    merged_df['num_circles'] = merged_df['num_circles'] + 1 # plus one for the paper code circle
+    print(omr_df.head(100).to_string())
+    print(man_df.head(100).to_string())
 
     num_correct_responses = 0
     num_incorrect_responses = 0
     num_abstentions = 0
     merged_df['row_wrong'] = 0
     merged_df['abstentions'] = 0
-    for q_id in omr_df.filter(regex='[c_|q_][0-9]').columns.values.tolist():
+    for q_id in omr_df.filter(regex='([c_|q_][0-9])|(paper_code)').columns.values.tolist():
         print('processing question ', q_id)
         for i, row in merged_df.iterrows():
             if pd.isnull(row['{}_x'.format(q_id)]):
                 continue
-            if int(row['{}_y'.format(q_id)])==-3:
+            if int(row['{}_y'.format(q_id)]) == -3:
                 num_abstentions += 1
                 merged_df.ix[i, 'abstentions'] = merged_df.ix[i, 'abstentions'] + 1
                 continue
@@ -39,7 +40,7 @@ def find_omr_accuracy(omr_output_location, manual_location, form_design_loc):
           ' correct: {}, total: {}'.format(num_incorrect_responses,
                                            num_abstentions,
                                            num_correct_responses,
-                                           num_incorrect_responses+ num_abstentions+num_correct_responses))
+                                           num_incorrect_responses + num_abstentions + num_correct_responses))
     print(merged_df.to_string())
 
 
