@@ -29,4 +29,4 @@ before_script: # configure a headless display to test plot generation
 
 script:
   - cd src
-  - pytest
+  - python -m pytest tests/ && exit 0

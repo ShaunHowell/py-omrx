@@ -38,18 +38,20 @@ def find_omr_accuracy(omr_output_location, manual_location, form_design_loc):
             else:
                 num_incorrect_responses += 1
                 merged_df.loc[i, 'row_wrong'] = merged_df.loc[i, 'row_wrong'] + 1
-    assert num_incorrect_responses + num_abstentions + num_correct_responses == merged_df['num_circles'].sum(), \
+    total_responses = num_incorrect_responses + num_abstentions + num_correct_responses
+    assert total_responses == merged_df['num_circles'].sum(), \
         'wrong number of answers somehow'
     print('incorrect: {}, abstentions: {},'
           ' correct: {}, total: {}'.format(num_incorrect_responses,
                                            num_abstentions,
                                            num_correct_responses,
-                                           num_incorrect_responses + num_abstentions + num_correct_responses))
+                                           total_responses))
     print(merged_df.to_string())
     return dict(incorrect=num_incorrect_responses,
                 abstentions=num_abstentions ,
                 correct= num_correct_responses,
-                not_marked_manually=num_not_marked_manually)
+                not_marked_manually=num_not_marked_manually,
+                total_responses=total_responses)
 
 
 if __name__ == '__main__':
