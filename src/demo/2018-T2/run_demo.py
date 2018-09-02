@@ -1,10 +1,9 @@
-from omr.preprocessing import preprocess_folder
-from omr.processing import process_images_folder
-from omr.metrics import *
-from analysis.preprocessing import preprocess
-from analysis.processing import *
-import os
 from pathlib import Path
+
+from analysis.preprocessing import preprocess
+from omr.exam_marksheet.processing import *
+from omr.core.preprocessing import *
+from omr.core.metrics import *
 
 images_path = 'data/images'
 results_path = 'data/exam_results'
@@ -22,12 +21,12 @@ reports_folder = 'data/reports'
 # print('INFO: raw data extracted from scans')
 # print('output csv should be in data/exam_results.csv')
 #
-# find_omr_accuracy(os.path.join(results_path, 'omr_output.csv'),
-#                   os.path.join(results_path, 'human_processed_exam_results.csv'),
-#                   os.path.join(metadata_path, 'omr_form_designs.json'))
+find_omr_accuracy(os.path.join(results_path, 'omr_output.csv'),
+                  os.path.join(results_path, 'human_processed_exam_results.csv'),
+                  os.path.join(metadata_path, 'omr_form_designs.json'))
 
-df = preprocess(str(Path(results_path) / 'omr_output.csv'), metadata_path, results_path)
-print('INFO: data extracted:\n', df.head().to_string())
+# df = preprocess(str(Path(results_path) / 'omr_output.csv'), metadata_path, results_path)
+# print('INFO: data extracted:\n', df.head().to_string())
 
 # make_auto_report(str(Path(results_path) / 'full_dataset.csv'),reports_folder,metadata_path)
 

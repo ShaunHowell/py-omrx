@@ -1,9 +1,4 @@
-from omr.preprocessing import preprocess_folder
-from omr.processing import process_images_folder
-import os
-from pathlib import Path
-from omr.metrics import *
-
+from omr.exam_marksheet.processing import process_images_folder
 
 # if Path('data/images').exists():
 #     for file_path in Path('data/images').iterdir():

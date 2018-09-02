@@ -1,8 +1,9 @@
-from omr.preprocessing import preprocess_folder
-from omr.processing import process_images_folder
-from analysis.preprocessing import preprocess
 import os
 from pathlib import Path
+
+from analysis.preprocessing import preprocess
+from omr.core.preprocessing import preprocess_folder
+from omr.exam_marksheet.processing import process_images_folder
 
 images_path = 'data/images'
 results_path = 'data/exam_results'

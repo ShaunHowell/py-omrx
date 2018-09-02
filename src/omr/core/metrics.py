@@ -14,7 +14,11 @@ def find_omr_accuracy(omr_output_location, manual_location, form_design_loc):
     merged_df['num_circles'] = merged_df['num_circles'] + 1 # plus one for the paper code circle
     print(omr_df.head(100).to_string())
     print(man_df.head(100).to_string())
+    print(merged_df.head(100).to_string())
 
+    num_not_marked_manually = len(omr_df) - len(merged_df)
+    if num_not_marked_manually != 0:
+        print('WARNING: {} not marked manually'.format(num_not_marked_manually))
     num_correct_responses = 0
     num_incorrect_responses = 0
     num_abstentions = 0
@@ -27,13 +31,13 @@ def find_omr_accuracy(omr_output_location, manual_location, form_design_loc):
                 continue
             if int(row['{}_y'.format(q_id)]) == -3:
                 num_abstentions += 1
-                merged_df.ix[i, 'abstentions'] = merged_df.ix[i, 'abstentions'] + 1
+                merged_df.loc[i, 'abstentions'] = merged_df.loc[i, 'abstentions'] + 1
                 continue
             if int(row['{}_x'.format(q_id)]) == int(row['{}_y'.format(q_id)]):
                 num_correct_responses += 1
             else:
                 num_incorrect_responses += 1
-                merged_df.ix[i, 'row_wrong'] = merged_df.ix[i, 'row_wrong'] + 1
+                merged_df.loc[i, 'row_wrong'] = merged_df.loc[i, 'row_wrong'] + 1
     assert num_incorrect_responses + num_abstentions + num_correct_responses == merged_df['num_circles'].sum(), \
         'wrong number of answers somehow'
     print('incorrect: {}, abstentions: {},'
@@ -42,6 +46,10 @@ def find_omr_accuracy(omr_output_location, manual_location, form_design_loc):
                                            num_correct_responses,
                                            num_incorrect_responses + num_abstentions + num_correct_responses))
     print(merged_df.to_string())
+    return dict(incorrect=num_incorrect_responses,
+                abstentions=num_abstentions ,
+                correct= num_correct_responses,
+                not_marked_manually=num_not_marked_manually)
 
 
 if __name__ == '__main__':

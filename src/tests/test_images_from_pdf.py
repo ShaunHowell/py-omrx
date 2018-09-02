@@ -1,8 +1,8 @@
-from unittest import TestCase
-from omr.preprocessing import *
 import os
 from pathlib import Path
-import pytest
+from unittest import TestCase
+
+from omr.core.preprocessing import *
 
 
 # @pytest.mark.skipif(bool(os.environ.get('TRAVIS')) == True,
@@ -10,8 +10,8 @@ import pytest
 class TestImages_from_pdf(TestCase):
     def test_images_from_pdf(self):
         # run split_pdf then check that the correct number of pdf files have been produced
-        input_path = Path('tests/res/images_from_pdf_in/good_1.pdf')
-        output_folder = Path('tests/out')
+        input_path = Path('res/images_from_pdf_in/good_1.pdf')
+        output_folder = Path('out')
         for file_path in output_folder.iterdir():
             os.remove(str(file_path))
         images_from_pdf(str(input_path), str(output_folder))

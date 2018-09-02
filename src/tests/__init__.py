@@ -1,5 +1,5 @@
 import os
-TESTS_OUTPUT_PATH = 'tests/out'
+TESTS_OUTPUT_PATH = 'out'
 if not os.path.exists(TESTS_OUTPUT_PATH):
     os.mkdir(TESTS_OUTPUT_PATH)
 for file_name in os.listdir(TESTS_OUTPUT_PATH):

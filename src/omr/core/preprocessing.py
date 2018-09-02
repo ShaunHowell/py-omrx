@@ -33,40 +33,40 @@ def images_from_pdf(input_file_path, output_folder_path, density=300):
         raise
 
 
-def optimise_quality(input_file_path, output_file_path=None, overwrite=False):
-    assert Path(input_file_path).suffix.lower() in ['.png', '.jpg', '.jpeg'], 'input file must be a valid image'
-    if output_file_path:
-        assert Path(output_file_path).suffix.lower() in ['.png', '.jpg',
-                                                         '.jpeg'], 'output path must be an image file name'
-    im = Image.open(input_file_path)
-    im = im.rotate(-90, expand=1)
-    im = ImageOps.autocontrast(im)
-    im = ImageEnhance.Brightness(im).enhance(1.05)
-    im = ImageOps.equalize(im)
-    a, b, c = 1, 0.1, 0.05
-    k = [0, 0, 0, 0, 0,
-         0, c, b, c, 0,
-         0, b, a, b, 0,
-         0, c, b, c, 0,
-         0, 0, 0, 0, 0]
-    im = im.filter(ImageFilter.Kernel((5, 5), k))
-    im = im.filter(ImageFilter.Kernel((5, 5), k))
-    im = im.filter(ImageFilter.Kernel((5, 5), k))
-    im = im.filter(ImageFilter.MaxFilter(3))
-    im = im.filter(ImageFilter.MaxFilter(3))
-    im = im.filter(ImageFilter.MaxFilter(3))
-    im = im.convert('1')
-    im = im.filter(ImageFilter.MinFilter(3))
-    im = im.filter(ImageFilter.MinFilter(3))
-    if output_file_path:
-        if Path(output_file_path).exists() and not overwrite:
-            raise Exception('can\'t save {}. Overwrite not set as True'.format(Path(output_file_path).stem))
-        else:
-            im.save(output_file_path)
-    elif not output_file_path and not overwrite:
-        raise Exception('can\'t save {}. Overwrite not set as True'.format(Path(output_file_path).stem))
-    else:
-        im.save(input_file_path)
+# def optimise_quality(input_file_path, output_file_path=None, overwrite=False):
+#     assert Path(input_file_path).suffix.lower() in ['.png', '.jpg', '.jpeg'], 'input file must be a valid image'
+#     if output_file_path:
+#         assert Path(output_file_path).suffix.lower() in ['.png', '.jpg',
+#                                                          '.jpeg'], 'output path must be an image file name'
+#     im = Image.open(input_file_path)
+#     im = im.rotate(-90, expand=1)
+#     im = ImageOps.autocontrast(im)
+#     im = ImageEnhance.Brightness(im).enhance(1.05)
+#     im = ImageOps.equalize(im)
+#     a, b, c = 1, 0.1, 0.05
+#     k = [0, 0, 0, 0, 0,
+#          0, c, b, c, 0,
+#          0, b, a, b, 0,
+#          0, c, b, c, 0,
+#          0, 0, 0, 0, 0]
+#     im = im.filter(ImageFilter.Kernel((5, 5), k))
+#     im = im.filter(ImageFilter.Kernel((5, 5), k))
+#     im = im.filter(ImageFilter.Kernel((5, 5), k))
+#     im = im.filter(ImageFilter.MaxFilter(3))
+#     im = im.filter(ImageFilter.MaxFilter(3))
+#     im = im.filter(ImageFilter.MaxFilter(3))
+#     im = im.convert('1')
+#     im = im.filter(ImageFilter.MinFilter(3))
+#     im = im.filter(ImageFilter.MinFilter(3))
+#     if output_file_path:
+#         if Path(output_file_path).exists() and not overwrite:
+#             raise Exception('can\'t save {}. Overwrite not set as True'.format(Path(output_file_path).stem))
+#         else:
+#             im.save(output_file_path)
+#     elif not output_file_path and not overwrite:
+#         raise Exception('can\'t save {}. Overwrite not set as True'.format(Path(output_file_path).stem))
+#     else:
+#         im.save(input_file_path)
 
 
 def preprocess_folder(input_folder, output_folder):

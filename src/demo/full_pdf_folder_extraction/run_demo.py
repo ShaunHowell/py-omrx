@@ -1,8 +1,8 @@
-from omr.preprocessing import preprocess_folder
-from omr.processing import process_images_folder
 import os
 from pathlib import Path
 
+from omr.core.preprocessing import preprocess_folder
+from omr.exam_marksheet.processing import process_images_folder
 
 for file_path in Path('data/images').iterdir():
     os.remove(str(file_path))
