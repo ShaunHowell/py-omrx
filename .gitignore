@@ -137,3 +137,4 @@ ENV/
 !src/demo/full_pdf_folder_extraction/data/ext/*
 !src/demo/pdf_to_report_1/data/scans/*
 !src/demo/pdf_to_report_1/data/ext/*
+*student*
