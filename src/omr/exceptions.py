@@ -1,0 +1,2 @@
+class OmrException(Exception):
+    pass

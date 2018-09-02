@@ -1,22 +1,19 @@
 import sys
-from imutils.perspective import four_point_transform
-import numpy as np
-import imutils
-import cv2
-import pprint
-import json
-from PIL import Image
 from pathlib import Path
-from scipy.spatial import KDTree
-import pandas as pd
-from scipy.spatial.distance import euclidean
+
+import cv2
+import imutils
 import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
+import pandas as pd
+from PIL import Image
+from imutils.perspective import four_point_transform
+from scipy.spatial import KDTree
+from scipy.spatial.distance import euclidean
 from sklearn.cluster import KMeans
+from omr.core.processing import *
 
-
-class OmrException(Exception):
-    pass
+from omr.exceptions import OmrException
 
 
 class OmrValidationException(OmrException):
@@ -365,36 +362,8 @@ def process_image(input_file_path, form_designs):
     return answers
 
 
-def process_images_folder(input_folder, form_design_path, output_folder=None):
-    form_design = json.load(open(form_design_path))
-    answers_df = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no'])
-    img_files = list(Path(input_folder).iterdir())
-    error_files = []
-    print('{} files to process'.format(len(img_files)))
-    for i , file_path in enumerate(img_files):
-        print('INFO: processing image {} {}'.format(i, file_path.name))
-        try:
-            im_answers = process_image(str(file_path), form_design)
-            answers_df = answers_df.append(im_answers)
-        except OmrException as e:
-            error_files.append(str(file_path.stem))
-            print('couldn\'t extract data from {}: check input file'.format(Path(file_path).name), file=sys.stderr)
-            print('error message: ', e, file=sys.stderr)
-    assert len(answers_df) > 0, 'could not extract any data from the images'
-    error_df = pd.DataFrame(index=error_files,columns=answers_df.columns.tolist())
-    error_df = pd.concat([error_df]*3, axis=0).sort_index()
-    error_df['omr_error'] = True
-    error_df['box_no'] = [1,2,3] * int(len(error_df)/3)
-    error_df['file_name'] = error_df.index.tolist()
-    error_df['marker_error'] = np.nan
-    error_df.loc[:, ~error_df.columns.isin(['file_name', 'omr_error', 'box_no', 'marker_error'])] = -3
-    answers_df = pd.concat([answers_df,error_df],axis=0)
-    if output_folder:
-        if not Path(output_folder).exists():
-            Path(output_folder).mkdir(parents=True)
-        answers_df.to_csv(str(Path(output_folder) / 'omr_output.csv'), index=False)
-    return answers_df
-
+def process_exam_marksheet_folder(input_folder, form_design_path, output_folder=None):
+    process_images_folder(input_folder,form_design_path,image_type='exam_marksheet',output_folder=output_folder)
 # if __name__ == '__main__' and sys.argv[1] == 'dev':
 # form_design = json.load(open('demo/omr_data_extraction/data/ext/omr_form_designs.json'))
 # answers, ok = answers_from_image('demo/omr_data_extraction/data/images/good_2.png', form_design)
