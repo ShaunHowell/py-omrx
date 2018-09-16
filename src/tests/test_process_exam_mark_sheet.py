@@ -19,6 +19,6 @@ class TestProcess_Exam_Mark_Sheet(TestCase):
         accuracy_results = find_omr_accuracy(str(output_folder / 'omr_output.csv'),
                                              str(input_path / 'exam_results' / 'human_processed_exam_results.csv'),
                                              str(input_path / 'ext' / 'omr_form_designs.json'))
-        print(accuracy_results)
+        print('INFO: accuracy results:\n{}'.format(accuracy_results))
         self.assertLess(accuracy_results['incorrect'], 2)
         self.assertLess(accuracy_results['abstentions'], 6)

@@ -20,6 +20,7 @@ import sys
 
 from omr.exceptions import OmrValidationException, OmrException
 import matplotlib.pyplot as plt
+from omr.utils.visualisation import *
 
 
 def get_binary_code_from_outer_box(greyscale_outer_box, h1, h2, w1, w2, r1, r2, min_dist, num_circles=None):
@@ -92,13 +93,13 @@ def get_code_from_binary_circles(image, min_dist, min_radius, max_radius, num_ci
     return paper_code
 
 
-def process_images_folder(input_folder, form_design_path, image_type, output_folder=None):
-    if image_type == 'exam_marksheet':
+def process_images_folder(input_folder, form_design_path, omr_mode, output_folder=None):
+    if omr_mode == 'exam':
         temp_module = importlib.import_module('omr.exam_marksheet.processing')
-    elif image_type == 'attendance_register':
+    elif omr_mode == 'attendance':
         temp_module = importlib.import_module('omr.attendance_register.processing')
     else:
-        print('ERROR: image_type must be exam_marksheet or attendance_register, {} passed'.format(image_type))
+        print('ERROR: image_type must be exam_marksheet or attendance_register, {} passed'.format(omr_mode))
         raise ValueError('invalid image_type')
     process_image = getattr(temp_module, 'process_image')
     form_design = json.load(open(form_design_path))
@@ -147,7 +148,7 @@ def expected_circle_locations(circles_per_header_row, circles_per_q_row, bubble_
     exp_loc = []
     spacing_width = bubble_spacing[0]
     spacing_height = bubble_spacing[1]
-    top_left_position = top_left_position if top_left_position is not None else [0, 0]
+    top_left_position = top_left_position if top_left_position is not None else [spacing_width / 2, spacing_height / 2]
     y = top_left_position[1]
     for row, num_options in enumerate(circles_per_header_row):
         x = top_left_position[0]
@@ -155,7 +156,8 @@ def expected_circle_locations(circles_per_header_row, circles_per_q_row, bubble_
             exp_loc.append([int(x), int(y)])
             x += spacing_width
         y += spacing_height
-    y += spacing_height
+    if len(exp_loc) > 0:
+        y += spacing_height
     for row, num_options in enumerate(circles_per_q_row):
         x = top_left_position[0]
         for column in range(num_options):
@@ -166,8 +168,8 @@ def expected_circle_locations(circles_per_header_row, circles_per_q_row, bubble_
 
 
 def circles_from_grid(x_coords, y_coords, circles_per_header_row, circles_per_q_row):
-    print('x coords: {},\ny coords: {}'.format(x_coords, y_coords))
-    print('len x: {}, len y: {}'.format(len(x_coords), len(y_coords)))
+    # print('x coords: {},\ny coords: {}'.format(x_coords, y_coords))
+    # print('len x: {}, len y: {}'.format(len(x_coords), len(y_coords)))
     circles = []
     x_coords = sorted(x_coords)
     y_coords = sorted(y_coords)
@@ -187,69 +189,112 @@ def circles_from_grid(x_coords, y_coords, circles_per_header_row, circles_per_q_
     return circles
 
 
-def get_good_circles(candidate_circles, circles_per_header_row, circles_per_q_row, inner_box_shape, debug_image):
+def get_good_circles(candidate_circles, circles_per_header_row, circles_per_q_row,
+                     inner_box_shape, debug_image, blank_rows=0):
     debug_candidate_circles = candidate_circles.copy()
     candidate_circles = sorted(candidate_circles.copy().tolist(), key=lambda circ: circ[0] + circ[1])
     assert len(np.array(candidate_circles).shape) == 2, 'shape must be (n,3), [} was passed'.format(
         np.array(candidate_circles).shape)
     bubble_box_width = inner_box_shape[1] / max(circles_per_q_row + circles_per_header_row)
-    bubble_box_height = inner_box_shape[0] / (27)  # number of rows in inner box
-    max_circle_search_distance = max([bubble_box_height, bubble_box_width]) * 0.5
-    bubble_spacing = [0.995 * bubble_box_width, 1.00 * bubble_box_height]
-    top_left_position = [int(0.53 * bubble_box_width), int(0.65 * bubble_box_height)]
-    # print('bubble box shape: w:{}, h:{}'.format(bubble_box_width, bubble_box_height))
-    # print('bubble spacing: {}'.format(bubble_spacing))
-    # print('top left pos: {}'.format(top_left_position))
+    number_of_rows = len(circles_per_q_row + circles_per_header_row) + blank_rows
+    number_of_rows = number_of_rows + 1 if len(circles_per_header_row) > 0 else number_of_rows
+    bubble_box_height = inner_box_shape[0] / number_of_rows
+    max_circle_search_distance = max([bubble_box_height, bubble_box_width]) * 0.6
+    bubble_spacing = [bubble_box_width, bubble_box_height]
+    print('number_of_rows: {}, bubble_box_height:{}'.format(number_of_rows, bubble_box_height))
     expected_locations = expected_circle_locations(circles_per_header_row,
                                                    circles_per_q_row,
-                                                   bubble_spacing,
-                                                   top_left_position)
+                                                   bubble_spacing)
+    # expected_location_circles = np.concatenate(
+    #     [np.array(expected_locations), np.array([[3] * len(expected_locations)]).T], axis=1)
+    # show_circles_on_image(debug_image, expected_location_circles, 'expected circle locations')
     filtered_circles = []
+    good_x_coords, good_y_coords = {}, {}
     for x, y in expected_locations:
         try:
             good_match = nearby_circle(x, y, candidate_circles, max_circle_search_distance)
             if good_match:
                 filtered_circles.append(good_match)
+                if good_x_coords.get(x) == None:
+                    good_x_coords[x] = []
+                if good_y_coords.get(y) == None:
+                    good_y_coords[y] = []
+                good_x_coords[x].append(good_match[0])
+                good_y_coords[y].append(good_match[1])
                 candidate_circles.remove(good_match)
         except OmrValidationException as e:
             print('WARNING: Found too few circles')
             break
     if len(filtered_circles) < len(circles_per_header_row + circles_per_q_row) * 0.5:
         raise OmrValidationException('less than half the expected circles found')
-    y_coords = [circ[1] for circ in filtered_circles]
-    x_coords = [circ[0] for circ in filtered_circles]
-    try:
-        # Cluster x & y coords
-        x_km = KMeans(max(circles_per_header_row + circles_per_q_row))
-        y_km = KMeans(len(circles_per_header_row + circles_per_q_row))
-    except ValueError as e:
-        print('error, could not find good circles, probably there wasn\'t at least one circle in each row and column')
-        # TODO: this edge case doesn't have to raise: can fill in missing values if not enough circles found
-        raise e
-    x_km.fit(np.array(x_coords).reshape(-1, 1))
-    x_cluster_centers = np.array(sorted(x_km.cluster_centers_.flatten().tolist()))
-    median_x_delta = np.median(x_cluster_centers[1:] - x_cluster_centers[:-1])
-    grid_x_coords = (median_x_delta *
-                     np.array(range(0, max(circles_per_q_row + circles_per_header_row)))
-                     + x_cluster_centers[0]).tolist()
-    y_km.fit(np.array(y_coords).reshape(-1, 1))
-    y_cluster_centers = np.array(sorted(y_km.cluster_centers_.flatten().tolist()))
-    median_y_delta = np.median(y_cluster_centers[1:] - y_cluster_centers[:-1])
-    code_y_coords = (median_y_delta *
-                     np.array(range(0, len(circles_per_header_row)))
-                     + y_cluster_centers[0]).tolist()
-    question_y_coords = (median_y_delta * 1.005 *
-                         np.array(range(0, len(circles_per_q_row))) +
-                         bubble_box_height*2 +
-                         code_y_coords[-1]).tolist()
-    good_circles = circles_from_grid(grid_x_coords, code_y_coords + question_y_coords, circles_per_header_row,
-                                     circles_per_q_row)
-    # temp_image = cv2.cvtColor(debug_image, cv2.COLOR_GRAY2RGB)
-    # [cv2.circle(temp_image, tuple(loc), 2, (255, 0, 0), -1) for loc in expected_locations]
-    # [cv2.circle(temp_image, (circ[0], circ[1]), circ[2], (0, 255, 0), 2) for circ in debug_candidate_circles]
-    # [cv2.circle(temp_image, (circ[0], circ[1]), circ[2], (0, 0, 255), 2) for circ in good_circles]
-    # plt.imshow(temp_image)
-    # plt.show()
+    # show_circles_on_image(debug_image, filtered_circles, 'filtered circles')
+
+    good_circles = list(map(lambda c: [c[0],c[1],int(c[2]*0.85)], filtered_circles.copy()))
+    y_coord_options = np.unique([coord[1] for coord in expected_locations]).tolist()
+    x_coord_options = np.unique([coord[0] for coord in expected_locations]).tolist()
+
+    for x, y in expected_locations:
+        if not nearby_circle(x, y, filtered_circles, max_circle_search_distance):
+            try:
+                if good_x_coords.get(x):
+                    good_x = int(np.mean(good_x_coords.get(x)))
+                else:
+                    prev_x_expected_coord = x_coord_options[x_coord_options.index(x)-1]
+                    next_x_expected_coord = x_coord_options[x_coord_options.index(x)+1]
+                    prev_x_mean = np.mean(good_x_coords.get(prev_x_expected_coord))
+                    next_x_mean = np.mean(good_x_coords.get(next_x_expected_coord))
+                    good_x = int(np.mean([prev_x_mean, next_x_mean]))
+                if good_y_coords.get(y):
+                    good_y = int(np.mean(good_y_coords.get(y)))
+                else:
+                    prev_y_expected_coord = y_coord_options[y_coord_options.index(y) - 1]
+                    next_y_expected_coord = y_coord_options[y_coord_options.index(y) + 1]
+                    prev_y_mean = np.mean(good_y_coords.get(prev_y_expected_coord))
+                    next_y_mean = np.mean(good_y_coords.get(next_y_expected_coord))
+                    good_y = int(np.mean([prev_y_mean, next_y_mean]))
+                assert good_x
+                assert good_y
+                good_circles.append([good_x,good_y, int(bubble_box_height*0.3)])
+            except:
+                show_circles_on_image(debug_image, filtered_circles, 'filtered circles')
+                raise ValueError('could not fill missing circles')
+
+    # y_coords = [circ[1] for circ in filtered_circles]
+    # x_coords = [circ[0] for circ in filtered_circles]
+    # try:
+    #     # Cluster x & y coords
+    #     x_km = KMeans(max(circles_per_header_row + circles_per_q_row))
+    #     y_km = KMeans(len(circles_per_header_row + circles_per_q_row))
+    # except ValueError as e:
+    #     print('error, could not find good circles, probably there wasn\'t at least one circle in each row and column')
+    #     raise e
+    # x_km.fit(np.array(x_coords).reshape(-1, 1))
+    # x_cluster_centers = np.array(sorted(x_km.cluster_centers_.flatten().tolist()))
+    # mean_x_delta = np.mean(x_cluster_centers[1:] - x_cluster_centers[:-1])
+    # grid_x_coords = (mean_x_delta *
+    #                  np.array(range(0, max(circles_per_q_row + circles_per_header_row)))
+    #                  + x_cluster_centers[0]).tolist()
+    # y_km.fit(np.array(y_coords).reshape(-1, 1))
+    # y_cluster_centers = np.array(sorted(y_km.cluster_centers_.flatten().tolist()))
+    # print('x centres: {}, len: {}\ny centres: {}, len: {}'.format(x_cluster_centers, len(x_cluster_centers),
+    #                                                               y_cluster_centers, len(y_cluster_centers)))
+    # median_y_delta = np.median(y_cluster_centers[1:] - y_cluster_centers[:-1])
+    # code_y_coords = (median_y_delta *
+    #                  np.array(range(0, len(circles_per_header_row)))
+    #                  + y_cluster_centers[0]).tolist()
+    # if code_y_coords:
+    #     question_y_coords = (median_y_delta *
+    #                          np.array(range(0, len(circles_per_q_row))) +
+    #                          bubble_box_height * 2 +
+    #                          code_y_coords[-1]).tolist()
+    # else:
+    #     question_y_coords = (median_y_delta *
+    #                          np.array(range(0, len(circles_per_q_row))) +
+    #                          y_cluster_centers[0]).tolist()
+    # print('median_y_delta:{}'.format(median_y_delta))
+
+    # good_circles = circles_from_grid(grid_x_coords, code_y_coords + question_y_coords,
+    #                                  circles_per_header_row, circles_per_q_row)
     return good_circles
 
 
@@ -307,9 +352,13 @@ def get_outer_box(original_image, desired_portrait=True):
     return grey_cropped, original_cropped
 
 
-def process_boxes(inner_boxes, form_design, rotate_boxes=True):
+def process_boxes(inner_boxes, form_design, num_boxes, rotate_boxes=True, omr_mode='exam'):
     circles_per_row = form_design['code'] + form_design['questions']
-    answers = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no', 'omr_error', 'marker_error'])
+    if omr_mode == 'exam':
+        answers = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no', 'omr_error', 'marker_error'])
+    elif omr_mode == 'attendance':
+        answers = pd.DataFrame(columns=['file_name', 'paper_code', 'school_code', 'class_code', 'box_no',
+                                        'omr_error', 'marker_error'])
     for box_no, inner_box in enumerate(inner_boxes):
         h, w = inner_box.shape
         left_margin = int(form_design['inner_box_margins']['left'] * h)
@@ -319,13 +368,12 @@ def process_boxes(inner_boxes, form_design, rotate_boxes=True):
         if rotate_boxes:
             inner_box = np.array(Image.fromarray(inner_box).rotate(-90, expand=True))
         inner_box = inner_box[top_margin:, left_margin:]
-        # plt.imshow(inner_box)
-        # plt.show()
         try:
             circle_details = form_design['circle_details']
             inner_box_answers = process_inner_box(inner_box, form_design['code'], form_design['questions'],
                                                   r_min=circle_details['r_min'], r_max=circle_details['r_max'],
-                                                  min_dist=circle_details['min_spacing'])
+                                                  min_dist=circle_details['min_spacing'], omr_mode=omr_mode,
+                                                  blank_rows=form_design['blank_rows'])
             # print('INFO: box no {}, answers:\n{}'.format(box_no, inner_box_answers.to_string()))
             inner_box_answers['box_no'] = box_no + 1
         except OmrException as e:
@@ -333,9 +381,10 @@ def process_boxes(inner_boxes, form_design, rotate_boxes=True):
             print('error: {}'.format(e))
             inner_box_answers = pd.DataFrame([[box_no + 1, True]], columns=['box_no', 'omr_error'])
         answers = answers.append(inner_box_answers)
-    if answers.drop(['omr_error', 'marker_error', 'file_name', 'paper_code'], axis=1).isnull().sum().sum() > 0 \
-            or len(answers) < 3:
-        raise OmrException('Must be no nulls in answers and must be 3 boxes processed')
+    if answers.loc[:, ~answers.columns.isin(['omr_error', 'marker_error', 'file_name',
+                                             'paper_code', 'school_code', 'class_code'])].isnull().sum().sum() > 0 \
+            or len(answers) < num_boxes:
+        raise OmrException('Must be no nulls in answers and must be {} boxes processed'.format(num_boxes))
     return answers
 
 
@@ -361,10 +410,15 @@ def response_from_darknesses(darknesses):
     return darknesses[-1][0]
 
 
+def darknesses_to_binary(darknesses):
+    return list(map(lambda d: 1 if (d > 0.3) else 0, darknesses))
+
+
 def process_inner_box(inner_box, circles_per_header_row, circles_per_q_row,
-                      r_min, r_max, min_dist):
+                      r_min, r_max, min_dist, omr_mode='exam', blank_rows=0):
     # plt.imshow(Image.fromarray(inner_box))
     # plt.show()
+    assert omr_mode in ['exam', 'attendance'], 'omr_mode {} not supported'.format(omr_mode)
     h, w = inner_box.shape
     min_dist = int(min_dist * h)
     r1, r2 = int(r_min * h), int(r_max * h)
@@ -377,20 +431,24 @@ def process_inner_box(inner_box, circles_per_header_row, circles_per_q_row,
                                minRadius=r1,
                                maxRadius=r2)
     circles = np.uint16(np.around(circles))[0]
+    # show_circles_on_image(inner_box, circles, 'initial candidate circles')
     circles = get_good_circles(circles, circles_per_header_row, circles_per_q_row,
-                               inner_box_shape=inner_box.shape, debug_image=inner_box)
+                               inner_box_shape=inner_box.shape, debug_image=inner_box, blank_rows=blank_rows)
+    # show_circles_on_image(inner_box, circles, 'final circles')
     # Check region outside of circles doesn't have too many marks, or image quality is probably poor
     mask = np.ones(inner_box.shape, dtype="uint8")
     [cv2.circle(mask, (circ[0], circ[1]), int(circ[2] * 1.3), 0, -1) for circ in circles]
     mask = cv2.bitwise_and(inner_box, inner_box, mask=mask)
     noise = sum((mask / 255).flatten().tolist()) * 100 / mask.size
-    if noise > 11:  # FIXME: needs manual calibration for each new excel form change
+    if noise > 30:  # FIXME: needs manual calibration for each new excel form change
         raise OmrValidationException('too many marks found outside of circles')
     # sort circles top-to-bottom
     circles = np.array(sorted(circles, key=lambda circle: circle[1]))
     inner_box_answers = {}
     bubbles_processed = 0
     for question_number, num_bubbles in enumerate(circles_per_header_row + circles_per_q_row):
+        if num_bubbles == 0:
+            continue
         question_circles = np.array(
             sorted(circles[bubbles_processed:bubbles_processed + num_bubbles], key=lambda circle: circle[0]))
         darknesses = []
@@ -398,9 +456,12 @@ def process_inner_box(inner_box, circles_per_header_row, circles_per_q_row,
         for circle in question_circles:
             darknesses.append(process_circle(inner_box, circle))
             bubbles_processed += 1
-        print('INFO: darknesses: {}'.format(darknesses))
+        print('INFO: q{} darknesses: {}'.format(question_number,darknesses))
         # determine response based on circle darknesses
-        response = response_from_darknesses(darknesses)
+        if omr_mode == 'exam':
+            response = response_from_darknesses(darknesses)
+        elif omr_mode == 'attendance':
+            response = darknesses_to_binary(darknesses)
         # print('Row {}, darknesses: {}, response: {}'.format(question_number, list(enumerate(darknesses)), response))
         if response == -3:
             inner_box_answers.update({'omr_error': True})
@@ -411,4 +472,10 @@ def process_inner_box(inner_box, circles_per_header_row, circles_per_q_row,
         else:
             inner_box_answers.update(
                 {'q_{:0>2}'.format(question_number - len(circles_per_header_row) + 1): response})
-    return pd.DataFrame(inner_box_answers, index=[0])
+    if omr_mode == 'exam':
+        inner_box_df = pd.DataFrame(inner_box_answers, index=[0])
+    elif omr_mode == 'attendance':
+        inner_box_df = pd.DataFrame.from_dict(inner_box_answers, orient='index')
+        inner_box_df.columns = range(1, inner_box_df.shape[1] + 1)
+        inner_box_df['student_number'] = inner_box_df.index.str.lstrip('q_')
+    return inner_box_df

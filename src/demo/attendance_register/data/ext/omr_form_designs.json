@@ -13,7 +13,6 @@
       "r_min":0.005,
       "r_max":0.008,
       "min_spacing":0.015
-    },
-    "blank_rows":0
+    }
   }
 }

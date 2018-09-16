@@ -17,10 +17,12 @@ reports_folder = 'data/reports'
 #
 # preprocess_folder(scans_path, images_path)
 
-# process_images_folder(images_path, str(Path(metadata_path) / 'omr_form_designs.json'), results_path)
-# print('INFO: raw data extracted from scans')
-# print('output csv should be in data/exam_results.csv')
-#
+process_images_folder(images_path, str(Path(metadata_path) / 'omr_form_designs.json'),
+                      omr_mode='exam',
+                      output_folder=results_path)
+print('INFO: raw data extracted from scans')
+print('output csv should be in data/exam_results.csv')
+
 find_omr_accuracy(os.path.join(results_path, 'omr_output.csv'),
                   os.path.join(results_path, 'human_processed_exam_results.csv'),
                   os.path.join(metadata_path, 'omr_form_designs.json'))

@@ -6,14 +6,13 @@
       31,31,31,31,31,31,31,31,31,31,31,31,31,31,31
     ],
     "inner_box_margins":{
-      "top":0.057,
-      "left":0.019
+      "top":0.015,
+      "left":0.04
     },
     "circle_details":{
-      "r_min":0.005,
-      "r_max":0.008,
-      "min_spacing":0.015
-    },
-    "blank_rows":0
+      "r_min":0.008,
+      "r_max":0.011,
+      "min_spacing":0.036
+    }
   }
 }

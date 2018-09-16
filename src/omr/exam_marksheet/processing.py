@@ -25,12 +25,13 @@ def process_image(input_file_path, form_designs):
     # print('INFO: form design:')
     # pprint.pprint(form_design)
     try:
-        bottom_left_corners = [[0.948, 0.017], [0.655, 0.017], [0.363, 0.017]]
-        inner_boxes = get_inner_boxes(grey_outer_box, height=0.234, width=0.96,
+        left_edge_coord = 0.028
+        bottom_left_corners = [[0.944, left_edge_coord], [0.655, left_edge_coord], [0.363, left_edge_coord]]
+        inner_boxes = get_inner_boxes(grey_outer_box, height=0.229, width=0.945,
                                       bottom_left_corners=bottom_left_corners)
     except OmrException as e:
         raise OmrException('couldn\'t find inner boxes correctly:\n{}'.format(e))
-    answers = process_boxes(inner_boxes, form_design)
+    answers = process_boxes(inner_boxes, form_design, num_boxes=3)
     answers['file_name'] = Path(input_file_path).stem
     answers['paper_code'] = paper_code
     return answers
@@ -38,7 +39,7 @@ def process_image(input_file_path, form_designs):
 
 def process_exam_marksheet_folder(input_folder, form_design_path, output_folder=None):
     process_images_folder(input_folder, form_design_path,
-                          image_type='exam_marksheet', output_folder=output_folder)
+                          omr_mode='exam', output_folder=output_folder)
 
 # if __name__ == '__main__' and sys.argv[1] == 'dev':
 # form_design = json.load(open('demo/omr_data_extraction/data/ext/omr_form_designs.json'))

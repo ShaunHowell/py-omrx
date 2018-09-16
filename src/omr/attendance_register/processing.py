@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 def process_attendance_sheet_folder(input_folder, form_design_path, output_folder=None):
     process_images_folder(input_folder, form_design_path,
-                          image_type='attendance_register', output_folder=output_folder)
+                          omr_mode='attendance', output_folder=output_folder)
 
 
 def process_image(input_file_path, form_designs):
@@ -33,13 +33,16 @@ def process_image(input_file_path, form_designs):
     except ZeroCodeFoundException:
         pass
     try:
-        bottom_left_corners = [[0.99, 0]]
-        inner_boxes = get_inner_boxes(grey_outer_box, height=0.97, width=1,
+        bottom_left_corners = [[0.985, 0.005]]
+        inner_boxes = get_inner_boxes(grey_outer_box, height=0.96, width=0.995,
                                       bottom_left_corners=bottom_left_corners)
 
 
     except OmrException as e:
         raise OmrException('couldn\'t find inner boxes correctly:\n{}'.format(e))
-    answers = process_boxes(inner_boxes, form_design, rotate_boxes=False)
+    answers = process_boxes(inner_boxes, form_design, rotate_boxes=False, num_boxes = 1, omr_mode='attendance')
+    answers['paper_code'] = 1
+    answers['school_code'] = -1
+    answers['class_code'] = -1
     answers['file_name'] = Path(input_file_path).stem
     return answers
