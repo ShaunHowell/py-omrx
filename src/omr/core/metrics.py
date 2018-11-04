@@ -30,7 +30,7 @@ def find_omr_accuracy(omr_output_location, manual_location, form_design_loc, omr
     num_abstentions = 0
     merged_df['row_wrong'] = 0
     merged_df['abstentions'] = 0
-    for q_id in omr_df.filter(regex='((?:\A|_)[0-9])|(paper_code)|(school_code)|(class_code)').columns.values.tolist():
+    for q_id in omr_df.filter(regex='((?:\A|_)[0-9])|(paper_code)|(school_code)|(class_code)|(sheet_number)').columns.values.tolist():
         print('processing question ', q_id)
         for i, row in merged_df.iterrows():
             if pd.isnull(row['{}_x'.format(q_id)]):

@@ -9,3 +9,8 @@ def show_circles_on_image(image, circles, title=None):
         plt.title(title)
     plt.imshow(Image.fromarray(temp_image))
     plt.show()
+
+def show_image(image):
+    temp_image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    plt.imshow(image)
+    plt.show()

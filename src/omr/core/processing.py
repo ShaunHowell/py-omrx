@@ -309,11 +309,11 @@ def get_outer_box_contour(edged_image):
         if len(approx) == 4:
             docCnt = approx
             break
-    if type(docCnt) != np.ndarray or perim < 7400:
+    if type(docCnt) != np.ndarray or perim < 7000:
         temp_image = cv2.cvtColor(edged_image, cv2.COLOR_GRAY2RGB)
         cv2.drawContours(temp_image, [docCnt], -1, (255, 0, 0), 3)
-        plt.imshow(temp_image)
-        plt.show()
+        # plt.imshow(temp_image)
+        # plt.show()
         raise OmrException('no suitable outer contour found, '
                            'biggest outer contour had perim of {}'.format(perim))
     return docCnt
@@ -326,7 +326,11 @@ def get_outer_box(original_image, desired_portrait=True):
         gray = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
         blurred = cv2.medianBlur(gray, 7)
         blurred = cv2.blur(blurred, ksize=(7, 7))
-        _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
+        # show_image(gray)
+        # show_image(blurred)
+        # show_image(thresh)
+
         edged = cv2.Canny(thresh, threshold1=180, threshold2=230, L2gradient=True, apertureSize=3)
         outer_box_contour = get_outer_box_contour(edged)
         tl, bl, br, tr = outer_box_contour[0], outer_box_contour[1], outer_box_contour[2], outer_box_contour[3]
@@ -337,7 +341,7 @@ def get_outer_box(original_image, desired_portrait=True):
             assert widths[1] / widths[0] < 1.05
         except:
             raise OmrValidationException('good outer box not found')
-        shrink = 10
+        shrink = 5
         original_cropped = four_point_transform(original_image, outer_box_contour.reshape(4, 2))
         original_cropped = original_cropped[shrink:-shrink, shrink:-shrink]
         grey_cropped = four_point_transform(gray, outer_box_contour.reshape(4, 2))
@@ -355,10 +359,10 @@ def get_outer_box(original_image, desired_portrait=True):
 def process_boxes(inner_boxes, form_design, num_boxes, rotate_boxes=True, omr_mode='exam'):
     circles_per_row = form_design['code'] + form_design['questions']
     if omr_mode == 'exam':
-        answers = pd.DataFrame(columns=['file_name', 'paper_code', 'box_no', 'omr_error', 'marker_error'])
+        answers = pd.DataFrame(columns=['file_name', 'box_no', 'omr_error', 'marker_error'])
     elif omr_mode == 'attendance':
-        answers = pd.DataFrame(columns=['file_name', 'paper_code', 'school_code', 'class_code', 'box_no',
-                                        'omr_error', 'marker_error'])
+        answers = pd.DataFrame(columns=['file_name', 'school_code', 'class_code', 'sheet_number',
+                                        'box_no', 'omr_error', 'marker_error'])
     for box_no, inner_box in enumerate(inner_boxes):
         h, w = inner_box.shape
         left_margin = int(form_design['inner_box_margins']['left'] * h)
@@ -381,7 +385,7 @@ def process_boxes(inner_boxes, form_design, num_boxes, rotate_boxes=True, omr_mo
             print('error: {}'.format(e))
             inner_box_answers = pd.DataFrame([[box_no + 1, True]], columns=['box_no', 'omr_error'])
         answers = answers.append(inner_box_answers)
-    if answers.loc[:, ~answers.columns.isin(['omr_error', 'marker_error', 'file_name',
+    if answers.loc[:, ~answers.columns.isin(['omr_error', 'marker_error', 'file_name', 'sheet_number',
                                              'paper_code', 'school_code', 'class_code'])].isnull().sum().sum() > 0 \
             or len(answers) < num_boxes:
         raise OmrException('Must be no nulls in answers and must be {} boxes processed'.format(num_boxes))

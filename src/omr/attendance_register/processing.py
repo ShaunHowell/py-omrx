@@ -15,34 +15,42 @@ def process_image(input_file_path, form_designs):
     except OmrException as e:
         raise OmrException('no suitable outer contour found:\n{}'.format(e))
     form_design = form_designs[str(1)]
-    # plt.imshow(Image.fromarray(grey_outer_box))
-    # plt.show()
     try:
-        school_number = get_binary_code_from_outer_box(grey_outer_box,
-                                                       73 / 3116, 120 / 3116,
-                                                       341 / 2165, 738 / 2165,
-                                                       12 / 3116, 22 / 3116,
-                                                       55 / 3166,
-                                                       num_circles=6)
-        class_number = get_binary_code_from_outer_box(grey_outer_box,
-                                                      74 / 3116, 120 / 3116,
-                                                      1290 / 2165, 1555 / 2165,
-                                                      12 / 3116, 22 / 3116,
-                                                      55 / 3166,
-                                                      num_circles=4)
-    except ZeroCodeFoundException:
-        pass
-    try:
-        bottom_left_corners = [[0.985, 0.005]]
-        inner_boxes = get_inner_boxes(grey_outer_box, height=0.96, width=0.995,
+        bottom_left_corners = [[1.0, 0.005]]
+        inner_boxes = get_inner_boxes(grey_outer_box, height=0.98, width=0.995,
                                       bottom_left_corners=bottom_left_corners)
-
-
     except OmrException as e:
         raise OmrException('couldn\'t find inner boxes correctly:\n{}'.format(e))
+    # plt.imshow(Image.fromarray(inner_boxes[0]))
+    # plt.show()
+    try:
+        school_number = get_binary_code_from_outer_box(inner_boxes[0],
+                                                       6 / 2021, 40 / 2021,
+                                                       478 / 1424, 710 / 1424,
+                                                       12 / 2021, 22 / 2021,
+                                                       55 / 3166,
+                                                       num_circles=5)
+        class_number = get_binary_code_from_outer_box(inner_boxes[0],
+                                                      6 / 2021, 40 / 2021,
+                                                      1014 / 1424, 1204 / 1424,
+                                                      12 / 2021, 22 / 2021,
+                                                      55 / 3166,
+                                                      num_circles=4)
+        sheet_number = get_binary_code_from_outer_box(inner_boxes[0],
+                                                      1991 / 2021, 2020 / 2021,
+                                                      383 / 1424, 496 / 1424,
+                                                      12 / 2021, 22 / 2021,
+                                                      55 / 3166,
+                                                      num_circles=2)
+    except ZeroCodeFoundException:
+        print('cannot have a zero code')
+        raise
+
     answers = process_boxes(inner_boxes, form_design, rotate_boxes=False, num_boxes = 1, omr_mode='attendance')
-    answers['paper_code'] = 1
-    answers['school_code'] = -1
-    answers['class_code'] = -1
+    if sheet_number == 2:
+        answers['student_number'] = answers['student_number'].astype(np.int) + len(form_design["questions"])
+    answers['school_code'] = school_number
+    answers['class_code'] = class_number
+    answers['sheet_number'] = sheet_number
     answers['file_name'] = Path(input_file_path).stem
     return answers

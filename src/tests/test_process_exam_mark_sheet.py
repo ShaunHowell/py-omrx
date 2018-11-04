@@ -1,10 +1,10 @@
 import os
-from unittest import TestCase
+from unittest import TestCase, skip
 
 from omr.exam_marksheet.processing import *
 from omr.core.metrics import *
 
-
+@skip("no longer supported")
 class TestProcess_Exam_Mark_Sheet(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestProcess_Exam_Mark_Sheet, self).__init__(*args, **kwargs)
