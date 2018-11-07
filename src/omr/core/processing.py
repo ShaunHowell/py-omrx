@@ -21,7 +21,7 @@ import sys
 from omr.exceptions import OmrValidationException, OmrException
 import matplotlib.pyplot as plt
 from omr.utils.visualisation import *
-
+from default_configs import attendance_register
 
 def get_binary_code_from_outer_box(greyscale_outer_box, h1, h2, w1, w2, r1, r2, min_dist, num_circles=None):
     height, width = greyscale_outer_box.shape
@@ -93,7 +93,7 @@ def get_code_from_binary_circles(image, min_dist, min_radius, max_radius, num_ci
     return paper_code
 
 
-def process_images_folder(input_folder, form_design_path, omr_mode, output_folder=None):
+def process_images_folder(input_folder, form_design_path=None, omr_mode='attendance', output_folder=None):
     if omr_mode == 'exam':
         temp_module = importlib.import_module('omr.exam_marksheet.processing')
     elif omr_mode == 'attendance':
@@ -102,7 +102,10 @@ def process_images_folder(input_folder, form_design_path, omr_mode, output_folde
         print('ERROR: image_type must be exam_marksheet or attendance_register, {} passed'.format(omr_mode))
         raise ValueError('invalid image_type')
     process_image = getattr(temp_module, 'process_image')
-    form_design = json.load(open(form_design_path))
+    if form_design_path:
+        form_design = json.load(open(form_design_path))
+    else:
+        form_design = attendance_register.default_config()
     answers_df = pd.DataFrame()
     img_files = list(Path(input_folder).iterdir())
     error_files = []
