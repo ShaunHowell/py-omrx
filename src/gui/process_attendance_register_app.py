@@ -8,12 +8,7 @@ import wx
 import webbrowser
 
 class AttendanceFrame(wx.Frame):
-    """
-    A Frame that says Hello World
-    """
-
     def __init__(self, *args, **kw):
-        # ensure the parent's __init__ is called
         super(AttendanceFrame, self).__init__(*args, **kw)
         self.buttons = []
         self.create_buttons()
@@ -52,48 +47,8 @@ class AttendanceFrame(wx.Frame):
 
         self.panel.SetSizer(vbox)
 
-        # and a status bar
         self.statusbar = self.CreateStatusBar(1)
         self.statusbar.SetStatusText('UI created')
-
-    def makeMenuBar(self):
-        """
-        A menu bar is composed of menus, which are composed of menu items.
-        This method builds a set of menus and binds handlers to be called
-        when the menu item is selected.
-        """
-
-        # Make a file menu with Hello and Exit items
-        fileMenu = wx.Menu()
-        # The "\t..." syntax defines an accelerator key that also triggers
-        # the same event
-        # openItem = fileMenu.Append(-1, "&Open images folder\t")
-        fileMenu.AppendSeparator()
-        # When using a stock ID we don't need to specify the menu item's
-        # label
-        exitItem = fileMenu.Append(wx.ID_EXIT)
-
-        # Now a help menu for the about item
-        helpMenu = wx.Menu()
-        aboutItem = helpMenu.Append(wx.ID_ABOUT)
-
-        # Make the menu bar and add the two menus to it. The '&' defines
-        # that the next letter is the "mnemonic" for the menu item. On the
-        # platforms that support it those letters are underlined and can be
-        # triggered from the keyboard.
-        menuBar = wx.MenuBar()
-        menuBar.Append(fileMenu, "&File")
-        menuBar.Append(helpMenu, "&Help")
-
-        # Give the menu bar to the frame
-        self.SetMenuBar(menuBar)
-
-        # Finally, associate a handler function with the EVT_MENU event for
-        # each of the menu items. That means that when that menu item is
-        # activated then the associated handler function will be called.
-        # self.Bind(wx.EVT_MENU, self.OnOpenImagesFolder, openItem)
-        self.Bind(wx.EVT_MENU, self.OnExit, exitItem)
-        self.Bind(wx.EVT_MENU, self.OnAbout, aboutItem)
 
     def choose_images_folder(self, event):
         dialog = wx.DirDialog(self,
@@ -112,22 +67,6 @@ class AttendanceFrame(wx.Frame):
             self.input_path = Path(path)
             text_objext = next((object[1]['text'] for object in self.buttons if object[0]=='images'), None)
             text_objext.SetLabel('...{}'.format(str(path)[-30:]))
-
-    # def OnOpenFormDesign(self, event):
-    #     dialog = wx.FileDialog(self,
-    #                           'Choose form design json file', '',
-    #                           style=wx.DD_DEFAULT_STYLE)
-    #     try:
-    #         if dialog.ShowModal() == wx.ID_CANCEL:
-    #             return
-    #         path = dialog.GetPath()
-    #     except Exception:
-    #         wx.LogError('Failed to open directory!')
-    #         raise
-    #     finally:
-    #         dialog.Destroy()
-    #     if len(path) > 0:
-    #         self.design_file_path = Path(path)
 
     def choose_output_folder(self, event):
         dialog = wx.DirDialog(self,
@@ -163,17 +102,6 @@ class AttendanceFrame(wx.Frame):
         if success_dialog == 5103:
             self.open_output_folder()
         self.statusbar.PushStatusText('ready')
-
-    def OnExit(self, event):
-        self.Close(True)
-
-    def OnHello(self, event):
-        wx.MessageBox("Hello again from wxPython")
-
-    def OnAbout(self, event):
-        wx.MessageBox("This is a wxPython Hello World sample",
-                      "About Hello World 2",
-                      wx.OK | wx.ICON_INFORMATION)
 
 
 if __name__ == '__main__':
