@@ -104,8 +104,11 @@ class AttendanceFrame(wx.Frame):
         self.statusbar.PushStatusText('ready')
 
 
-if __name__ == '__main__':
+def main():
     app = wx.App()
     frm = AttendanceFrame(None, title='Attendance Register OMR Tool')
     frm.Show()
     app.MainLoop()
+
+if __name__ == '__main__':
+    main()
