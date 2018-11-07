@@ -6,3 +6,7 @@ pdfrw
 mpld3
 jinja2
 Pillow
+wxPython
+opencv-python
+imutils
+sklearn
