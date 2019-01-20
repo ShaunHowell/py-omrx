@@ -20,7 +20,6 @@ import sys
 
 from omr_tool.omr.exceptions import OmrValidationException, OmrException
 import matplotlib.pyplot as plt
-# from omr_tool.omr.utils.visualisation import *
 from omr_tool.default_configs import attendance_register
 
 def get_binary_code_from_outer_box(greyscale_outer_box, h1, h2, w1, w2, r1, r2, min_dist, num_circles=None):
