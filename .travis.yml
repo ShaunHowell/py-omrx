@@ -12,5 +12,5 @@ install:
   - pip install -r requirements.txt
 
 script:
-  - cd src
+  - cd omr_tool
   - python -m pytest tests/ && exit 0

@@ -1,8 +1,8 @@
 import sys
 from pathlib import Path
 import sys
-sys.path.append(str(Path.cwd() / 'src'))
-from gui import process_attendance_register_app
+sys.path.append(str(Path.cwd() / 'omr_tool'))
+from omr_tool.gui import process_attendance_register_app
 
 
 def main():

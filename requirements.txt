@@ -10,3 +10,4 @@ wxPython
 opencv-python
 imutils
 sklearn
+cx_Freeze
