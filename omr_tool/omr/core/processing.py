@@ -377,7 +377,9 @@ def process_boxes(inner_boxes, form_design, num_boxes, rotate_boxes=True, omr_mo
         # height = (len(circles_per_row) + 1) * pixels_per_row  # plus 2 for middle buffer and top buffer
         if rotate_boxes:
             inner_box = np.array(Image.fromarray(inner_box).rotate(-90, expand=True))
-        inner_box = inner_box[top_margin:h-bottom_margin, left_margin:]
+        inner_box = inner_box[top_margin:h - bottom_margin, left_margin:]
+        inner_box = cv2.copyMakeBorder(inner_box, right=5, top=0, bottom=0, left=0,
+                                       borderType=cv2.BORDER_CONSTANT, value=[255, 255, 255])
         try:
             circle_details = form_design['circle_details']
             inner_box_answers = process_inner_box(inner_box, form_design['code'], form_design['questions'],
