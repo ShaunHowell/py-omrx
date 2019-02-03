@@ -21,6 +21,8 @@ import sys
 from omr_tool.omr.exceptions import OmrValidationException, OmrException
 import matplotlib.pyplot as plt
 from omr_tool.default_configs import attendance_register
+from omr_tool.omr.utils.visualisation import *
+
 
 def get_binary_code_from_outer_box(greyscale_outer_box, h1, h2, w1, w2, r1, r2, min_dist, num_circles=None):
     height, width = greyscale_outer_box.shape
@@ -87,7 +89,7 @@ def get_code_from_binary_circles(image, min_dist, min_radius, max_radius, num_ci
         # check if positive detection
         if average > 0.5:
             paper_code = paper_code + 2 ** i
-    if paper_code <= 0:
+    if paper_code < 0:
         raise ZeroCodeFoundException('paper code not detected properly, please check file')
     return paper_code
 
@@ -231,7 +233,7 @@ def get_good_circles(candidate_circles, circles_per_header_row, circles_per_q_ro
         raise OmrValidationException('less than half the expected circles found')
     # show_circles_on_image(debug_image, filtered_circles, 'filtered circles')
 
-    good_circles = list(map(lambda c: [c[0],c[1],int(c[2]*0.85)], filtered_circles.copy()))
+    good_circles = list(map(lambda c: [c[0], c[1], int(c[2] * 0.85)], filtered_circles.copy()))
     y_coord_options = np.unique([coord[1] for coord in expected_locations]).tolist()
     x_coord_options = np.unique([coord[0] for coord in expected_locations]).tolist()
 
@@ -241,8 +243,8 @@ def get_good_circles(candidate_circles, circles_per_header_row, circles_per_q_ro
                 if good_x_coords.get(x):
                     good_x = int(np.mean(good_x_coords.get(x)))
                 else:
-                    prev_x_expected_coord = x_coord_options[x_coord_options.index(x)-1]
-                    next_x_expected_coord = x_coord_options[x_coord_options.index(x)+1]
+                    prev_x_expected_coord = x_coord_options[x_coord_options.index(x) - 1]
+                    next_x_expected_coord = x_coord_options[x_coord_options.index(x) + 1]
                     prev_x_mean = np.mean(good_x_coords.get(prev_x_expected_coord))
                     next_x_mean = np.mean(good_x_coords.get(next_x_expected_coord))
                     good_x = int(np.mean([prev_x_mean, next_x_mean]))
@@ -256,7 +258,7 @@ def get_good_circles(candidate_circles, circles_per_header_row, circles_per_q_ro
                     good_y = int(np.mean([prev_y_mean, next_y_mean]))
                 assert good_x
                 assert good_y
-                good_circles.append([good_x,good_y, int(bubble_box_height*0.3)])
+                good_circles.append([good_x, good_y, int(bubble_box_height * 0.3)])
             except:
                 show_circles_on_image(debug_image, filtered_circles, 'filtered circles')
                 raise ValueError('could not fill missing circles')
@@ -302,6 +304,7 @@ def get_good_circles(candidate_circles, circles_per_header_row, circles_per_q_ro
 
 def get_outer_box_contour(edged_image):
     cnts = cv2.findContours(edged_image.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    image_perim = 2 * sum(edged_image.shape)
     cnts = cnts[0] if imutils.is_cv2() else cnts[1]
     docCnt = None
     assert len(cnts) > 0, 'no contours found when looking for outer box'
@@ -311,7 +314,7 @@ def get_outer_box_contour(edged_image):
         if len(approx) == 4:
             docCnt = approx
             break
-    if type(docCnt) != np.ndarray or perim < 7000:
+    if type(docCnt) != np.ndarray or perim < image_perim * 0.7:
         temp_image = cv2.cvtColor(edged_image, cv2.COLOR_GRAY2RGB)
         cv2.drawContours(temp_image, [docCnt], -1, (255, 0, 0), 3)
         # plt.imshow(temp_image)
@@ -328,7 +331,7 @@ def get_outer_box(original_image, desired_portrait=True):
         gray = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
         blurred = cv2.medianBlur(gray, 7)
         blurred = cv2.blur(blurred, ksize=(7, 7))
-        thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
+        thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
         # show_image(gray)
         # show_image(blurred)
         # show_image(thresh)
@@ -367,13 +370,14 @@ def process_boxes(inner_boxes, form_design, num_boxes, rotate_boxes=True, omr_mo
                                         'box_no', 'omr_error', 'marker_error'])
     for box_no, inner_box in enumerate(inner_boxes):
         h, w = inner_box.shape
-        left_margin = int(form_design['inner_box_margins']['left'] * h)
-        top_margin = int(form_design['inner_box_margins']['top'] * w)
+        left_margin = int(form_design['inner_box_margins']['left'] * w)
+        top_margin = int(form_design['inner_box_margins']['top'] * h)
+        bottom_margin = int(form_design['inner_box_margins'].get('bottom', 0) * w)
         # pixels_per_row = int(0.085 * h)
         # height = (len(circles_per_row) + 1) * pixels_per_row  # plus 2 for middle buffer and top buffer
         if rotate_boxes:
             inner_box = np.array(Image.fromarray(inner_box).rotate(-90, expand=True))
-        inner_box = inner_box[top_margin:, left_margin:]
+        inner_box = inner_box[top_margin:h-bottom_margin, left_margin:]
         try:
             circle_details = form_design['circle_details']
             inner_box_answers = process_inner_box(inner_box, form_design['code'], form_design['questions'],
@@ -462,7 +466,7 @@ def process_inner_box(inner_box, circles_per_header_row, circles_per_q_row,
         for circle in question_circles:
             darknesses.append(process_circle(inner_box, circle))
             bubbles_processed += 1
-        print('INFO: q{} darknesses: {}'.format(question_number,darknesses))
+        print('INFO: q{} darknesses: {}'.format(question_number, darknesses))
         # determine response based on circle darknesses
         if omr_mode == 'exam':
             response = response_from_darknesses(darknesses)
