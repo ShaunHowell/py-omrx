@@ -7,8 +7,9 @@ def default_config():
                           31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31
                           ],
             "inner_box_margins": {
-                "top": 0.057,
-                "left": 0.019
+                "top": 0.045,
+                "left": 0.022,
+                "bottom": 0.029
             },
             "circle_details": {
                 "r_min": 0.005,

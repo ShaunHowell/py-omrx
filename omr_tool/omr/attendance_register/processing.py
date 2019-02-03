@@ -23,32 +23,27 @@ def process_image(input_file_path, form_designs):
         raise OmrException('couldn\'t find inner boxes correctly:\n{}'.format(e))
     # plt.imshow(Image.fromarray(inner_boxes[0]))
     # plt.show()
-    try:
-        school_number = get_binary_code_from_outer_box(inner_boxes[0],
-                                                       6 / 2021, 40 / 2021,
-                                                       478 / 1424, 710 / 1424,
-                                                       12 / 2021, 22 / 2021,
-                                                       55 / 3166,
-                                                       num_circles=5)
-        class_number = get_binary_code_from_outer_box(inner_boxes[0],
-                                                      6 / 2021, 40 / 2021,
-                                                      1014 / 1424, 1204 / 1424,
-                                                      12 / 2021, 22 / 2021,
-                                                      55 / 3166,
-                                                      num_circles=4)
-        sheet_number = get_binary_code_from_outer_box(inner_boxes[0],
-                                                      1991 / 2021, 2020 / 2021,
-                                                      383 / 1424, 496 / 1424,
-                                                      12 / 2021, 22 / 2021,
-                                                      55 / 3166,
-                                                      num_circles=2)
-    except ZeroCodeFoundException:
-        print('cannot have a zero code')
-        raise
-
-    answers = process_boxes(inner_boxes, form_design, rotate_boxes=False, num_boxes = 1, omr_mode='attendance')
-    if sheet_number == 2:
-        answers['student_number'] = answers['student_number'].astype(np.int) + len(form_design["questions"])
+    school_number = get_binary_code_from_outer_box(inner_boxes[0],
+                                                   6 / 2021, 40 / 2021,
+                                                   478 / 1424, 710 / 1424,
+                                                   12 / 2021, 22 / 2021,
+                                                   55 / 3166,
+                                                   num_circles=5)
+    class_number = get_binary_code_from_outer_box(inner_boxes[0],
+                                                  6 / 2021, 40 / 2021,
+                                                  1014 / 1424, 1204 / 1424,
+                                                  12 / 2021, 22 / 2021,
+                                                  55 / 3166,
+                                                  num_circles=4)
+    sheet_number = get_binary_code_from_outer_box(inner_boxes[0],
+                                                  1991 / 2021, 2020 / 2021,
+                                                  383 / 1424, 496 / 1424,
+                                                  12 / 2021, 22 / 2021,
+                                                  55 / 3166,
+                                                  num_circles=2)
+    answers = process_boxes(inner_boxes, form_design, rotate_boxes=False, num_boxes=1, omr_mode='attendance')
+    answers['student_number'] = answers['student_number'].astype(np.int) + len(form_design["questions"]) * (
+                sheet_number - 1)
     answers['school_code'] = school_number
     answers['class_code'] = class_number
     answers['sheet_number'] = sheet_number

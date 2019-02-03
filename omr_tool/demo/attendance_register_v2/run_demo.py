@@ -1,7 +1,7 @@
 import os
 
-from core.attendance_register.processing import *
-from core.core.metrics import *
+from omr_tool.omr.attendance_register.processing import *
+from omr_tool.omr.core.metrics import *
 
 
 input_path = Path('data')

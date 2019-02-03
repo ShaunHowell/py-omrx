@@ -19,6 +19,7 @@ options = {
             'omr_tool.omr',
             'omr_tool.gui',
             'omr_tool.default_configs',
+            'omr_tool.omr.utils.visualisation'
         ],
         'path': sys.path + ['modules'],
         # explicitly include packages which cx_freeze doesn't find
@@ -47,8 +48,8 @@ target = Executable(script="app.py",
                     icon='logo.ico',
                     targetName='run.exe'
                     )
-
-shutil.rmtree(str(Path('build/')))
+if Path('build/').exists():
+    shutil.rmtree(str(Path('build/')))
 setup(name="omr_tool",
       version="1.0",
       description="Tool for extracting data from attendance registers by optical mark recognition",
@@ -60,3 +61,4 @@ Path('build/lib/multiprocessing/Pool.pyc').rename(Path('build/lib/multiprocessin
 shutil.rmtree(str(Path('build/lib/omr_tool/demo')))
 shutil.rmtree(str(Path('build/lib/omr_tool/tests')))
 shutil.make_archive('omr_tool.zip', 'zip', 'build')
+shutil.copy(str(Path('build_res/vcruntime140.dll')),str(Path('build/vcruntime140.dll')))
