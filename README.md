@@ -1,4 +1,5 @@
 # Python Optical Mark Recognition eXtraction tool
+Master branch test status: ![travis master build status](https://travis-ci.com/ShaunHowell/py-omrx.svg?token=qa3pqsZkoC8q17Ekgz3K&branch=master)
 
 Tool for extracting data from specific forms using optical mark recognition. Made for the education team at Save the Children.
 

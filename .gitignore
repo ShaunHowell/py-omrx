@@ -15,8 +15,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -123,19 +121,7 @@ ENV/
 *.css
 
 # add exceptions to the data protection rules for demo folders which have been anonymised
-!src/demo/make_simple_report/data/exam_results/*
-!src/tests/res/demo_make_simple_report_out/*
-!src/tests/res/images_from_pdf_in/*
-!src/tests/res/optimise_quality_in/*
-!src/tests/res/preprocess_folder_in/*
-!src/tests/res/optimise_quality_out/*
-!src/demo/omr_data_extraction/data/ext/*
-!src/demo/omr_data_extraction/data/images/*
-!src/demo/data_extract_and_merge/data/scans/*
-!src/demo/data_extract_and_merge/data/ext/*
-!src/demo/full_pdf_folder_extraction/data/scans/*
-!src/demo/full_pdf_folder_extraction/data/ext/*
-!src/demo/pdf_to_report_1/data/scans/*
-!src/demo/pdf_to_report_1/data/ext/*
+!src/demo/attendance_register/**
+!src/tests/res/attendance_register/**
 
 *.zip

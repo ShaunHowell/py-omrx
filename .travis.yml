@@ -3,14 +3,16 @@ sudo: false
 language: python
 
 python:
-  - "3.5"
+  - "3.6"
 
 env:
   - TRAVIS=true
+
+before_install:
+  - sudo apt-get install python-wxgtk2.8
 
 install:
   - pip install -r requirements.txt
 
 script:
-  - cd omr_tool
-  - python -m pytest tests/ && exit 0
+  - pytest && exit 0
