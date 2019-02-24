@@ -6,6 +6,8 @@ import matplotlib
 import opcode
 import shutil
 
+VERSION = "1.1.0"
+
 VIRTUALENV_PYTHON_DIR = os.path.dirname(os.path.dirname(os.__file__))
 os.environ['TCL_LIBRARY'] = os.path.join(VIRTUALENV_PYTHON_DIR, 'tcl', 'tcl8.6')
 os.environ['TK_LIBRARY'] = os.path.join(VIRTUALENV_PYTHON_DIR, 'tcl', 'tk8.6')
@@ -16,10 +18,10 @@ SYSTEM_PYTHON_LIB_FOLDER = str(Path(opcode.__file__).parent.parent / 'Lib')
 options = {
     'build_exe': {
         'includes': [
-            'omr_tool.omr',
-            'omr_tool.gui',
-            'omr_tool.default_configs',
-            'omr_tool.omr.utils.visualisation'
+            'src.omr',
+            'src.gui',
+            'src.default_configs',
+            'src.omr.utils.visualisation'
         ],
         'path': sys.path + ['modules'],
         # explicitly include packages which cx_freeze doesn't find
@@ -30,8 +32,8 @@ options = {
         "excludes": [
             "scipy.spatial.cKDTree",  # bug: cKDTree causes ckdtree to not copy
             "distutils",  # because of virtualenv
-            "omr_tool.demo",
-            "omr_tool.tests",
+            "src.demo",
+            "src.tests",
         ],
         "include_files": [(matplotlib.get_data_path(), "mpl-data"),
                           os.path.join(SYSTEM_PYTHON_DLLS_FOLDER, 'tk86t.dll'),  # this might not be needed
@@ -45,20 +47,22 @@ options = {
 
 target = Executable(script="app.py",
                     base="Win32GUI" if sys.platform == "win32" else None,
-                    icon='logo.ico',
+                    icon='res/logo.ico',
                     targetName='run.exe'
                     )
 if Path('build/').exists():
     shutil.rmtree(str(Path('build/')))
-setup(name="omr_tool",
-      version="1.0",
+
+setup(name="src",
+      version=VERSION,
       description="Tool for extracting data from attendance registers by optical mark recognition",
       options=options,
       executables=[target])
 
 # hacky workaround for cx_freeze naming multiprocessing.pool incorrectly and files which couldn't be excluded...
 Path('build/lib/multiprocessing/Pool.pyc').rename(Path('build/lib/multiprocessing/pool.pyc'))
-shutil.rmtree(str(Path('build/lib/omr_tool/demo')))
-shutil.rmtree(str(Path('build/lib/omr_tool/tests')))
-shutil.make_archive('omr_tool.zip', 'zip', 'build')
-shutil.copy(str(Path('build_res/vcruntime140.dll')),str(Path('build/vcruntime140.dll')))
+shutil.rmtree(str(Path('build/lib/src/demo')))
+shutil.rmtree(str(Path('build/lib/src/tests')))
+shutil.make_archive('src.zip', 'zip', 'build')
+shutil.copy(str(Path('lib/vcruntime140.dll')), str(Path('build/vcruntime140.dll')))
+shutil.make_archive(str(Path(f'build/py-omrx-{VERSION}.zip')), 'zip', str(Path('build/')))
