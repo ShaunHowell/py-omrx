@@ -25,6 +25,7 @@ def example_attendance_data_path():
     res_folder = str(tests_folder / 'res')
     return str(Path(res_folder) / 'attendance_register' / 'data')
 
+
 @pytest.fixture
 def example_exam_data_path():
     tests_folder = Path(__file__).parent
@@ -32,3 +33,10 @@ def example_exam_data_path():
     res_folder = str(tests_folder / 'res')
     return str(Path(res_folder) / 'exam_marksheet' / 'data')
 
+
+@pytest.fixture
+def example_exam_data_path_2():
+    tests_folder = Path(__file__).parent
+    assert str(tests_folder.parts[-1]) == 'tests'
+    res_folder = str(tests_folder / 'res')
+    return str(Path(res_folder) / 'exam_marksheet' / 'data_2')
