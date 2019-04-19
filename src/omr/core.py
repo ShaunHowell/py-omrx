@@ -14,7 +14,7 @@ from scipy.spatial.distance import euclidean
 
 from default_configs import attendance_register
 from omr.exceptions import ZeroCodeFoundException, OmrException, OmrValidationException
-from omr.vis_utils import show_circles_on_image
+from omr.vis_utils import show_circles_on_image, show_image
 
 
 def get_binary_code_from_outer_box(greyscale_outer_box,
@@ -383,14 +383,15 @@ def get_outer_box_contour(edged_image):
         if len(approx) == 4:
             docCnt = approx
             break
-    if type(docCnt) != np.ndarray or perim < image_perim * 0.7:
+    min_acceptable_perim = image_perim * 0.7
+    if type(docCnt) != np.ndarray or perim < min_acceptable_perim:
         temp_image = cv2.cvtColor(edged_image, cv2.COLOR_GRAY2RGB)
         cv2.drawContours(temp_image, [docCnt], -1, (255, 0, 0), 3)
         # plt.imshow(temp_image)
         # plt.show()
         raise OmrException(
             'no suitable outer contour found, '
-            'biggest outer contour had perim of {}'.format(perim))
+            'biggest outer contour had perim of {}, needs to be bigger than {}'.format(perim, min_acceptable_perim))
     return docCnt
 
 
@@ -550,6 +551,7 @@ def process_inner_box(inner_box,
     r1, r2 = int(r_min * h), int(r_max * h)
     inner_box = cv2.threshold(inner_box, 0, 255,
                               cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    show_image(inner_box)
     circles = cv2.HoughCircles(
         inner_box,
         cv2.HOUGH_GRADIENT,

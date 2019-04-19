@@ -2,8 +2,17 @@ from pathlib import Path
 
 import cv2
 
-from omr.core import get_binary_code_from_outer_box, get_inner_boxes, process_images_folder, get_outer_box
+from omr.core import get_binary_code_from_outer_box, get_inner_boxes, process_images_folder, get_outer_box, process_boxes
 from omr.exceptions import OmrException
+
+def process_exam_marksheet_folder(input_folder,
+                                  form_design_path,
+                                  output_folder=None):
+    process_images_folder(
+        input_folder,
+        form_design_path,
+        omr_mode='exam',
+        output_folder=output_folder)
 
 
 def process_image(input_file_path, form_designs):
@@ -44,13 +53,12 @@ def process_image(input_file_path, form_designs):
     except OmrException as e:
         raise OmrException(
             'couldn\'t find inner boxes correctly:\n{}'.format(e))
-
-
-def process_exam_marksheet_folder(input_folder,
-                                  form_design_path,
-                                  output_folder=None):
-    process_images_folder(
-        input_folder,
-        form_design_path,
-        omr_mode='exam',
-        output_folder=output_folder)
+    answers = process_boxes(
+        inner_boxes,
+        form_design,
+        rotate_boxes=False,
+        num_boxes=3,
+        omr_mode='exam')
+    answers['paper_code'] = paper_code
+    answers['file_name'] = Path(input_file_path).stem
+    return answers

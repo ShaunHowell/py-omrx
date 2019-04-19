@@ -3,11 +3,11 @@ from omr.exam_marksheet import process_exam_marksheet_folder
 from omr.accuracy import *
 import pytest
 from pathlib import Path
+from tests.fixtures import clean_out_folder, example_exam_data_path
 
 
-@pytest.mark.skip('was out of scope, not reimplemented yet')
-def test_process_exam_mark_sheet(clean_out_folder):
-    input_path = Path('tests/res/exam_marksheet/data')
+def test_process_exam_mark_sheet(clean_out_folder, example_exam_data_path):
+    input_path = Path(example_exam_data_path)
     output_folder = Path(clean_out_folder)
     for file_path in output_folder.iterdir():
         os.remove(str(file_path))
