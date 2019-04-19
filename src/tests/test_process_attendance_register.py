@@ -4,8 +4,8 @@ from omr.accuracy import *
 
 
 def test_process_attendance_register(clean_out_folder,
-                                     example_attendance_data):
-    input_path = Path(example_attendance_data)
+                                     example_attendance_data_path):
+    input_path = Path(example_attendance_data_path)
     output_folder = Path(clean_out_folder)
     for file_path in output_folder.iterdir():
         os.remove(str(file_path))

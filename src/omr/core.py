@@ -14,7 +14,8 @@ from scipy.spatial.distance import euclidean
 
 from default_configs import attendance_register
 from omr.exceptions import ZeroCodeFoundException, OmrException, OmrValidationException
-from omr.vis_utils import show_circles_on_image
+from omr.vis_utils import show_circles_on_image, show_image
+import matplotlib.pyplot as plt
 
 
 def get_binary_code_from_outer_box(greyscale_outer_box,
@@ -328,7 +329,7 @@ def get_good_circles(candidate_circles,
                      int(bubble_box_height * 0.3)])
             except:
                 show_circles_on_image(debug_image, filtered_circles,
-                                      'filtered circles')
+                                      'ERROR (filtered circles)')
                 raise ValueError('could not fill missing circles')
 
     # y_coords = [circ[1] for circ in filtered_circles]
@@ -383,14 +384,16 @@ def get_outer_box_contour(edged_image):
         if len(approx) == 4:
             docCnt = approx
             break
-    if type(docCnt) != np.ndarray or perim < image_perim * 0.7:
+    min_acceptable_perim = image_perim * 0.7
+    if type(docCnt) != np.ndarray or perim < min_acceptable_perim:
         temp_image = cv2.cvtColor(edged_image, cv2.COLOR_GRAY2RGB)
         cv2.drawContours(temp_image, [docCnt], -1, (255, 0, 0), 3)
         # plt.imshow(temp_image)
         # plt.show()
         raise OmrException(
             'no suitable outer contour found, '
-            'biggest outer contour had perim of {}'.format(perim))
+            'biggest outer contour had perim of {}, needs to be bigger than {}'
+            .format(perim, min_acceptable_perim))
     return docCnt
 
 
@@ -448,7 +451,7 @@ def process_boxes(inner_boxes,
                   num_boxes,
                   rotate_boxes=True,
                   omr_mode='exam'):
-    circles_per_row = form_design['code'] + form_design['questions']
+    # circles_per_row = form_design['code'] + form_design['questions']
     if omr_mode == 'exam':
         answers = pd.DataFrame(
             columns=['file_name', 'box_no', 'omr_error', 'marker_error'])
@@ -458,16 +461,16 @@ def process_boxes(inner_boxes,
             'omr_error', 'marker_error'
         ])
     for box_no, inner_box in enumerate(inner_boxes):
-        h, w = inner_box.shape
-        left_margin = int(form_design['inner_box_margins']['left'] * w)
-        top_margin = int(form_design['inner_box_margins']['top'] * h)
-        bottom_margin = int(
-            form_design['inner_box_margins'].get('bottom', 0) * w)
         # pixels_per_row = int(0.085 * h)
         # height = (len(circles_per_row) + 1) * pixels_per_row  # plus 2 for middle buffer and top buffer
         if rotate_boxes:
             inner_box = np.array(
                 Image.fromarray(inner_box).rotate(-90, expand=True))
+        h, w = inner_box.shape
+        left_margin = int(form_design['inner_box_margins']['left'] * w)
+        top_margin = int(form_design['inner_box_margins']['top'] * h)
+        bottom_margin = int(
+            form_design['inner_box_margins'].get('bottom', 0) * w)
         inner_box = inner_box[top_margin:h - bottom_margin, left_margin:]
         inner_box = cv2.copyMakeBorder(
             inner_box,
@@ -515,9 +518,10 @@ def process_circle(inner_box, circle):
 
 
 def response_from_darknesses(darknesses):
-    if max(darknesses) < 0.09:
+    if max(darknesses) < 0.4:  # was 0.09
         return -1  # -1 means the row doesn't have a response
-    filled_circles = list(filter(lambda d: d > 0.25, darknesses))
+    filled_circles = list(filter(lambda d: d > 0.6,
+                                 darknesses))  # was 0.25 cutoff
     if len(filled_circles) > 1:
         return -2  # -2 means more than one response detected
     if len(filled_circles) < 1:
@@ -556,7 +560,7 @@ def process_inner_box(inner_box,
         dp=1,
         minDist=min_dist,
         param1=50,
-        param2=8,
+        param2=7,
         minRadius=r1,
         maxRadius=r2)
     circles = np.uint16(np.around(circles))[0]
@@ -596,13 +600,14 @@ def process_inner_box(inner_box,
         for circle in question_circles:
             darknesses.append(process_circle(inner_box, circle))
             bubbles_processed += 1
-        print('INFO: q{} darknesses: {}'.format(question_number, darknesses))
+        # print('INFO: q{} darknesses: {}'.format(question_number, darknesses))
         # determine response based on circle darknesses
         if omr_mode == 'exam':
             response = response_from_darknesses(darknesses)
         elif omr_mode == 'attendance':
             response = darknesses_to_binary(darknesses)
-        # print('Row {}, darknesses: {}, response: {}'.format(question_number, list(enumerate(darknesses)), response))
+        print('Row {}, darknesses: {}, response: {}'.format(
+            question_number, darknesses, response))
         if response == -3:
             inner_box_answers.update({'omr_error': True})
         if response in [-1, -2]:

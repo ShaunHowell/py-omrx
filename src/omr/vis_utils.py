@@ -16,7 +16,9 @@ def show_circles_on_image(image, circles, title=None):
     plt.show()
 
 
-def show_image(image):
+def show_image(image, title=None):
     temp_image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     plt.imshow(image)
+    if title:
+        plt.title(title)
     plt.show()
