@@ -23,3 +23,16 @@ def test_process_attendance_register(clean_out_folder,
         'incorrect'] < accuracy_results['total_responses'] * 0.01
     assert accuracy_results[
         'abstentions'] < accuracy_results['total_responses'] * 0.05
+
+
+@pytest.mark.skip(reason='just for debugging currently')
+def test_attendance_register_large_real_set_no_exception(
+        clean_out_folder, example_attendance_data_path_2):
+    input_path = Path(example_attendance_data_path_2)
+    output_folder = Path(clean_out_folder)
+    for file_path in output_folder.iterdir():
+        os.remove(str(file_path))
+    process_attendance_sheet_folder(
+        str(input_path / 'images'),
+        str(Path(input_path) / 'ext' / 'omr_form_designs.json'),
+        str(output_folder))

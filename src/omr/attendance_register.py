@@ -21,6 +21,8 @@ def process_attendance_sheet_folder(input_folder,
 def process_image(input_file_path, form_designs):
     assert Path(input_file_path).exists(), 'check input file path'
     image = cv2.imread(input_file_path)
+    if image is None:
+        raise OmrException('failed to load image: {}'.format(input_file_path))
     try:
         grey_outer_box, rgb_outer_box = get_outer_box(
             image, desired_portrait=True)

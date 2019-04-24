@@ -1,3 +1,4 @@
+import datetime
 import importlib
 import json
 import sys
@@ -148,6 +149,10 @@ def process_images_folder(input_folder,
                     Path(file_path).name),
                 file=sys.stderr)
             print('error message: ', e, file=sys.stderr)
+            if output_folder:
+                now = datetime.datetime.now()
+                with (Path(output_folder) / 'errors.txt').open('a') as f:
+                    f.write('{}:{}:{}:{}\n'.format(now, file_path, type(e), e))
     assert len(answers_df) > 0, 'could not extract any data from the images'
     error_df = pd.DataFrame(
         index=error_files, columns=answers_df.columns.tolist())

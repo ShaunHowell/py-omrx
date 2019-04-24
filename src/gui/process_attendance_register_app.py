@@ -1,9 +1,10 @@
 #!/bin/python
 import traceback
-
+import sys
 from omr.attendance_register import process_attendance_sheet_folder
 import wx
 import webbrowser
+from pathlib import Path
 
 
 class AttendanceFrame(wx.Frame):
