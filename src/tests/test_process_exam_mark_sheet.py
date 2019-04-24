@@ -17,7 +17,7 @@ def test_process_exam_mark_sheet(clean_out_folder, example_exam_data_path):
         str(Path(input_path) / 'ext' / 'omr_form_designs.json'),
         str(output_folder))
     accuracy_results = find_omr_accuracy(
-        str(output_folder / 'human_processed_attendance_register.csv'),
+        str(output_folder / 'exam_omr_output.csv'),
         str(input_path / 'exam_results' / 'human_processed_exam_results.csv'),
         str(input_path / 'ext' / 'omr_form_designs.json'))
     print('INFO: accuracy results:\n{}'.format(accuracy_results))
@@ -33,7 +33,7 @@ def test_process_exam_mark_sheet_2(clean_out_folder, example_exam_data_path_2):
         str(Path(input_path) / 'ext' / 'omr_form_designs.json'),
         str(output_folder))
     accuracy_results = find_omr_accuracy(
-        str(output_folder / 'human_processed_attendance_register.csv'),
+        str(output_folder / 'exam_omr_output.csv'),
         str(input_path / 'exam_results' / 'human_processed_exam_results.csv'),
         str(input_path / 'ext' / 'omr_form_designs.json'))
     print('INFO: accuracy results:\n{}'.format(accuracy_results))

@@ -14,7 +14,7 @@ def test_process_attendance_register(clean_out_folder,
         str(Path(input_path) / 'ext' / 'omr_form_designs.json'),
         str(output_folder))
     accuracy_results = find_omr_accuracy(
-        str(output_folder / 'human_processed_attendance_register.csv'),
+        str(output_folder / 'attendance_omr_output.csv'),
         str(input_path / 'ext' / 'human_processed_attendance_register.csv'),
         str(input_path / 'ext' / 'omr_form_designs.json'),
         omr_mode='attendance')
