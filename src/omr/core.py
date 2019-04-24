@@ -163,9 +163,7 @@ def process_images_folder(input_folder,
         if not Path(output_folder).exists():
             Path(output_folder).mkdir(parents=True)
         answers_df.to_csv(
-            str(
-                Path(output_folder) /
-                'human_processed_attendance_register.csv'),
+            str(Path(output_folder) / '{}_omr_output.csv'.format(omr_mode)),
             index=False)
     return answers_df
 
