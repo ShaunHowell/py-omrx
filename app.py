@@ -1,11 +1,11 @@
 from pathlib import Path
 import sys
 sys.path.append(str(Path.cwd() / 'pyomrx'))
-from pyomrx.gui import process_attendance_register_app
+from pyomrx.gui import pyomrx_gui
 
 
 def main():
-    process_attendance_register_app.main()
+    pyomrx_gui.main()
 
 
 if __name__ == '__main__':

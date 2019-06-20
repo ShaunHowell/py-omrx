@@ -8,3 +8,7 @@ class OmrValidationException(OmrException):
 
 class ZeroCodeFoundException(OmrException):
     pass
+
+
+class EmptyFolderException(FileNotFoundError):
+    pass

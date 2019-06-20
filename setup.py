@@ -5,8 +5,9 @@ from cx_Freeze import setup, Executable
 import matplotlib
 import opcode
 import shutil
+import pyomrx
 
-VERSION = "1.2.0"
+VERSION = pyomrx.__version__
 
 VIRTUALENV_PYTHON_DIR = os.path.dirname(os.path.dirname(os.__file__))
 os.environ['TCL_LIBRARY'] = os.path.join(VIRTUALENV_PYTHON_DIR, 'tcl', 'tcl8.6')

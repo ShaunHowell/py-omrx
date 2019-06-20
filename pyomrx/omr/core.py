@@ -13,11 +13,13 @@ from imutils.perspective import four_point_transform
 from scipy.spatial import KDTree
 from scipy.spatial.distance import euclidean
 
-from pyomrx.default_configs import attendance_register
-from pyomrx.omr.exceptions import ZeroCodeFoundException, OmrException, OmrValidationException
+from pyomrx.default_configs import attendance_register, exam_marksheet
+from pyomrx.omr.exceptions import ZeroCodeFoundException, OmrException, OmrValidationException, EmptyFolderException
 from pyomrx.omr.vis_utils import show_circles_on_image, show_image
 import matplotlib.pyplot as plt
 from pyomrx.omr.file_utils import make_folder_if_not_exists
+
+IMAGE_SUFFIXES = ['.png', '.jpg', 'jpeg', '.PNG', '.JPG', '.JPEG']
 
 
 def get_binary_code_from_outer_box(greyscale_outer_box,
@@ -92,7 +94,7 @@ def get_code_from_binary_circles(image,
     code_circles = np.uint16(np.around(code_circles))[0].tolist()
     sorted_circles = sorted(
         code_circles,
-        key=lambda circle: circle[0]**2 + circle[1]**2,
+        key=lambda circle: circle[0] ** 2 + circle[1] ** 2,
         reverse=True)
     code_circles = np.array(sorted_circles)  # read left to right
     # temp_image = image.copy()
@@ -112,7 +114,7 @@ def get_code_from_binary_circles(image,
         average = cv2.countNonZero(mask) / (circle[2] * circle[2] * 3.14)
         # check if positive detection
         if average > 0.5:
-            paper_code = paper_code + 2**i
+            paper_code = paper_code + 2 ** i
     if paper_code < 0:
         raise ZeroCodeFoundException(
             'paper code not detected properly, please check file')
@@ -130,15 +132,20 @@ def process_images_folder(input_folder,
     else:
         print(
             'ERROR: image_type must be exam_marksheet or attendance_register, {} passed'
-            .format(omr_mode))
+                .format(omr_mode))
         raise ValueError('invalid image_type')
     process_image = getattr(temp_module, 'process_image')
     if form_design_path:
         form_design = json.load(open(form_design_path))
-    else:
+    elif omr_mode == 'attendance':
         form_design = attendance_register.default_config()
+    elif omr_mode == 'exam':
+        form_design = exam_marksheet.default_config()
     answers_df = pd.DataFrame()
-    img_files = list(Path(input_folder).iterdir())
+    print(list(Path(input_folder).iterdir()))
+    img_files = [img_file for img_file in Path(input_folder).iterdir() if img_file.suffix in IMAGE_SUFFIXES]
+    if not img_files:
+        raise EmptyFolderException('no image files found in {}'.format(input_folder))
     error_files = []
     print('{} files to process in folder {}'.format(
         len(img_files), input_folder))
@@ -261,7 +268,7 @@ def get_good_circles(candidate_circles,
         candidate_circles.copy().tolist(), key=lambda circ: circ[0] + circ[1])
     assert len(np.array(candidate_circles).shape
                ) == 2, 'shape must be (n,3), [} was passed'.format(
-                   np.array(candidate_circles).shape)
+        np.array(candidate_circles).shape)
     bubble_box_width = inner_box_shape[1] / max(circles_per_q_row +
                                                 circles_per_header_row)
     number_of_rows = len(circles_per_q_row +
@@ -351,7 +358,7 @@ def get_good_circles(candidate_circles,
                     np.array(expected_locations),
                     np.array([[3] * len(expected_locations)]).T
                 ],
-                                                           axis=1)
+                    axis=1)
                 show_circles_on_image(
                     debug_image,
                     expected_location_circles,
@@ -456,7 +463,7 @@ def get_outer_box_contour(original_image):
         raise OmrException(
             'no suitable outer contour found, '
             'biggest outer contour had perim of {}, needs to be bigger than {}'
-            .format(perim, min_acceptable_perim))
+                .format(perim, min_acceptable_perim))
     return docCnt
 
 
@@ -556,7 +563,7 @@ def process_boxes(inner_boxes,
             or len(answers) < num_boxes:
         raise OmrException(
             'Must be no nulls in answers and must be {} boxes processed'.
-            format(num_boxes))
+                format(num_boxes))
     return answers
 
 
@@ -672,7 +679,7 @@ def process_inner_box(inner_box,
         else:
             inner_box_answers.update({
                 'q_{:0>2}'.format(question_number - len(circles_per_header_row) + 1):
-                response
+                    response
             })
     if omr_mode == 'exam':
         inner_box_df = pd.DataFrame(inner_box_answers, index=[0])
