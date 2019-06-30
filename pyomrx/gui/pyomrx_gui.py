@@ -52,29 +52,51 @@ class PyomrxMainFrame(wx.Frame):
         self.vbox.Add((-1, 20), proportion=0, border=border_width)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        hbox.Add(wx.StaticText(self.panel, label='Form type:'), proportion=0, flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL,
-                 border=border_width)
-        self.form_type_dropdown = wx.Choice(self.panel, choices=['exam marksheet', 'attendance register'])
+        hbox.Add(
+            wx.StaticText(self.panel, label='Form type:'),
+            proportion=0,
+            flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL,
+            border=border_width)
+        self.form_type_dropdown = wx.Choice(
+            self.panel, choices=['exam marksheet', 'attendance register'])
         self.form_type_dropdown.SetSelection(0)
-        hbox.Add(self.form_type_dropdown, proportion=0,
-                 flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL,
-                 border=border_width)
-        self.vbox.Add(hbox, proportion=0, flag=wx.ALIGN_CENTRE | wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=border_width)
+        hbox.Add(
+            self.form_type_dropdown,
+            proportion=0,
+            flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL,
+            border=border_width)
+        self.vbox.Add(
+            hbox,
+            proportion=0,
+            flag=wx.ALIGN_CENTRE | wx.ALL | wx.ALIGN_CENTER_VERTICAL,
+            border=border_width)
         self.vbox.Add((-1, 5), proportion=0, border=border_width)
 
         for button_type, button_dict in self.buttons:
             hbox = wx.BoxSizer(wx.HORIZONTAL)
-            hbox.Add(button_dict['button'], proportion=0, flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=border_width)
+            hbox.Add(
+                button_dict['button'],
+                proportion=0,
+                flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL,
+                border=border_width)
             if button_dict['text']:
-                hbox.Add(button_dict['text'], proportion=0, flag=wx.ALIGN_LEFT | wx.ALL | wx.ALIGN_CENTER_VERTICAL,
-                         border=border_width)
+                hbox.Add(
+                    button_dict['text'],
+                    proportion=0,
+                    flag=wx.ALIGN_LEFT | wx.ALL | wx.ALIGN_CENTER_VERTICAL,
+                    border=border_width)
                 self.vbox.Add(
-                    hbox, proportion=0,
-                    flag=wx.ALIGN_LEFT | wx.ALIGN_BOTTOM | wx.ALL | wx.ALIGN_CENTER_VERTICAL,
+                    hbox,
+                    proportion=0,
+                    flag=wx.ALIGN_LEFT | wx.ALIGN_BOTTOM | wx.ALL
+                    | wx.ALIGN_CENTER_VERTICAL,
                     border=border_width)
             else:
-                self.vbox.Add(hbox, proportion=0, flag=wx.ALIGN_CENTRE | wx.ALL | wx.ALIGN_CENTER_VERTICAL,
-                              border=border_width)
+                self.vbox.Add(
+                    hbox,
+                    proportion=0,
+                    flag=wx.ALIGN_CENTRE | wx.ALL | wx.ALIGN_CENTER_VERTICAL,
+                    border=border_width)
             self.vbox.Add((-1, 5), proportion=0, border=border_width)
         self.vbox.Add((-1, 20), proportion=0, border=border_width)
 
@@ -137,7 +159,8 @@ class PyomrxMainFrame(wx.Frame):
     def process_images(self, event):
         if not self.input_path or not self.output_folder:
             raise ValueError('need to set input path and output folder')
-        form_type = self.form_type_dropdown.GetString(self.form_type_dropdown.GetSelection())
+        form_type = self.form_type_dropdown.GetString(
+            self.form_type_dropdown.GetSelection())
         self.statusbar.PushStatusText('processing {}s'.format(form_type))
         try:
             if form_type == 'attendance register':
@@ -151,13 +174,18 @@ class PyomrxMainFrame(wx.Frame):
                     form_design_path=None,
                     output_folder=str(self.output_folder))
             else:
-                raise ValueError('got form type: {}, not supported (check spelling?)'.format(form_type))
+                raise ValueError(
+                    'got form type: {}, not supported (check spelling?)'.
+                    format(form_type))
         except EmptyFolderException as e:
             # frame = wx.GetApp().GetTopWindow()
             print(e)
             self.statusbar.PushStatusText('error: empty folder')
-            dlg = ExceptionDialog('No image files found in the selected folder', parent=None, fatal=False,
-                                  title='Error')
+            dlg = ExceptionDialog(
+                'No image files found in the selected folder',
+                parent=None,
+                fatal=False,
+                title='Error')
             dlg.ShowModal()
             dlg.Destroy()
             self.statusbar.PushStatusText('ready')
@@ -195,18 +223,13 @@ class ExceptionDialog(wx.Dialog):
             style=wx.ALIGN_CENTRE_HORIZONTAL)
         font = wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.BOLD)
         message_text_object.SetFont(font)
-        message_box_sizer.Add(message_text_object,
-                              proportion=1,
-                              flag=wx.EXPAND,
-                              border=5)
+        message_box_sizer.Add(
+            message_text_object, proportion=1, flag=wx.EXPAND, border=5)
         message_box_sizer.Add((-1, 10), proportion=0)
         msg_text = self.msg if not fatal else '1. Click below to copy the error details to the clipboard,' \
                                               '\n 2. Email the error details to Shaun for support'
         message_box_sizer.Add(
-            wx.StaticText(
-                message_panel,
-                label=msg_text,
-                style=wx.ALIGN_LEFT),
+            wx.StaticText(message_panel, label=msg_text, style=wx.ALIGN_LEFT),
             proportion=1,
             flag=wx.EXPAND,
             border=5)

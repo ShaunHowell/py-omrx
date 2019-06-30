@@ -40,6 +40,7 @@ def get_binary_code_from_outer_box(greyscale_outer_box,
         greyscale_outer_box, 0, 255,
         cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
     code_box = binary_outer_box[h1:h2, w1:w2]
+    # show_image(code_box, title='code box')
     code = get_code_from_binary_circles(
         code_box, min_dist, r1, r2, num_circles=num_circles)
     print('INFO: code: {}'.format(code))
@@ -94,7 +95,7 @@ def get_code_from_binary_circles(image,
     code_circles = np.uint16(np.around(code_circles))[0].tolist()
     sorted_circles = sorted(
         code_circles,
-        key=lambda circle: circle[0] ** 2 + circle[1] ** 2,
+        key=lambda circle: circle[0]**2 + circle[1]**2,
         reverse=True)
     code_circles = np.array(sorted_circles)  # read left to right
     # temp_image = image.copy()
@@ -114,7 +115,7 @@ def get_code_from_binary_circles(image,
         average = cv2.countNonZero(mask) / (circle[2] * circle[2] * 3.14)
         # check if positive detection
         if average > 0.5:
-            paper_code = paper_code + 2 ** i
+            paper_code = paper_code + 2**i
     if paper_code < 0:
         raise ZeroCodeFoundException(
             'paper code not detected properly, please check file')
@@ -122,7 +123,7 @@ def get_code_from_binary_circles(image,
 
 
 def process_images_folder(input_folder,
-                          form_design_path=None,
+                          form_design=None,
                           omr_mode='attendance',
                           output_folder=None):
     if omr_mode == 'exam':
@@ -132,20 +133,32 @@ def process_images_folder(input_folder,
     else:
         print(
             'ERROR: image_type must be exam_marksheet or attendance_register, {} passed'
-                .format(omr_mode))
+            .format(omr_mode))
         raise ValueError('invalid image_type')
     process_image = getattr(temp_module, 'process_image')
-    if form_design_path:
-        form_design = json.load(open(form_design_path))
-    elif omr_mode == 'attendance':
+    if isinstance(form_design, str):
+        form_design = json.load(open(form_design))
+    elif isinstance(form_design, dict):
+        form_design = form_design
+    elif omr_mode == 'attendance' and form_design is None:
+        print('using default attendance template')
         form_design = attendance_register.default_config()
-    elif omr_mode == 'exam':
+    elif omr_mode == 'exam' and form_design is None:
         form_design = exam_marksheet.default_config()
+        print('using default attendance template')
+    else:
+        raise TypeError(
+            'form design passed is of typ {} but must be either str or dict'.
+            format(type(form_design)))
     answers_df = pd.DataFrame()
     print(list(Path(input_folder).iterdir()))
-    img_files = [img_file for img_file in Path(input_folder).iterdir() if img_file.suffix in IMAGE_SUFFIXES]
+    img_files = [
+        img_file for img_file in Path(input_folder).iterdir()
+        if img_file.suffix in IMAGE_SUFFIXES
+    ]
     if not img_files:
-        raise EmptyFolderException('no image files found in {}'.format(input_folder))
+        raise EmptyFolderException(
+            'no image files found in {}'.format(input_folder))
     error_files = []
     print('{} files to process in folder {}'.format(
         len(img_files), input_folder))
@@ -268,7 +281,7 @@ def get_good_circles(candidate_circles,
         candidate_circles.copy().tolist(), key=lambda circ: circ[0] + circ[1])
     assert len(np.array(candidate_circles).shape
                ) == 2, 'shape must be (n,3), [} was passed'.format(
-        np.array(candidate_circles).shape)
+                   np.array(candidate_circles).shape)
     bubble_box_width = inner_box_shape[1] / max(circles_per_q_row +
                                                 circles_per_header_row)
     number_of_rows = len(circles_per_q_row +
@@ -358,7 +371,7 @@ def get_good_circles(candidate_circles,
                     np.array(expected_locations),
                     np.array([[3] * len(expected_locations)]).T
                 ],
-                    axis=1)
+                                                           axis=1)
                 show_circles_on_image(
                     debug_image,
                     expected_location_circles,
@@ -463,7 +476,7 @@ def get_outer_box_contour(original_image):
         raise OmrException(
             'no suitable outer contour found, '
             'biggest outer contour had perim of {}, needs to be bigger than {}'
-                .format(perim, min_acceptable_perim))
+            .format(perim, min_acceptable_perim))
     return docCnt
 
 
@@ -536,6 +549,7 @@ def process_boxes(inner_boxes,
             left=0,
             borderType=cv2.BORDER_CONSTANT,
             value=[255, 255, 255])
+        # show_image(inner_box,title='cropped inner box')
         try:
             circle_details = form_design['circle_details']
             inner_box_answers = process_inner_box(
@@ -563,7 +577,7 @@ def process_boxes(inner_boxes,
             or len(answers) < num_boxes:
         raise OmrException(
             'Must be no nulls in answers and must be {} boxes processed'.
-                format(num_boxes))
+            format(num_boxes))
     return answers
 
 
@@ -679,7 +693,7 @@ def process_inner_box(inner_box,
         else:
             inner_box_answers.update({
                 'q_{:0>2}'.format(question_number - len(circles_per_header_row) + 1):
-                    response
+                response
             })
     if omr_mode == 'exam':
         inner_box_df = pd.DataFrame(inner_box_answers, index=[0])
