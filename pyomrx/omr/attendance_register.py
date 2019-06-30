@@ -4,6 +4,7 @@ import cv2
 
 from pyomrx.omr.core import get_binary_code_from_outer_box, get_inner_boxes, process_images_folder, get_outer_box, \
     process_boxes
+from pyomrx.omr.vis_utils import show_image
 from pyomrx.omr.exceptions import OmrException
 import numpy as np
 
@@ -26,6 +27,7 @@ def process_image(input_file_path, form_designs):
     try:
         grey_outer_box, rgb_outer_box = get_outer_box(
             image, desired_portrait=True)
+        # show_image(rgb_outer_box,'outer box')
     except OmrException as e:
         raise OmrException('no suitable outer contour found:\n{}'.format(e))
     form_design = form_designs[str(1)]

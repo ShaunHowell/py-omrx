@@ -2,6 +2,7 @@ import os
 
 from pyomrx.omr.attendance_register import process_attendance_sheet_folder
 from pyomrx.omr.accuracy import *
+from pathlib import Path
 
 input_path = Path('data')
 output_folder = Path('data/out')

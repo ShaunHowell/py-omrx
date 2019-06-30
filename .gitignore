@@ -126,3 +126,4 @@ ENV/
 !src/tests/res/exam_marksheet/**
 
 *.zip
+**errors.txt
