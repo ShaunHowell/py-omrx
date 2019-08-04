@@ -9,6 +9,8 @@ env:
   - TRAVIS=true
 
 before_install:
+  - sudo add-apt-repository ppa:nilarimogard/webupd8
+  - sudo apt-get update
   - sudo apt-get install http://packages.ubuntu.com/trusty/python-wxgtk2.8
 
 install:
