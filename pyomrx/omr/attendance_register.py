@@ -26,53 +26,52 @@ def process_image(input_file_path, form_designs):
         raise OmrException('failed to load image: {}'.format(input_file_path))
     try:
         grey_outer_box, rgb_outer_box = get_outer_box(
-            image, desired_portrait=True)
+            image, desired_portrait=False)
         # show_image(rgb_outer_box,'outer box')
     except OmrException as e:
         raise OmrException('no suitable outer contour found:\n{}'.format(e))
     form_design = form_designs[str(1)]
+    school_number = get_binary_code_from_outer_box(
+        grey_outer_box,
+        13 / 2021,
+        70 / 2021,
+        680 / 1424,
+        890 / 1424,
+        form_design['circle_details']['r_min'],
+        form_design['circle_details']['r_max'],
+        form_design['circle_details']['min_spacing'],
+        num_circles=7)
+    class_number = get_binary_code_from_outer_box(
+        grey_outer_box,
+        13 / 2021,
+        70 / 2021,
+        1085 / 1424,
+        1235 / 1424,
+        form_design['circle_details']['r_min'],
+        form_design['circle_details']['r_max'],
+        form_design['circle_details']['min_spacing'],
+        num_circles=5)
+    sheet_number = get_binary_code_from_outer_box(
+        grey_outer_box,
+        1930 / 2021,
+        2000 / 2021,
+        1295 / 1424,
+        1400 / 1424,
+        form_design['circle_details']['r_min'],
+        form_design['circle_details']['r_max'],
+        form_design['circle_details']['min_spacing'],
+        num_circles=3)
     try:
-        bottom_left_corners = [[1.0, 0.005]]
+        bottom_left_corners = [[1.0, 0.01]]
         inner_boxes = get_inner_boxes(
             grey_outer_box,
             height=0.98,
-            width=0.995,
+            width=0.967,
             bottom_left_corners=bottom_left_corners)
     except OmrException as e:
         raise OmrException(
             'couldn\'t find inner boxes correctly:\n{}'.format(e))
-    # plt.imshow(Image.fromarray(inner_boxes[0]))
-    # plt.show()
-    school_number = get_binary_code_from_outer_box(
-        inner_boxes[0],
-        6 / 2021,
-        40 / 2021,
-        478 / 1424,
-        710 / 1424,
-        12 / 2021,
-        22 / 2021,
-        55 / 3166,
-        num_circles=5)
-    class_number = get_binary_code_from_outer_box(
-        inner_boxes[0],
-        6 / 2021,
-        40 / 2021,
-        1014 / 1424,
-        1204 / 1424,
-        12 / 2021,
-        22 / 2021,
-        55 / 3166,
-        num_circles=4)
-    sheet_number = get_binary_code_from_outer_box(
-        inner_boxes[0],
-        1991 / 2021,
-        2020 / 2021,
-        383 / 1424,
-        496 / 1424,
-        12 / 2021,
-        22 / 2021,
-        55 / 3166,
-        num_circles=2)
+    # show_image(inner_boxes[0], 'inner box')
     answers = process_boxes(
         inner_boxes,
         form_design,
