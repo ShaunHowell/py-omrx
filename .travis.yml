@@ -9,9 +9,7 @@ env:
   - TRAVIS=true
 
 before_install:
-  - echo "deb http://archive.ubuntu.com/ubuntu wily main universe" | sudo tee /etc/apt/sources.list.d/wily-copies.list
-  - sudo apt update
-  - sudo apt-get install python-wxgtk2.8
+  - sudo apt-get install http://packages.ubuntu.com/trusty/python-wxgtk2.8
 
 install:
   - pip install -r requirements.txt
