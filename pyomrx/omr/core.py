@@ -451,10 +451,15 @@ def get_outer_box_contour(original_image):
     # show_image(edged_image, title='edged_image', delayed_show=True)
     cnts = cv2.findContours(edged_image.copy(), cv2.RETR_LIST,
                             cv2.CHAIN_APPROX_SIMPLE)
-    cnts = cnts[0] if imutils.is_cv2() else cnts[1]
+    if imutils.is_cv3():
+        cnts = cnts[1]
+    elif imutils.is_cv4():
+        cnts = cnts[0]
+    else:
+        raise ImportError('must have opencv version 3 or 4, yours is {}'.format(cv2.__version__))
 
-    contour_image = edged_image.copy()
-    cv2.drawContours(contour_image, cnts, -1, (255, 0, 0), 3)
+    # contour_image = edged_image.copy()
+    # cv2.drawContours(contour_image, cnts, -1, (255, 0, 0), 3)
     # show_image(contour_image, title='contoured_image', delayed_show=False)
 
     # validate
