@@ -67,12 +67,6 @@ def get_inner_boxes(greyscale_outer_box, height, width, bottom_left_corners):
     ]
     # temp_image = cv2.cvtColor(greyscale_outer_box, cv2.COLOR_GRAY2RGB)
     # # cv2.drawContours(temp_image, inner_box_cnts, -1, (255, 0, 0), 3)
-    # plt.imshow(temp_image)
-    # plt.show()
-    # for temp_image in inner_boxes:
-    #     plt.figure()
-    #     plt.imshow(Image.fromarray(temp_image))
-    #     plt.show()
     return inner_boxes
 
 
@@ -433,12 +427,11 @@ def get_outer_box_contour(original_image):
         if len(approx) == 4:
             docCnt = approx
             break
-    min_acceptable_perim = image_perim * 0.6
+    min_acceptable_perim = image_perim * 0.5
     if type(docCnt) != np.ndarray or perim < min_acceptable_perim:
         temp_image = cv2.cvtColor(edged_image, cv2.COLOR_GRAY2RGB)
         cv2.drawContours(temp_image, [docCnt], -1, (255, 0, 0), 3)
-        # plt.imshow(temp_image)
-        # plt.show()
+        # show_image(temp_image)
         raise OmrException(
             'no suitable outer contour found, '
             'biggest outer contour had perim of {}, needs to be bigger than {}'
@@ -472,10 +465,10 @@ def get_outer_box(original_image, desired_portrait=True):
         portrait = True if height >= width else False
         if portrait != desired_portrait:
             print(
-                'DEBUG: image was not correct orientation, rotating cw 90 degrees'
+                'DEBUG: image was not correct orientation, rotating counter-cw 90 degrees'
             )
             original_image = np.array(
-                Image.fromarray(original_image).rotate(-90, expand=True))
+                Image.fromarray(original_image).rotate(90, expand=True))
         i += 1
     if not portrait == desired_portrait:
         raise OmrValidationException(
