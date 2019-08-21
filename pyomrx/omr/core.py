@@ -98,10 +98,6 @@ def get_code_from_binary_circles(image,
         key=lambda circle: circle[0]**2 + circle[1]**2,
         reverse=True)
     code_circles = np.array(sorted_circles)  # read left to right
-    # temp_image = image.copy()
-    # [cv2.circle(temp_image, (c[0],c[1]),c[2], thickness=4, color=(255,0,0)) for c in code_circles]
-    # plt.imshow(Image.fromarray(temp_image))
-    # plt.show()
     if num_circles:
         if len(code_circles) != num_circles:
             raise OmrException('found {} circles whilst trying ' \
@@ -437,7 +433,7 @@ def get_outer_box_contour(original_image):
         if len(approx) == 4:
             docCnt = approx
             break
-    min_acceptable_perim = image_perim * 0.7
+    min_acceptable_perim = image_perim * 0.6
     if type(docCnt) != np.ndarray or perim < min_acceptable_perim:
         temp_image = cv2.cvtColor(edged_image, cv2.COLOR_GRAY2RGB)
         cv2.drawContours(temp_image, [docCnt], -1, (255, 0, 0), 3)
@@ -475,8 +471,11 @@ def get_outer_box(original_image, desired_portrait=True):
         height, width, = grey_cropped.shape
         portrait = True if height >= width else False
         if portrait != desired_portrait:
+            print(
+                'DEBUG: image was not correct orientation, rotating cw 90 degrees'
+            )
             original_image = np.array(
-                Image.fromarray(original_image).rotate(90, expand=True))
+                Image.fromarray(original_image).rotate(-90, expand=True))
         i += 1
     if not portrait == desired_portrait:
         raise OmrValidationException(

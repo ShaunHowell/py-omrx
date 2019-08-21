@@ -7,7 +7,6 @@ from pyomrx.tests.fixtures import *
 from pyomrx.omr.core import response_from_darknesses
 
 
-@pytest.mark.skip('not reimplemented for newest marksheet template')
 def test_process_exam_mark_sheet(clean_out_folder, example_exam_data_path):
     input_path = Path(example_exam_data_path)
     output_folder = Path(clean_out_folder)
@@ -19,51 +18,11 @@ def test_process_exam_mark_sheet(clean_out_folder, example_exam_data_path):
         str(output_folder))
     accuracy_results = find_omr_accuracy(
         str(output_folder / 'exam_omr_output.csv'),
-        str(input_path / 'exam_results' / 'human_processed_exam_results.csv'),
+        str(input_path / 'ext' / 'human_processed_exam_results.csv'),
         str(input_path / 'ext' / 'omr_form_designs.json'))
     print('INFO: accuracy results:\n{}'.format(accuracy_results))
     assert accuracy_results['incorrect'] < 2
-    assert accuracy_results['abstentions'] < 6
-
-
-@pytest.mark.skip('not reimplemented for newest marksheet template')
-def test_process_exam_mark_sheet_may_2019(clean_out_folder,
-                                          example_exam_data_path_2):
-    input_path = Path(example_exam_data_path_2)
-    output_folder = Path(clean_out_folder)
-    process_exam_marksheet_folder(
-        str(input_path / 'images'),
-        str(Path(input_path) / 'ext' / 'omr_form_designs.json'),
-        str(output_folder))
-    accuracy_results = find_omr_accuracy(
-        str(output_folder / 'exam_omr_output.csv'),
-        str(input_path / 'exam_results' / 'human_processed_exam_results.csv'),
-        str(input_path / 'ext' / 'omr_form_designs.json'))
-    print('INFO: accuracy results:\n{}'.format(accuracy_results))
-    assert accuracy_results['total_responses'] == 225
-    assert accuracy_results['incorrect'] == 0
-    assert accuracy_results['abstentions'] == 0
-
-
-@pytest.mark.skip('not reimplemented for newest marksheet template')
-def test_handles_broken_border(clean_out_folder,
-                               example_exam_data_path_broken_outer_box):
-    input_path = Path(example_exam_data_path_broken_outer_box)
-    output_folder = Path(clean_out_folder)
-    for file_path in output_folder.iterdir():
-        os.remove(str(file_path))
-    process_exam_marksheet_folder(
-        str(input_path / 'images'),
-        str(Path(input_path) / 'ext' / 'omr_form_designs.json'),
-        str(output_folder))
-    accuracy_results = find_omr_accuracy(
-        str(output_folder / 'exam_omr_output.csv'),
-        str(input_path / 'exam_results' / 'human_processed_exam_results.csv'),
-        str(input_path / 'ext' / 'omr_form_designs.json'))
-    print('INFO: accuracy results:\n{}'.format(accuracy_results))
-    assert accuracy_results['total_responses'] == 171
-    assert accuracy_results['incorrect'] == 0
-    assert accuracy_results['abstentions'] == 0
+    assert accuracy_results['abstentions'] < 2
 
 
 def test_good_response_from_darknesses():
@@ -102,4 +61,4 @@ def test_closeness_abstention_response_from_darknesses():
 
 
 if __name__ == '__main__':
-    pytest.main(['-sxk', 'broken_border'])
+    pytest.main(['-sxk', 'mark_sheet'])
