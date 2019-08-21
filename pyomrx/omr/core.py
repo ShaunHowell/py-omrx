@@ -67,12 +67,6 @@ def get_inner_boxes(greyscale_outer_box, height, width, bottom_left_corners):
     ]
     # temp_image = cv2.cvtColor(greyscale_outer_box, cv2.COLOR_GRAY2RGB)
     # # cv2.drawContours(temp_image, inner_box_cnts, -1, (255, 0, 0), 3)
-    # plt.imshow(temp_image)
-    # plt.show()
-    # for temp_image in inner_boxes:
-    #     plt.figure()
-    #     plt.imshow(Image.fromarray(temp_image))
-    #     plt.show()
     return inner_boxes
 
 
@@ -98,10 +92,6 @@ def get_code_from_binary_circles(image,
         key=lambda circle: circle[0]**2 + circle[1]**2,
         reverse=True)
     code_circles = np.array(sorted_circles)  # read left to right
-    # temp_image = image.copy()
-    # [cv2.circle(temp_image, (c[0],c[1]),c[2], thickness=4, color=(255,0,0)) for c in code_circles]
-    # plt.imshow(Image.fromarray(temp_image))
-    # plt.show()
     if num_circles:
         if len(code_circles) != num_circles:
             raise OmrException('found {} circles whilst trying ' \
@@ -385,43 +375,6 @@ def get_good_circles(candidate_circles,
                 show_circles_on_image(debug_image, filtered_circles,
                                       'ERROR (filtered circles)')
                 raise OmrException('could not fill missing circles')
-
-    # y_coords = [circ[1] for circ in filtered_circles]
-    # x_coords = [circ[0] for circ in filtered_circles]
-    # try:
-    #     # Cluster x & y coords
-    #     x_km = KMeans(max(circles_per_header_row + circles_per_q_row))
-    #     y_km = KMeans(len(circles_per_header_row + circles_per_q_row))
-    # except ValueError as e:
-    #     print('error, could not find good circles, probably there wasn\'t at least one circle in each row and column')
-    #     raise e
-    # x_km.fit(np.array(x_coords).reshape(-1, 1))
-    # x_cluster_centers = np.array(sorted(x_km.cluster_centers_.flatten().tolist()))
-    # mean_x_delta = np.mean(x_cluster_centers[1:] - x_cluster_centers[:-1])
-    # grid_x_coords = (mean_x_delta *
-    #                  np.array(range(0, max(circles_per_q_row + circles_per_header_row)))
-    #                  + x_cluster_centers[0]).tolist()
-    # y_km.fit(np.array(y_coords).reshape(-1, 1))
-    # y_cluster_centers = np.array(sorted(y_km.cluster_centers_.flatten().tolist()))
-    # print('x centres: {}, len: {}\ny centres: {}, len: {}'.format(x_cluster_centers, len(x_cluster_centers),
-    #                                                               y_cluster_centers, len(y_cluster_centers)))
-    # median_y_delta = np.median(y_cluster_centers[1:] - y_cluster_centers[:-1])
-    # code_y_coords = (median_y_delta *
-    #                  np.array(range(0, len(circles_per_header_row)))
-    #                  + y_cluster_centers[0]).tolist()
-    # if code_y_coords:
-    #     question_y_coords = (median_y_delta *
-    #                          np.array(range(0, len(circles_per_q_row))) +
-    #                          bubble_box_height * 2 +
-    #                          code_y_coords[-1]).tolist()
-    # else:
-    #     question_y_coords = (median_y_delta *
-    #                          np.array(range(0, len(circles_per_q_row))) +
-    #                          y_cluster_centers[0]).tolist()
-    # print('median_y_delta:{}'.format(median_y_delta))
-
-    # good_circles = circles_from_grid(grid_x_coords, code_y_coords + question_y_coords,
-    #                                  circles_per_header_row, circles_per_q_row)
     return good_circles
 
 
@@ -451,10 +404,17 @@ def get_outer_box_contour(original_image):
     # show_image(edged_image, title='edged_image', delayed_show=True)
     cnts = cv2.findContours(edged_image.copy(), cv2.RETR_LIST,
                             cv2.CHAIN_APPROX_SIMPLE)
-    cnts = cnts[0] if imutils.is_cv2() else cnts[1]
+    if imutils.is_cv3():
+        cnts = cnts[1]
+    elif imutils.is_cv4():
+        cnts = cnts[0]
+    else:
+        raise ImportError(
+            'must have opencv version 3 or 4, yours is {}'.format(
+                cv2.__version__))
 
-    contour_image = edged_image.copy()
-    cv2.drawContours(contour_image, cnts, -1, (255, 0, 0), 3)
+    # contour_image = edged_image.copy()
+    # cv2.drawContours(contour_image, cnts, -1, (255, 0, 0), 3)
     # show_image(contour_image, title='contoured_image', delayed_show=False)
 
     # validate
@@ -467,12 +427,11 @@ def get_outer_box_contour(original_image):
         if len(approx) == 4:
             docCnt = approx
             break
-    min_acceptable_perim = image_perim * 0.7
+    min_acceptable_perim = image_perim * 0.5
     if type(docCnt) != np.ndarray or perim < min_acceptable_perim:
         temp_image = cv2.cvtColor(edged_image, cv2.COLOR_GRAY2RGB)
         cv2.drawContours(temp_image, [docCnt], -1, (255, 0, 0), 3)
-        # plt.imshow(temp_image)
-        # plt.show()
+        # show_image(temp_image)
         raise OmrException(
             'no suitable outer contour found, '
             'biggest outer contour had perim of {}, needs to be bigger than {}'
@@ -505,6 +464,9 @@ def get_outer_box(original_image, desired_portrait=True):
         height, width, = grey_cropped.shape
         portrait = True if height >= width else False
         if portrait != desired_portrait:
+            print(
+                'DEBUG: image was not correct orientation, rotating counter-cw 90 degrees'
+            )
             original_image = np.array(
                 Image.fromarray(original_image).rotate(90, expand=True))
         i += 1

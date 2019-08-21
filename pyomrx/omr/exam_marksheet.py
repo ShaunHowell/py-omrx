@@ -34,7 +34,7 @@ def process_image(input_file_path, form_designs):
             185 / 2643,
             304 / 2033,
             520 / 2033, (162 - 142) / (2 * 2643), (173 - 132) / (2 * 2643),
-            (394 - 366) / (2 * 2033),
+            40 / 2035,
             num_circles=3)
     except OmrException as e:
         raise OmrException(
