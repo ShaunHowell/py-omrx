@@ -11,7 +11,7 @@ def test_version_bumped():
         ['git', 'tag'],
         stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
     branch = subprocess.run(
-        'git rev-parse --abbrev-ref HEAD',
+        ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
         stdout=subprocess.PIPE).stdout.decode('utf-8').strip('\n')
     if branch != 'master':
         assert not any([pyomrx.__version__ in tag for tag in tags])
