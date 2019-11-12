@@ -94,7 +94,6 @@ def parse_circles_from_range(metadata_range_cells, orient=None, assert_1d=False,
     for row in metadata_range_cells:
         row_values = []
         for cell in row:
-            # print(f'{cell}: {cell.value}, {cell.font.sz}')
             encoded_cell_value = str(cell.value).encode()
             if encoded_cell_value == EMPTY_CIRCLE:
                 row_values.append(False)
@@ -140,10 +139,11 @@ def main():
     assert re.match(
         'template!',
         form_template_range.attr_text), 'form template range found in non template worksheet'
-    range_cells = form_sheet[form_template_range.attr_text.split('!')[1]]
+    form_template_range_cells = form_sheet[form_template_range.attr_text.split('!')[1]]
     form_rectangle = get_rectangle_from_range(
-        range_cells=range_cells, row_dims=row_dims, col_dims=col_dims)
-    form__template_fig, form_template_ax = plt.subplots(1, 1)
+        range_cells=form_template_range_cells, row_dims=row_dims, col_dims=col_dims)
+    form_template_fig, form_template_ax = plt.subplots(1, 1)
+    form_template_fig.set_size_inches(15.98, 11.93)  # A4
     form_template_ax.set_aspect('equal')
     form_top_left = dict(
         top=form_rectangle['top'], left=form_rectangle['left'])
@@ -158,9 +158,9 @@ def main():
     assert re.match(
         'template!',
         sub_form_template_range.attr_text), 'form template range found in non template worksheet'
-    range_cells = form_sheet[sub_form_template_range.attr_text.split('!')[1]]
+    sub_form_range_cells = form_sheet[sub_form_template_range.attr_text.split('!')[1]]
     sub_form_rectangle = get_rectangle_from_range(
-        range_cells=range_cells, row_dims=row_dims, col_dims=col_dims)
+        range_cells=sub_form_range_cells, row_dims=row_dims, col_dims=col_dims)
     sub_form_rectangle = localise_rectangle_to_form(sub_form_rectangle,
                                                     form_top_left)
     plot_rectangle(sub_form_rectangle, form_template_ax, thickness=W_DEFAULT)
@@ -221,7 +221,7 @@ def main():
         circle_x_coords = [left_circle_x + metadata_circle_i * metadata_circle_offset for metadata_circle_i in
                            range(metadata_arr.size)]
         form_template_ax.plot(circle_x_coords, [left_circle_y] * metadata_arr.size,
-                              'o')  # TODO: make these circles hollow and the correct size, might need shapely
+                              'o', fillstyle='none', c='black')
     circles_ranges = [wb.get_named_range(range_name) for range_name in range_names if re.match('circles_', range_name)]
     if not circles_ranges:
         raise ValueError('no named ranges with the format cirlces_<name>')
@@ -252,11 +252,12 @@ def main():
         for row_i in range(circles_arr.shape[0]):
             circles_per_row.append(0)
             for col_i in range(circles_arr.shape[1]):
-                if not np.isnan(circles_arr[row_i,col_i]):
+                if not np.isnan(circles_arr[row_i, col_i]):
                     circle_x_coords.append(top_left_circle_x + col_i * circle_offset_x)
                     circle_y_coords.append(top_left_circle_y - row_i * circle_offset_y)
                     circles_per_row[-1] += 1
-        form_template_ax.plot(circle_x_coords, circle_y_coords, 'o')  # TODO: make these circles hollow and the correct size, might need shapely
+        form_template_ax.plot(circle_x_coords, circle_y_coords,
+                              'o', fillstyle='none', c='black')
         sub_form_template_config[circles_name] = circles_config
         sub_form_template_config['circles_per_row'] = circles_per_row
         circles_comment = str(circles_range.comment)
@@ -279,10 +280,42 @@ def main():
         sub_form_template_config['possible_rows'] = circles_arr.shape[0]
         sub_form_template_config['possible_columns'] = circles_arr.shape[1]
         # TODO: assert that all circles are completely inside the sub form
+        # TODO: plot the circles in the relative plot and check they're good
     sub_forms_config = dict(sub_form_templates=[sub_form_template_config],
                             locations=[circles_rectangle_relative])
 
     # TODO: print text from cells in plt
+    row_top = 0
+    print(f'row dims: {row_dims}, column dims: {col_dims}')
+    for row in form_template_range_cells:
+        row_height = row_dims[row[0].row]['ht']
+        colum_left = 0
+        for cell in row:
+            if isinstance(cell, pyxl.cell.cell.MergedCell):
+                # TODO: deal with merged cells seperately
+                continue
+            # print(f'{cell}: {cell.value}, {cell.font.sz}, {cell.row}:{cell.column}')
+            column_width = col_dims[cell.column_letter]['width']
+            form_template_ax.plot([colum_left, colum_left+column_width,colum_left+column_width,colum_left],
+                                  [row_top,row_top, row_top-row_height, row_top-row_height], c='black', alpha=0.1)
+            if cell.value and str(cell.value).encode() not in [FULL_CIRCLE, EMPTY_CIRCLE]:
+                if cell.is_date:
+                    # TODO: work out how to deal with dates...
+                    continue
+                # TODO: use the cell's fill, border and alignment properties
+                print(f'fill:{cell.fill}')
+                print(f'border:{cell.border}')
+                print(f'alignment:{cell.alignment}')
+                print(f'style:{cell.__dir__()}')
+                font = dict(fontfamily=cell.font.name,
+                            fontsize=cell.font.sz*FONT_UNIT_PIXELS,
+                            fontstyle='italic' if cell.font.i else 'normal',
+                            fontweight='bold' if cell.font.b else 'normal',
+                            )
+                # text_location
+                form_template_ax.text(x=colum_left, y=row_top - row_height * 0.7, s=str(cell.value), fontdict=font)
+            colum_left += column_width
+        row_top -= row_height
 
     # TODO: display cell borders as shown in excel
 
