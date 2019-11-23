@@ -217,7 +217,8 @@ def render_cell(ax, top, left, height, width, cell, draw_top, draw_left, theme_c
             # TODO: work out how to deal with dates...
         else:
             # TODO: make font size fixed in pixel space
-            print(f'{cell} font colour: {cell.font.color.__dict__}')
+            # print(f'{cell} font colour: {cell.font.color.__dict__}')
+            colour = '#000000'
             if cell.font.color.type == 'theme':
                 # FIXME: super janky but have no idea why the theme colour list isn't sorted correctly
                 if cell.font.color.theme == 1:
@@ -228,7 +229,6 @@ def render_cell(ax, top, left, height, width, cell, draw_top, draw_left, theme_c
                     print(f'couldnt parse font colour for cell {cell}')
             else:
                 print(f'couldnt parse font colour for cell {cell}')
-                colour = '#000000'
             font = dict(fontfamily=cell.font.name,
                         fontsize=cell.font.sz * FONT_UNIT_PIXELS,
                         fontstyle='italic' if cell.font.i else 'normal',
@@ -365,10 +365,21 @@ def main():
         metadata_circle_offset = (metadata_rectangle['right'] - metadata_rectangle['left']) / metadata_arr.size
         left_circle_x = metadata_rectangle['left'] + metadata_circle_offset / 2
         left_circle_y = (metadata_rectangle['top'] + metadata_rectangle['bottom']) / 2
-        circle_x_coords = [left_circle_x + metadata_circle_i * metadata_circle_offset for metadata_circle_i in
-                           range(metadata_arr.size)]
-        form_template_ax.plot(circle_x_coords, [left_circle_y] * metadata_arr.size,
+        # TODO: this will break if the metadata circles are vertical: fix that
+        empty_circle_x_coords = []
+        filled_circle_x_coords = []
+        for metadata_circle_i, circle_val in enumerate(metadata_arr):
+            if np.isnan(circle_val):
+                continue
+            elif circle_val:
+                filled_circle_x_coords.append(left_circle_x + metadata_circle_i * metadata_circle_offset)
+            else:
+                empty_circle_x_coords.append(left_circle_x + metadata_circle_i * metadata_circle_offset)
+
+        form_template_ax.plot(empty_circle_x_coords, [left_circle_y] * len(empty_circle_x_coords),
                               'o', fillstyle='none', c='black')
+        form_template_ax.plot(filled_circle_x_coords, [left_circle_y] * len(filled_circle_x_coords),
+                              'o', c='black')
     circles_ranges = [wb.get_named_range(range_name) for range_name in range_names if re.match('circles_', range_name)]
     if not circles_ranges:
         raise ValueError('no named ranges with the format cirlces_<name>')
@@ -393,18 +404,29 @@ def main():
         circle_offset_y = (circles_rectangle['top'] - circles_rectangle['bottom']) / circles_arr.shape[0]
         top_left_circle_x = circles_rectangle['left'] + circle_offset_x / 2
         top_left_circle_y = circles_rectangle['top'] - circle_offset_y / 2
-        circle_x_coords = []
-        circle_y_coords = []
+        empty_circle_x_coords = []
+        empty_circle_y_coords = []
+        filled_circle_x_coords = []
+        filled_circle_y_coords = []
         circles_per_row = []
         for row_i in range(circles_arr.shape[0]):
             circles_per_row.append(0)
             for col_i in range(circles_arr.shape[1]):
-                if not np.isnan(circles_arr[row_i, col_i]):
-                    circle_x_coords.append(top_left_circle_x + col_i * circle_offset_x)
-                    circle_y_coords.append(top_left_circle_y - row_i * circle_offset_y)
+                if np.isnan(circles_arr[row_i, col_i]):
+                    continue
+                elif circles_arr[row_i, col_i]:
+                    filled_circle_x_coords.append(top_left_circle_x + col_i * circle_offset_x)
+                    filled_circle_y_coords.append(top_left_circle_y - row_i * circle_offset_y)
                     circles_per_row[-1] += 1
-        form_template_ax.plot(circle_x_coords, circle_y_coords,
+                elif not circles_arr[row_i, col_i]:
+                    empty_circle_x_coords.append(top_left_circle_x + col_i * circle_offset_x)
+                    empty_circle_y_coords.append(top_left_circle_y - row_i * circle_offset_y)
+                    circles_per_row[-1] += 1
+        form_template_ax.plot(empty_circle_x_coords, empty_circle_y_coords,
                               'o', fillstyle='none', c='black')
+        form_template_ax.plot(filled_circle_x_coords, filled_circle_y_coords,
+                              'o', c='black')
+
         sub_form_template_config[circles_name] = circles_config
         sub_form_template_config['circles_per_row'] = circles_per_row
         circles_comment = str(circles_range.comment)
@@ -475,11 +497,6 @@ def main():
                     merged_cell.min_row == 1,
                     merged_cell.min_col == 1,
                     theme_colours=wb_theme_colours)
-        cols = [pyxl.utils.get_column_letter(i) for i in range(merged_cell.min_col, merged_cell.max_col + 1)]
-        rows = list(range(merged_cell.min_row, merged_cell.max_row + 1))
-        # for col, row in product(cols, rows):
-        #     cells.append(f'{col}{row}')
-        # merged_cells.append(cells)
     # TODO: refactor OMR tool to use heirarchical form-subform-circles structure, with harder coding of locations
     # TODO: produce config for OMR tool automatically
     # TODO: save each permutation's excel file in a '.omrx' (actually a zip) archive along with the json config
