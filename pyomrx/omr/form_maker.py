@@ -1,3 +1,8 @@
+from functools import reduce
+from itertools import product
+from pathlib import Path
+import json
+import os
 import uuid
 import datetime
 import getpass
@@ -12,6 +17,7 @@ import matplotlib.pyplot as plt
 import atexit
 from collections import defaultdict
 import pyomrx
+from openpyxl.styles.colors import COLOR_INDEX
 
 atexit.register(plt.show)
 
@@ -24,7 +30,11 @@ COLUMN_WIDTH_UNIT_PIXELS = 11
 FONT_UNIT_PIXELS = 1
 EMPTY_CIRCLE = b'\xe2\x97\x8b'
 FULL_CIRCLE = b'\xe2\x97\x8f'
+LINE_START_REGEX = '(?:\A|\n)'
+LINE_END_REGEX = '(?:\n|\Z)'
+BORDER_WIDTH_LOOKUP = dict(thin=0.5, thick=2)
 VERSION = pyomrx.__version__
+X_TEXT_BUFFER = 1
 
 
 def get_rectangle_from_range(range_cells, row_dims, col_dims):
@@ -65,11 +75,13 @@ def get_row_and_column_dimensions(form_sheet):
     row_dims_df = row_dims_df.set_index('index')
     row_dims = row_dims_df.to_dict(orient='index')
     raw_col_dims = [form_sheet.column_dimensions[col].__dict__ for col in COLS]
-    col_dims_df = pd.DataFrame(raw_col_dims).sort_values(by='index')
+    col_dims_df = pd.DataFrame(raw_col_dims)
     col_dims_df['width'] = col_dims_df['width'].apply(lambda val: val if val
     else np.NaN).ffill() * COLUMN_WIDTH_UNIT_PIXELS
+    col_dims_df['left_x'] = col_dims_df['width'].cumsum().shift(1).fillna(0)
     col_dims_df = col_dims_df.set_index('index')
     col_dims = col_dims_df.to_dict(orient='index')
+    # pp(col_dims)
     return row_dims, col_dims
 
 
@@ -125,12 +137,87 @@ def parse_circles_from_range(metadata_range_cells, orient=None, assert_1d=False,
     return dict(array=metadata_arr, orient=metadata_orient, radius=circle_radius)
 
 
+def is_merged_cell(cell, merged_cells):
+    return any(cell.coordinate in cells for cells in merged_cells)
+
+
+def get_merged_cells(worksheet):
+    merged_cells = []
+    for merged_cell in worksheet.merged_cells.ranges:
+        cells = []
+        cols = [pyxl.utils.get_column_letter(i) for i in range(merged_cell.min_col, merged_cell.max_col + 1)]
+        rows = list(range(merged_cell.min_row, merged_cell.max_row + 1))
+        for col, row in product(cols, rows):
+            cells.append(f'{col}{row}')
+        merged_cells.append(cells)
+    return merged_cells
+
+
+def render_cell(ax, top, left, height, width, cell, draw_top, draw_left):
+    if draw_left and cell.border.left.style:
+        border_thickness = BORDER_WIDTH_LOOKUP[cell.border.left.style]
+        # TODO: actually use border colour
+        # print(f'border:{cell.border.left.color.__dict__}')
+        border_colour = 'black'
+        ax.plot([left, left], [top - height, top], c=border_colour, linewidth=border_thickness)
+    if cell.border.right.style:
+        border_thickness = BORDER_WIDTH_LOOKUP[cell.border.right.style]
+        # TODO: actually use border colour
+        # print(f'border:{cell.border.right.color.__dict__}')
+        border_colour = 'black'
+        ax.plot([left + width, left + width],
+                [top - height, top], c=border_colour, linewidth=border_thickness)
+    if draw_top and cell.border.top.style:
+        border_thickness = BORDER_WIDTH_LOOKUP[cell.border.top.style]
+        # TODO: actually use border colour
+        # print(f'border:{cell.border.top.color.__dict__}')
+        border_colour = 'black'
+        ax.plot([left, left + width], [top, top], c=border_colour, linewidth=border_thickness)
+    if cell.border.bottom.style:
+        border_thickness = BORDER_WIDTH_LOOKUP[cell.border.bottom.style]
+        # TODO: actually use border colour
+        # print(f'border:{cell.border.bottom.color.__dict__}')
+        border_colour = 'black'
+        ax.plot([left, left + width],
+                [top - height, top - height],
+                c=border_colour, linewidth=border_thickness, linewidth=border_thickness)
+    if cell.fill.start_color.tint:
+        rgb_val = 1 + cell.fill.start_color.tint
+        ax.fill(
+            [left, left + width, left + width, left],
+            [top, top, top - height, top - height],
+            c=(rgb_val, rgb_val, rgb_val))
+    if cell.value and str(cell.value).encode() not in [FULL_CIRCLE, EMPTY_CIRCLE]:
+        if cell.is_date:
+            print(f'DATE CELL {cell} NOT RENDERED')
+            # TODO: work out how to deal with dates...
+        else:
+            # TODO: make font size fixed in pixel space
+            font = dict(fontfamily=cell.font.name,
+                        fontsize=cell.font.sz * FONT_UNIT_PIXELS,
+                        fontstyle='italic' if cell.font.i else 'normal',
+                        fontweight='bold' if cell.font.b else 'normal',
+                        )
+            # text_location
+            ha = cell.alignment.horizontal or 'left'
+            va = cell.alignment.vertical or 'center'
+            # TODO: these placements need some margin to avoid placement right on borders
+            x = left if ha == 'left' else left + width / 2 if ha == 'center' else left + width
+            y = top if va == 'top' else top - height / 2 if va == 'center' else top - height
+            # print(dict(x=x, y=y,s=str(cell.value), fontdict=font,ha=ha, va=va))
+            ax.text(x=x, y=y,
+                    s=str(cell.value), fontdict=font,
+                    ha=ha, va=va)
+
+
 def main():
     wb = pyxl.load_workbook(filename='temp/Absence register v28 (kc).xlsx', data_only=True)
     if 'template' not in wb:
         raise FileNotFoundError('couldnt find worksheet called "template"')
     form_sheet = wb['template']
     row_dims, col_dims = get_row_and_column_dimensions(form_sheet)
+
+    pp(row_dims)
     range_names = [named_range.name for named_range in wb.get_named_ranges()]
     if 'page_1' not in range_names:
         raise ValueError('page_1 not found in named ranges')
@@ -171,7 +258,7 @@ def main():
     plt.xlim(0, 1)
     plt.ylim(1, 0)
     form_metadata_values = {}
-    decides_sub_form_regex = 'decides sub form: (yes|no)'  # TODO: make more lenient
+    decides_sub_form_regex = LINE_START_REGEX + 'decides sub form: (yes|no)' + LINE_END_REGEX  # TODO: make more lenient
     # TODO: assert that metadata ranges are fully inside page 1
     for metadata_range in metadata_ranges:
         metadata_name = re.findall('meta_(.+)', metadata_range.name)[0]
@@ -184,8 +271,9 @@ def main():
         plot_rectangle(metadata_relative_rectangle, thickness=W_THIN)
         plot_rectangle(metadata_rectangle, form_template_ax, thickness=W_THIN)
         metadata_circles_config[metadata_name] = metadata_relative_rectangle
-        decides_sub_form = re.match(decides_sub_form_regex, str(metadata_range.comment))
+        decides_sub_form = re.findall(decides_sub_form_regex, str(metadata_range.comment))
         if decides_sub_form:
+            decides_sub_form = decides_sub_form[0]
             if decides_sub_form == 'yes':
                 decides_sub_form = True
             elif decides_sub_form == 'no':
@@ -227,9 +315,9 @@ def main():
         raise ValueError('no named ranges with the format cirlces_<name>')
     sub_form_template_config = dict(circles=dict(), metadata_requirements={})
     # TODO: make these regexes more lenient
-    row_fill_regex = 'row fill: (many|one)'
-    col_prefix_regex = 'column prefix: ([a-z|A-Z|0-9])'
-    default_col_prefix = 'a'
+    row_fill_regex = LINE_START_REGEX + 'row fill: (many|one)' + LINE_END_REGEX
+    col_prefix_regex = LINE_START_REGEX + 'column prefix:\s+(.+)' + LINE_END_REGEX
+    num_default_col_prefixes = 0
     for circles_range in circles_ranges:
         circles_name = re.findall('circles_(.+)', circles_range.name)[0]
         circles_range_cells = form_sheet[circles_range.attr_text.split('!')[1]]
@@ -261,78 +349,88 @@ def main():
         sub_form_template_config[circles_name] = circles_config
         sub_form_template_config['circles_per_row'] = circles_per_row
         circles_comment = str(circles_range.comment)
-        row_fill = re.match(row_fill_regex, circles_comment)
+        row_fill = re.findall(row_fill_regex, circles_comment)
         if row_fill:
-            sub_form_template_config['allowed_row_filling'] = row_fill
+            sub_form_template_config['allowed_row_filling'] = row_fill[0]
         else:
             print(f'WARNING: row fill not specified for circles group called {circles_name}, '
                   f'will assume many circles per row can be filled in. To enforce one per row add "row fill: one"'
                   f'to the cell group\'s comment via the name manager')
-        column_prefix = re.match(col_prefix_regex, circles_comment)
+        column_prefix = re.findall(col_prefix_regex, circles_comment)
         if not column_prefix:
-            column_prefix = default_col_prefix
+            num_default_col_prefixes += 1
+            column_prefix = [pyxl.utils.get_column_letter(num_default_col_prefixes)]
             print(f'WARNING: column prefix not specified for circles group called {circles_name}, '
-                  f'will prefix with {column_prefix}. To specifc a custom prefix add "column prefix: <prefix>"'
+                  f'will prefix with {column_prefix[0]}. To specifc a custom prefix add "column prefix: <prefix>"'
                   f'to the cell group\'s comment via the name manager')
-            default_col_prefix = default_col_prefix + 'a'  # TODO: make this cycle the alphabet
-        sub_form_template_config['column_prefix'] = column_prefix
+        sub_form_template_config['column_prefix'] = column_prefix[0]
         sub_form_template_config['radius'] = circles_dict['radius']
         sub_form_template_config['possible_rows'] = circles_arr.shape[0]
         sub_form_template_config['possible_columns'] = circles_arr.shape[1]
         # TODO: assert that all circles are completely inside the sub form
         # TODO: plot the circles in the relative plot and check they're good
+    # TODO: circles_rectange_relative looks incorrect below
     sub_forms_config = dict(sub_form_templates=[sub_form_template_config],
                             locations=[circles_rectangle_relative])
 
-    # TODO: print text from cells in plt
+    merged_cells = get_merged_cells(form_sheet)
     row_top = 0
     print(f'row dims: {row_dims}, column dims: {col_dims}')
-    for row in form_template_range_cells:
+    for row_index, row in enumerate(form_template_range_cells):
+        column_left = 0
         row_height = row_dims[row[0].row]['ht']
-        colum_left = 0
-        for cell in row:
-            if isinstance(cell, pyxl.cell.cell.MergedCell):
+        for column_index, cell in enumerate(row):
+            if is_merged_cell(cell, merged_cells):
                 # TODO: deal with merged cells seperately
                 continue
             # print(f'{cell}: {cell.value}, {cell.font.sz}, {cell.row}:{cell.column}')
+            column_left = col_dims[cell.column_letter]['left_x']
             column_width = col_dims[cell.column_letter]['width']
-            form_template_ax.plot([colum_left, colum_left+column_width,colum_left+column_width,colum_left],
-                                  [row_top,row_top, row_top-row_height, row_top-row_height], c='black', alpha=0.1)
-            if cell.value and str(cell.value).encode() not in [FULL_CIRCLE, EMPTY_CIRCLE]:
-                if cell.is_date:
-                    # TODO: work out how to deal with dates...
-                    continue
-                # TODO: use the cell's fill, border and alignment properties
-                print(f'fill:{cell.fill}')
-                print(f'border:{cell.border}')
-                print(f'alignment:{cell.alignment}')
-                print(f'style:{cell.__dir__()}')
-                font = dict(fontfamily=cell.font.name,
-                            fontsize=cell.font.sz*FONT_UNIT_PIXELS,
-                            fontstyle='italic' if cell.font.i else 'normal',
-                            fontweight='bold' if cell.font.b else 'normal',
-                            )
-                # text_location
-                form_template_ax.text(x=colum_left, y=row_top - row_height * 0.7, s=str(cell.value), fontdict=font)
-            colum_left += column_width
+            form_template_ax.plot([column_left, column_left + column_width, column_left + column_width, column_left],
+                                  [row_top, row_top, row_top - row_height, row_top - row_height], c='black', alpha=0.05)
+            render_cell(form_template_ax, row_top, column_left, row_height, column_width, cell,
+                        draw_top=row_index == 0,
+                        draw_left=column_index == 0)
+            column_left += column_width
         row_top -= row_height
-
-    # TODO: display cell borders as shown in excel
-
-    # TODO: display cell shading as shown in excel
-
+    print('finished parsing individual cells')
+    print('parsing merged cells styles')
+    for merged_cell in form_sheet.merged_cells.ranges:
+        # print(merged_cell.__dict__)
+        left_col = pyxl.utils.get_column_letter(merged_cell.min_col)
+        top_left_cell = form_sheet[f'{left_col}{merged_cell.min_row}']
+        merged_cell_left = col_dims[left_col]['left_x']
+        merged_cell_width = reduce(lambda w, col_next: w + col_dims[pyxl.utils.get_column_letter(col_next)]['width'],
+                                   range(merged_cell.min_col, merged_cell.max_col + 1))
+        merged_cell_top = row_dims[merged_cell.min_row]['ht']
+        merged_cell_height = reduce(lambda w, row_next: w + row_dims[row_next]['ht'],
+                                    range(merged_cell.min_row, merged_cell.max_row + 1))
+        render_cell(form_template_ax, merged_cell_top, merged_cell_left, merged_cell_height, merged_cell_width,
+                    top_left_cell,
+                    merged_cell.min_row == 1,
+                    merged_cell.min_col == 1
+                    )
+        cols = [pyxl.utils.get_column_letter(i) for i in range(merged_cell.min_col, merged_cell.max_col + 1)]
+        rows = list(range(merged_cell.min_row, merged_cell.max_row + 1))
+        # for col, row in product(cols, rows):
+        #     cells.append(f'{col}{row}')
+        # merged_cells.append(cells)
     # TODO: refactor OMR tool to use heirarchical form-subform-circles structure, with harder coding of locations
     # TODO: produce config for OMR tool automatically
     # TODO: save each permutation's excel file in a '.omrx' (actually a zip) archive along with the json config
     output_config = {}
     output_config['created_by'] = getpass.getuser()
     # output_config['description'] = input('form description: ')
-    output_config['created_on'] = datetime.datetime.now()
+    output_config['created_on'] = str(datetime.datetime.now())
     output_config['id'] = str(uuid.uuid4())
     template = dict(metadata_circles=metadata_circles_config, sub_forms=sub_forms_config)
     output_config['template'] = template
     output_config['pyomrx_version'] = VERSION
     pp(output_config)
+    output_folder = Path('temp/form_config/')
+    os.makedirs(str(output_folder), exist_ok=True)
+    json.dump(output_config, open(str(output_folder / 'omr_config.json'), 'w'))
+    form_template_fig.savefig(str(output_folder / 'omr_form.png'))
     print('done')
 
 
