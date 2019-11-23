@@ -289,7 +289,7 @@ def main():
     form_template_range_cells = form_sheet[form_template_range.attr_text.split('!')[1]]
     form_rectangle = get_rectangle_from_range(
         range_cells=form_template_range_cells, row_dims=row_dims, col_dims=col_dims)
-    form_template_fig, form_template_ax = plt.subplots(1, 1)
+    form_template_fig, form_template_ax = plt.subplots(1, 1, frameon=False)
     form_template_fig.set_size_inches(15.98, 11.93)  # A4
     form_template_ax.set_aspect('equal')
     form_top_left = dict(
@@ -309,7 +309,7 @@ def main():
         range_cells=sub_form_range_cells, row_dims=row_dims, col_dims=col_dims)
     sub_form_rectangle = localise_rectangle_to_form(sub_form_rectangle,
                                                     form_top_left)
-    plot_rectangle(sub_form_rectangle, form_template_ax, thickness=W_DEFAULT)
+    # plot_rectangle(sub_form_rectangle, form_template_ax, thickness=W_DEFAULT)
 
     metadata_ranges = [wb.get_named_range(range_name) for range_name in range_names if re.match('meta_', range_name)]
     metadata_circles_config = {}
@@ -327,8 +327,8 @@ def main():
         metadata_rectangle = localise_rectangle_to_form(metadata_rectangle,
                                                         form_top_left)
         metadata_relative_rectangle = get_relative_rectangle(metadata_rectangle, form_rectangle)
-        plot_rectangle(metadata_relative_rectangle, thickness=W_THIN)
-        plot_rectangle(metadata_rectangle, form_template_ax, thickness=W_THIN)
+        # plot_rectangle(metadata_relative_rectangle, thickness=W_THIN)
+        # plot_rectangle(metadata_rectangle, form_template_ax, thickness=W_THIN)
         metadata_circles_config[metadata_name] = metadata_relative_rectangle
         decides_sub_form = re.findall(decides_sub_form_regex, str(metadata_range.comment))
         if decides_sub_form:
@@ -397,7 +397,7 @@ def main():
                                                        form_top_left)
         circles_rectangle_relative = get_relative_rectangle(sub_form_rectangle, form_rectangle)
         circles_config = copy.deepcopy(circles_rectangle_relative)
-        plot_rectangle(circles_rectangle, form_template_ax, thickness=W_THIN)
+        # plot_rectangle(circles_rectangle, form_template_ax, thickness=W_THIN)
         circles_dict = parse_circles_from_range(circles_range_cells)
         circles_arr = circles_dict['array']
         circle_offset_x = (circles_rectangle['right'] - circles_rectangle['left']) / circles_arr.shape[1]
@@ -465,8 +465,8 @@ def main():
             # print(f'{cell}: {cell.value}, {cell.font.sz}, {cell.row}:{cell.column}')
             column_left = col_dims[cell.column_letter]['left_x']
             column_width = col_dims[cell.column_letter]['width']
-            form_template_ax.plot([column_left, column_left + column_width, column_left + column_width, column_left],
-                                  [row_top, row_top, row_top - row_height, row_top - row_height], c='black', alpha=0.05)
+            # form_template_ax.plot([column_left, column_left + column_width, column_left + column_width, column_left],
+            #                       [row_top, row_top, row_top - row_height, row_top - row_height], c='black', alpha=0.05)
             render_cell(form_template_ax, row_top, column_left, row_height, column_width, cell,
                         draw_top=row_index == 0,
                         draw_left=column_index == 0,
@@ -513,6 +513,7 @@ def main():
     output_folder = Path('temp/form_config/')
     os.makedirs(str(output_folder), exist_ok=True)
     json.dump(output_config, open(str(output_folder / 'omr_config.json'), 'w'))
+    form_template_ax.set_axis_off()
     form_template_fig.savefig(str(output_folder / 'omr_form.png'))
     print('done')
 
