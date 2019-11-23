@@ -1,3 +1,4 @@
+from lxml import etree
 from functools import reduce
 from itertools import product
 from pathlib import Path
@@ -73,6 +74,7 @@ def get_row_and_column_dimensions(form_sheet):
     row_dims_df = pd.DataFrame(raw_row_dims).dropna()
     row_dims_df['ht'] *= ROW_HEIGHT_UNIT_PIXELS
     row_dims_df = row_dims_df.set_index('index')
+    row_dims_df['top_y'] = -row_dims_df['ht'].cumsum().shift(1).fillna(0)
     row_dims = row_dims_df.to_dict(orient='index')
     raw_col_dims = [form_sheet.column_dimensions[col].__dict__ for col in COLS]
     col_dims_df = pd.DataFrame(raw_col_dims)
@@ -153,7 +155,29 @@ def get_merged_cells(worksheet):
     return merged_cells
 
 
-def render_cell(ax, top, left, height, width, cell, draw_top, draw_left):
+def cells_contain_cells(outer_cells, inner_cells):
+    assert '!' in outer_cells, 'outer cells dont have worksheet prefix'
+    assert '!' in inner_cells, 'inner cells dont have worksheet prefix'
+    outer_cells = copy.deepcopy(outer_cells).replace('$', '')
+    inner_cells = copy.deepcopy(inner_cells).replace('$', '')
+    inner_cells_sheet, inner_range_text = inner_cells.split('!')
+    outer_cells_sheet, outer_range_text = outer_cells.split('!')
+    if inner_cells_sheet == outer_cells_sheet:
+        inner_first_col, inner_last_col = re.findall('([A-Z]+)[1-9][0-9]*', inner_range_text)
+        outer_first_col, outer_last_col = re.findall('([A-Z]+)[1-9][0-9]*', outer_range_text)
+        inner_first_col = pyxl.utils.column_index_from_string(inner_first_col)
+        inner_last_col = pyxl.utils.column_index_from_string(inner_last_col)
+        outer_first_col = pyxl.utils.column_index_from_string(outer_first_col)
+        outer_last_col = pyxl.utils.column_index_from_string(outer_last_col)
+        if inner_first_col >= outer_first_col and inner_last_col <= outer_last_col:
+            inner_first_row, inner_last_row = re.findall('[A-Z]+([1-9][0-9]*)', inner_range_text)
+            outer_first_row, outer_last_row = re.findall('[A-Z]+([1-9][0-9]*)', outer_range_text)
+            if int(inner_first_row) >= int(outer_first_row) and int(inner_last_row) <= int(outer_last_row):
+                return True
+    return False
+
+
+def render_cell(ax, top, left, height, width, cell, draw_top, draw_left, theme_colours):
     if draw_left and cell.border.left.style:
         border_thickness = BORDER_WIDTH_LOOKUP[cell.border.left.style]
         # TODO: actually use border colour
@@ -180,7 +204,7 @@ def render_cell(ax, top, left, height, width, cell, draw_top, draw_left):
         border_colour = 'black'
         ax.plot([left, left + width],
                 [top - height, top - height],
-                c=border_colour, linewidth=border_thickness, linewidth=border_thickness)
+                c=border_colour, linewidth=border_thickness)
     if cell.fill.start_color.tint:
         rgb_val = 1 + cell.fill.start_color.tint
         ax.fill(
@@ -193,6 +217,18 @@ def render_cell(ax, top, left, height, width, cell, draw_top, draw_left):
             # TODO: work out how to deal with dates...
         else:
             # TODO: make font size fixed in pixel space
+            print(f'{cell} font colour: {cell.font.color.__dict__}')
+            if cell.font.color.type == 'theme':
+                # FIXME: super janky but have no idea why the theme colour list isn't sorted correctly
+                if cell.font.color.theme == 1:
+                    colour = theme_colours[0]
+                elif cell.font.color.theme == 0:
+                    colour = theme_colours[1]
+                else:
+                    print(f'couldnt parse font colour for cell {cell}')
+            else:
+                print(f'couldnt parse font colour for cell {cell}')
+                colour = '#000000'
             font = dict(fontfamily=cell.font.name,
                         fontsize=cell.font.sz * FONT_UNIT_PIXELS,
                         fontstyle='italic' if cell.font.i else 'normal',
@@ -206,23 +242,47 @@ def render_cell(ax, top, left, height, width, cell, draw_top, draw_left):
             y = top if va == 'top' else top - height / 2 if va == 'center' else top - height
             # print(dict(x=x, y=y,s=str(cell.value), fontdict=font,ha=ha, va=va))
             ax.text(x=x, y=y,
-                    s=str(cell.value), fontdict=font,
-                    ha=ha, va=va)
+                    s=str(cell.value),
+                    fontdict=font,
+                    ha=ha,
+                    va=va,
+                    color=colour)
+
+
+# def
+
+ANY_NS_REGEX = '{.*}'
 
 
 def main():
     wb = pyxl.load_workbook(filename='temp/Absence register v28 (kc).xlsx', data_only=True)
+    theme_xml = etree.fromstring(wb.loaded_theme)
+    # print(etree.tostring(theme_xml, pretty_print=True).decode())
+    wb_theme_colours = []
+    for top_el in filter(lambda el: re.match(ANY_NS_REGEX + 'themeElements', el.tag), theme_xml):
+        # print(top_el.tag)
+        for theme_el in filter(lambda el: re.match(ANY_NS_REGEX + 'clrScheme', el.tag), top_el):
+            for colour_el in theme_el:
+                colour_el = colour_el[0]
+                if re.match(ANY_NS_REGEX + 'sysClr', colour_el.tag):
+                    # print(f'sys: {colour_el.get("lastClr")}')
+                    wb_theme_colours.append('#'+colour_el.get("lastClr"))
+                elif re.match(ANY_NS_REGEX + 'srgbClr', colour_el.tag):
+                    # print(f'srgb: {colour_el.get("val")}')
+                    wb_theme_colours.append('#'+colour_el.get("val"))
+                else:
+                    print('theme colour not parsed:')
+                    print(etree.tostring(colour_el, pretty_print=True).decode())
+    print(wb_theme_colours)
+
     if 'template' not in wb:
         raise FileNotFoundError('couldnt find worksheet called "template"')
     form_sheet = wb['template']
     row_dims, col_dims = get_row_and_column_dimensions(form_sheet)
-
-    pp(row_dims)
     range_names = [named_range.name for named_range in wb.get_named_ranges()]
     if 'page_1' not in range_names:
         raise ValueError('page_1 not found in named ranges')
     form_template_range = wb.get_named_range('page_1')
-    print(form_template_range.__dict__)
     assert re.match(
         'template!',
         form_template_range.attr_text), 'form template range found in non template worksheet'
@@ -241,7 +301,6 @@ def main():
     if 'sub_form_1' not in range_names:
         raise ValueError('page_1 not found in named ranges')
     sub_form_template_range = wb.get_named_range('sub_form_1')
-    print(sub_form_template_range.__dict__)
     assert re.match(
         'template!',
         sub_form_template_range.attr_text), 'form template range found in non template worksheet'
@@ -374,10 +433,8 @@ def main():
                             locations=[circles_rectangle_relative])
 
     merged_cells = get_merged_cells(form_sheet)
-    row_top = 0
-    print(f'row dims: {row_dims}, column dims: {col_dims}')
     for row_index, row in enumerate(form_template_range_cells):
-        column_left = 0
+        row_top = row_dims[row[0].row]['top_y']
         row_height = row_dims[row[0].row]['ht']
         for column_index, cell in enumerate(row):
             if is_merged_cell(cell, merged_cells):
@@ -390,26 +447,34 @@ def main():
                                   [row_top, row_top, row_top - row_height, row_top - row_height], c='black', alpha=0.05)
             render_cell(form_template_ax, row_top, column_left, row_height, column_width, cell,
                         draw_top=row_index == 0,
-                        draw_left=column_index == 0)
+                        draw_left=column_index == 0,
+                        theme_colours=wb_theme_colours)
             column_left += column_width
-        row_top -= row_height
     print('finished parsing individual cells')
     print('parsing merged cells styles')
     for merged_cell in form_sheet.merged_cells.ranges:
-        # print(merged_cell.__dict__)
+        merged_cell_range_text = f'{form_sheet.title}!{merged_cell.coord}'
+        if not cells_contain_cells(form_template_range.attr_text, merged_cell_range_text):
+            continue
+        # print(f'plotting {merged_cell}')
         left_col = pyxl.utils.get_column_letter(merged_cell.min_col)
         top_left_cell = form_sheet[f'{left_col}{merged_cell.min_row}']
         merged_cell_left = col_dims[left_col]['left_x']
         merged_cell_width = reduce(lambda w, col_next: w + col_dims[pyxl.utils.get_column_letter(col_next)]['width'],
-                                   range(merged_cell.min_col, merged_cell.max_col + 1))
-        merged_cell_top = row_dims[merged_cell.min_row]['ht']
-        merged_cell_height = reduce(lambda w, row_next: w + row_dims[row_next]['ht'],
-                                    range(merged_cell.min_row, merged_cell.max_row + 1))
+                                   range(merged_cell.min_col, merged_cell.max_col + 1), 0)
+        merged_cell_top = row_dims[merged_cell.min_row]['top_y']
+        # print(merged_cell.min_row, merged_cell.max_row + 1)
+        merged_cell_height = reduce(lambda h, row_next: h + row_dims[row_next]['ht'],
+                                    range(merged_cell.min_row, merged_cell.max_row + 1), 0)
+        # pp(dict(top=merged_cell_top, left=merged_cell_left, h=merged_cell_height, w=merged_cell_width,
+        #         cell=top_left_cell,
+        #         pt=(merged_cell.min_row == 1),
+        #         pl=(merged_cell.min_col == 1)))
         render_cell(form_template_ax, merged_cell_top, merged_cell_left, merged_cell_height, merged_cell_width,
                     top_left_cell,
                     merged_cell.min_row == 1,
-                    merged_cell.min_col == 1
-                    )
+                    merged_cell.min_col == 1,
+                    theme_colours=wb_theme_colours)
         cols = [pyxl.utils.get_column_letter(i) for i in range(merged_cell.min_col, merged_cell.max_col + 1)]
         rows = list(range(merged_cell.min_row, merged_cell.max_row + 1))
         # for col, row in product(cols, rows):
@@ -418,6 +483,7 @@ def main():
     # TODO: refactor OMR tool to use heirarchical form-subform-circles structure, with harder coding of locations
     # TODO: produce config for OMR tool automatically
     # TODO: save each permutation's excel file in a '.omrx' (actually a zip) archive along with the json config
+    # TODO: generate image for each 'page' in the template worksheet
     output_config = {}
     output_config['created_by'] = getpass.getuser()
     # output_config['description'] = input('form description: ')
@@ -426,7 +492,7 @@ def main():
     template = dict(metadata_circles=metadata_circles_config, sub_forms=sub_forms_config)
     output_config['template'] = template
     output_config['pyomrx_version'] = VERSION
-    pp(output_config)
+    # pp(output_config)
     output_folder = Path('temp/form_config/')
     os.makedirs(str(output_folder), exist_ok=True)
     json.dump(output_config, open(str(output_folder / 'omr_config.json'), 'w'))
