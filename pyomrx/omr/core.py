@@ -22,6 +22,112 @@ from pyomrx.omr.file_utils import make_folder_if_not_exists
 IMAGE_SUFFIXES = ['.png', '.jpg', 'jpeg', '.PNG', '.JPG', '.JPEG']
 
 
+class BinaryCircles:
+    def __init__(self, image, config):
+        self.image = image
+        self.config=config
+        show_image(image, f'binary circles {config["name"]}')
+
+    @property
+    def value(self):
+        return False
+
+
+class DataCircles:
+    def __init__(self, image, config):
+        self.image = image
+        self.config=config
+        # show_image(image, 'data_circles')
+
+
+class Circle:
+    def __init__(self):
+        pass
+
+
+class OmrForm:
+    def __init__(self, input_image_path, form_config):
+        self.input_image_path = Path(input_image_path)
+        self.id = form_config['id']
+        self.author = form_config['author']
+        self.created_on = form_config['created_on']
+        self.template = form_config['template']
+        self.data = None
+        self.image = None
+        self.metadata_circle_groups = self.template['metadata_circles']
+        self.sub_forms = []
+        self._load_image()
+        # show_image(self.image, 'omr form')
+        self._init_sub_forms()
+        self.metadata_circle_groups=[]
+        self._init_metadata_circles()
+
+    def extract_data(self):
+        pass
+
+    def _load_image(self):
+        assert Path(self.input_image_path).exists(), 'check input file path'
+        image = cv2.imread(str(self.input_image_path))
+        if image is None:
+            raise OmrException('failed to load image: {}'.format(self.input_image_path))
+        try:
+            grey_outer_box, rgb_outer_box = get_outer_box(
+                image, desired_portrait=False)
+            # show_image(rgb_outer_box, 'outer box')
+        except OmrException as e:
+            raise OmrException('no suitable outer contour found:\n{}'.format(e))
+        self.image = grey_outer_box
+
+    def _init_sub_forms(self):
+        sub_form_config = self.template['sub_forms']
+        template = sub_form_config['sub_form_templates'][0]
+        for rectangle in sub_form_config['locations']:
+            sub_form_image = extract_rectangle_image(self.image, rectangle)
+            self.sub_forms.append(OmrSubForm(sub_form_image, template))
+
+    def _init_metadata_circles(self):
+        for metadata_circle_group_config in self.template['metadata_circles']:
+            metadata_circles_image = extract_rectangle_image(self.image, metadata_circle_group_config['rectangle'])
+            self.metadata_circle_groups.append(BinaryCircles(metadata_circles_image, metadata_circle_group_config))
+
+
+
+class OmrSubForm:
+    def __init__(self, image, template):
+        self.image = image
+        self.template = template
+        # show_image(image, 'sub form')
+        self.data_circle_groups = []
+        self._init_circles()
+
+    def _init_circles(self):
+        # sub_form_config = self.template['sub_forms']
+        # template = sub_form_config['sub_form_templates'][0]
+        for data_circles_config in self.template['circles']:
+            data_circles_image = extract_rectangle_image(self.image, data_circles_config['rectangle'])
+            self.data_circle_groups.append(DataCircles(data_circles_image, data_circles_config))
+
+
+def extract_rectangle_image(image, rectangle):
+    image_height, image_width = image.shape
+    print(image.shape, rectangle)
+    top = int(image_height * rectangle['top'])
+    bottom = int(image_height * rectangle['bottom'])
+    left = int(image_width * rectangle['left'])
+    right = int(image_width * rectangle['right'])
+    print(top, bottom, left, right)
+    return image[top:bottom, left:right]
+
+
+def process_form(
+        input_image_path,
+        form_config):
+    assert Path(input_image_path).exists(), 'check input file path'
+    form = OmrForm(input_image_path, form_config)
+    form.extract_data()
+    return form.data
+
+
 def get_binary_code_from_outer_box(greyscale_outer_box,
                                    h1,
                                    h2,
@@ -89,7 +195,7 @@ def get_code_from_binary_circles(image,
     code_circles = np.uint16(np.around(code_circles))[0].tolist()
     sorted_circles = sorted(
         code_circles,
-        key=lambda circle: circle[0]**2 + circle[1]**2,
+        key=lambda circle: circle[0] ** 2 + circle[1] ** 2,
         reverse=True)
     code_circles = np.array(sorted_circles)  # read left to right
     if num_circles:
@@ -105,89 +211,17 @@ def get_code_from_binary_circles(image,
         average = cv2.countNonZero(mask) / (circle[2] * circle[2] * 3.14)
         # check if positive detection
         if average > 0.5:
-            paper_code = paper_code + 2**i
+            paper_code = paper_code + 2 ** i
     if paper_code < 0:
         raise ZeroCodeFoundException(
             'paper code not detected properly, please check file')
     return paper_code
 
 
-def process_images_folder(input_folder,
-                          form_design=None,
-                          omr_mode='attendance',
-                          output_folder=None):
-    if omr_mode == 'exam':
-        temp_module = importlib.import_module('pyomrx.omr.exam_marksheet')
-    elif omr_mode == 'attendance':
-        temp_module = importlib.import_module('pyomrx.omr.attendance_register')
-    else:
-        print(
-            'ERROR: image_type must be exam_marksheet or attendance_register, {} passed'
-            .format(omr_mode))
-        raise ValueError('invalid image_type')
-    process_image = getattr(temp_module, 'process_image')
-    if isinstance(form_design, str):
-        form_design = json.load(open(form_design))
-    elif isinstance(form_design, dict):
-        form_design = form_design
-    elif omr_mode == 'attendance' and form_design is None:
-        print('using default attendance template')
-        form_design = attendance_register.default_config()
-    elif omr_mode == 'exam' and form_design is None:
-        form_design = exam_marksheet.default_config()
-        print('using default attendance template')
-    else:
-        raise TypeError(
-            'form design passed is of typ {} but must be either str or dict'.
-            format(type(form_design)))
-    answers_df = pd.DataFrame()
-    print(list(Path(input_folder).iterdir()))
-    img_files = [
-        img_file for img_file in Path(input_folder).iterdir()
-        if img_file.suffix in IMAGE_SUFFIXES
-    ]
-    if not img_files:
-        raise EmptyFolderException(
-            'no image files found in {}'.format(input_folder))
-    error_files = []
-    print('{} files to process in folder {}'.format(
-        len(img_files), input_folder))
-    for i, file_path in enumerate(img_files):
-        print('INFO: processing image {} {}'.format(i, file_path.name))
-        try:
-            im_answers = process_image(str(file_path), form_design)
-            answers_df = answers_df.append(im_answers)
-        except OmrException as e:
-            error_files.append(str(file_path.stem))
-            print(
-                'couldn\'t extract data from {}: check input file'.format(
-                    Path(file_path).name),
-                file=sys.stderr)
-            print('error message: ', e, file=sys.stderr)
-            if output_folder:
-                now = datetime.datetime.now()
-                make_folder_if_not_exists(output_folder)
-                with (Path(output_folder) / 'errors.txt').open('a') as f:
-                    f.write('{}:{}:{}:{}\n'.format(now, file_path, type(e), e))
-    if len(answers_df) == 0:
-        raise OmrException('could not extract any data from the images')
-    error_df = pd.DataFrame(
-        index=error_files, columns=answers_df.columns.tolist())
-    error_df = pd.concat([error_df] * 3, axis=0).sort_index()
-    error_df['omr_error'] = True
-    error_df['box_no'] = [1, 2, 3] * int(len(error_df) / 3)
-    error_df['file_name'] = error_df.index.tolist()
-    error_df['marker_error'] = np.nan
-    error_df.loc[:, ~error_df.columns.isin(
-        ['file_name', 'omr_error', 'box_no', 'marker_error'])] = -3
-    answers_df = pd.concat([answers_df, error_df], axis=0)
-    if output_folder:
-        if not Path(output_folder).exists():
-            Path(output_folder).mkdir(parents=True)
-        answers_df.to_csv(
-            str(Path(output_folder) / '{}_omr_output.csv'.format(omr_mode)),
-            index=False)
-    return answers_df
+# def process_images_folder(input_folder,
+#                           form_design=None,
+#                           omr_mode='attendance',
+#                           output_folder=None):
 
 
 def nearby_circle(x, y, circles, max_distance=np.inf):
@@ -271,7 +305,7 @@ def get_good_circles(candidate_circles,
         candidate_circles.copy().tolist(), key=lambda circ: circ[0] + circ[1])
     assert len(np.array(candidate_circles).shape
                ) == 2, 'shape must be (n,3), [} was passed'.format(
-                   np.array(candidate_circles).shape)
+        np.array(candidate_circles).shape)
     bubble_box_width = inner_box_shape[1] / max(circles_per_q_row +
                                                 circles_per_header_row)
     number_of_rows = len(circles_per_q_row +
@@ -361,7 +395,7 @@ def get_good_circles(candidate_circles,
                     np.array(expected_locations),
                     np.array([[3] * len(expected_locations)]).T
                 ],
-                                                           axis=1)
+                    axis=1)
                 show_circles_on_image(
                     debug_image,
                     expected_location_circles,
@@ -435,7 +469,7 @@ def get_outer_box_contour(original_image):
         raise OmrException(
             'no suitable outer contour found, '
             'biggest outer contour had perim of {}, needs to be bigger than {}'
-            .format(perim, min_acceptable_perim))
+                .format(perim, min_acceptable_perim))
     return docCnt
 
 
@@ -539,7 +573,7 @@ def process_boxes(inner_boxes,
             or len(answers) < num_boxes:
         raise OmrException(
             'Must be no nulls in answers and must be {} boxes processed'.
-            format(num_boxes))
+                format(num_boxes))
     return answers
 
 
@@ -655,7 +689,7 @@ def process_inner_box(inner_box,
         else:
             inner_box_answers.update({
                 'q_{:0>2}'.format(question_number - len(circles_per_header_row) + 1):
-                response
+                    response
             })
     if omr_mode == 'exam':
         inner_box_df = pd.DataFrame(inner_box_answers, index=[0])

@@ -1,0 +1,104 @@
+{
+  "author": "shaun",
+  "created_on": "2019-11-25 00:07:21.307576",
+  "id": "21e0d6a7-06cc-4385-8d14-de5fc0679b79",
+  "template": {
+    "metadata_circles": [
+      {
+        "rectangle": {
+          "top": 0.0,
+          "bottom": 0.03489439853076217,
+          "left": 0.745748987854251,
+          "right": 0.8631578947368421
+        },
+        "name": "class_name",
+        "decides_sub_form": false,
+        "quantity": 5,
+        "radius": 0.24122807017543857
+      },
+      {
+        "rectangle": {
+          "top": 0.0,
+          "bottom": 0.03489439853076217,
+          "left": 0.4404858299595142,
+          "right": 0.6048582995951417
+        },
+        "name": "institution",
+        "decides_sub_form": false,
+        "quantity": 7,
+        "radius": 0.24122807017543857
+      },
+      {
+        "rectangle": {
+          "top": 0.9498010407101316,
+          "bottom": 0.9846954392408938,
+          "left": 0.9101214574898785,
+          "right": 0.9805668016194332
+        },
+        "name": "page",
+        "decides_sub_form": false,
+        "quantity": 3,
+        "radius": 0.24122807017543826
+      }
+    ],
+    "sub_forms": {
+      "sub_form_templates": [
+        {
+          "circles": [
+            {
+              "rectangle": {
+                "top": 0.03813984610237538,
+                "bottom": 0.9999999999999999,
+                "left": 0.25763831544178367,
+                "right": 1.0
+              },
+              "circles_per_row": [
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31,
+                31
+              ],
+              "allowed_row_filling": "many",
+              "column_prefix": "A",
+              "radius": 0.009565217391304347,
+              "possible_rows": 25,
+              "possible_columns": 31,
+              "name": "attendance"
+            }
+          ],
+          "metadata_requirements": {}
+        }
+      ],
+      "locations": [
+        {
+          "top": 0.03489439853076217,
+          "bottom": 0.9498010407101317,
+          "left": 0.0,
+          "right": 0.9805668016194332
+        }
+      ]
+    }
+  },
+  "pyomrx_version": "1.3.2"
+}
