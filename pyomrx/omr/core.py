@@ -25,8 +25,8 @@ IMAGE_SUFFIXES = ['.png', '.jpg', 'jpeg', '.PNG', '.JPG', '.JPEG']
 class BinaryCircles:
     def __init__(self, image, config):
         self.image = image
-        self.config=config
-        show_image(image, f'binary circles {config["name"]}')
+        self.config = config
+        # show_image(image, f'binary circles {config["name"]}')
 
     @property
     def value(self):
@@ -36,7 +36,7 @@ class BinaryCircles:
 class DataCircles:
     def __init__(self, image, config):
         self.image = image
-        self.config=config
+        self.config = config
         # show_image(image, 'data_circles')
 
 
@@ -59,7 +59,7 @@ class OmrForm:
         self._load_image()
         # show_image(self.image, 'omr form')
         self._init_sub_forms()
-        self.metadata_circle_groups=[]
+        self.metadata_circle_groups = []
         self._init_metadata_circles()
 
     def extract_data(self):
@@ -89,7 +89,6 @@ class OmrForm:
         for metadata_circle_group_config in self.template['metadata_circles']:
             metadata_circles_image = extract_rectangle_image(self.image, metadata_circle_group_config['rectangle'])
             self.metadata_circle_groups.append(BinaryCircles(metadata_circles_image, metadata_circle_group_config))
-
 
 
 class OmrSubForm:
