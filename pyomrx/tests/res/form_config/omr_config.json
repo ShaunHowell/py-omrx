@@ -1,7 +1,7 @@
 {
   "author": "shaun",
-  "created_on": "2019-11-25 00:07:21.307576",
-  "id": "21e0d6a7-06cc-4385-8d14-de5fc0679b79",
+  "created_on": "2019-11-28 09:58:28.789567",
+  "id": "9574afd9-1b02-44d9-8e68-1e3d57277551",
   "template": {
     "metadata_circles": [
       {
@@ -14,7 +14,7 @@
         "name": "class_name",
         "decides_sub_form": false,
         "quantity": 5,
-        "radius": 0.24122807017543857
+        "radius": 0.04413793103448276
       },
       {
         "rectangle": {
@@ -26,7 +26,7 @@
         "name": "institution",
         "decides_sub_form": false,
         "quantity": 7,
-        "radius": 0.24122807017543857
+        "radius": 0.03152709359605912
       },
       {
         "rectangle": {
@@ -38,7 +38,7 @@
         "name": "page",
         "decides_sub_form": false,
         "quantity": 3,
-        "radius": 0.24122807017543826
+        "radius": 0.07356321839080461
       }
     ],
     "sub_forms": {
@@ -52,6 +52,9 @@
                 "left": 0.25763831544178367,
                 "right": 1.0
               },
+              "allowed_row_filling": "many",
+              "column_prefix": "A",
+              "radius": 0.007119021134593994,
               "circles_per_row": [
                 31,
                 31,
@@ -79,10 +82,6 @@
                 31,
                 31
               ],
-              "allowed_row_filling": "many",
-              "column_prefix": "A",
-              "radius": 0.009565217391304347,
-              "possible_rows": 25,
               "possible_columns": 31,
               "name": "attendance"
             }

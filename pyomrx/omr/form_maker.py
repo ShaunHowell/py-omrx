@@ -1,3 +1,5 @@
+
+from matplotlib.patches import Circle
 from lxml import etree
 from functools import reduce
 from itertools import product
@@ -20,7 +22,7 @@ from collections import defaultdict
 import pyomrx
 from openpyxl.styles.colors import COLOR_INDEX
 
-# atexit.register(plt.show)
+atexit.register(plt.show)
 
 W_THICK = 5
 W_DEFAULT = 1
@@ -29,6 +31,7 @@ COLS = [pyxl.utils.cell.get_column_letter(i) for i in range(1, 99)]
 ROW_HEIGHT_UNIT_PIXELS = 2
 COLUMN_WIDTH_UNIT_PIXELS = 11
 FONT_UNIT_PIXELS = 1.1
+CIRCLE_FONT_MULTIPLIER = 0.4
 EMPTY_CIRCLE = b'\xe2\x97\x8b'
 FULL_CIRCLE = b'\xe2\x97\x8f'
 LINE_START_REGEX = '(?:\A|\n)'
@@ -118,10 +121,10 @@ def parse_circles_from_range(metadata_range_cells, orient=None, assert_1d=False,
             else:
                 raise CircleParseError(f'character {cell.value} ({str(cell.value).encode()}) found, not allowed')
             if circle_radius is not None:
-                if cell.font.sz * 0.75 * FONT_UNIT_PIXELS / 2 != circle_radius:
+                if cell.font.sz * CIRCLE_FONT_MULTIPLIER * FONT_UNIT_PIXELS != circle_radius:
                     raise CircleParseError(f'varying font sizes, must be consistent')
             else:
-                circle_radius = cell.font.sz * 0.75 * FONT_UNIT_PIXELS / 2
+                circle_radius = cell.font.sz * CIRCLE_FONT_MULTIPLIER  * FONT_UNIT_PIXELS
         metadata_values.append(row_values)
     metadata_arr = np.array(metadata_values)
     if assert_1d and not 1 in metadata_arr.shape:
@@ -254,6 +257,13 @@ def render_cell(ax, top, left, height, width, cell, draw_top, draw_left, theme_c
 ANY_NS_REGEX = '{.*}'
 
 
+def plot_circles(ax, centres, radius, fill, colour):
+    patches = []
+    for centre in centres:
+        circle = Circle((centre[0], centre[1]), radius, fill=fill, color=colour)
+        ax.add_patch(circle)
+
+
 def main():
     wb = pyxl.load_workbook(filename='temp/Absence register v28 (kc).xlsx', data_only=True)
     theme_xml = etree.fromstring(wb.loaded_theme)
@@ -322,15 +332,17 @@ def main():
     # TODO: assert that metadata ranges are fully inside page 1
     for metadata_range in metadata_ranges:
         metadata_name = re.findall('meta_(.+)', metadata_range.name)[0]
+        print(metadata_name)
         metadata_range_cells = form_sheet[metadata_range.attr_text.split('!')[1]]
         metadata_rectangle = get_rectangle_from_range(
             range_cells=metadata_range_cells, row_dims=row_dims, col_dims=col_dims)
         metadata_rectangle = localise_rectangle_to_form(metadata_rectangle,
                                                         form_top_left)
+        print(metadata_rectangle)
         metadata_relative_rectangle = get_relative_rectangle(metadata_rectangle, form_rectangle)
         # plot_rectangle(metadata_relative_rectangle, thickness=W_THIN)
         # plot_rectangle(metadata_rectangle, form_template_ax, thickness=W_THIN)
-        metadata_circles_config = dict(rectangle=metadata_relative_rectangle,name=metadata_name)
+        metadata_circles_config = dict(rectangle=metadata_relative_rectangle, name=metadata_name)
         decides_sub_form = re.findall(decides_sub_form_regex, str(metadata_range.comment))
         if decides_sub_form:
             decides_sub_form = decides_sub_form[0]
@@ -359,10 +371,13 @@ def main():
             form_metadata_values[metadata_name] = metadata_value
         metadata_circles_config['quantity'] = metadata_arr.size
         form_metadata_values[metadata_name] = metadata_value
-        min_metadata_dimension = min([metadata_rectangle['top'] - metadata_rectangle['bottom'],
+        max_metadata_dimension = max([metadata_rectangle['top'] - metadata_rectangle['bottom'],
                                       metadata_rectangle['right'] - metadata_rectangle['left']])
         # print(f'rad:{circle_radius}, min metadata dimension:{min_metadata_dimension}')
-        metadata_circles_config['radius'] = circle_radius / min_metadata_dimension
+        print(f'metadata circle radius: {circle_radius}')
+        print(f'metadata circles rectangle max dim: {max_metadata_dimension}')
+        print(f'relative radius: {circle_radius / max_metadata_dimension}')
+        metadata_circles_config['radius'] = circle_radius / max_metadata_dimension
         metadata_circle_offset = (metadata_rectangle['right'] - metadata_rectangle['left']) / metadata_arr.size
         left_circle_x = metadata_rectangle['left'] + metadata_circle_offset / 2
         left_circle_y = (metadata_rectangle['top'] + metadata_rectangle['bottom']) / 2
@@ -376,11 +391,17 @@ def main():
                 filled_circle_x_coords.append(left_circle_x + metadata_circle_i * metadata_circle_offset)
             else:
                 empty_circle_x_coords.append(left_circle_x + metadata_circle_i * metadata_circle_offset)
-
-        form_template_ax.plot(empty_circle_x_coords, [left_circle_y] * len(empty_circle_x_coords),
-                              'o', fillstyle='none', c='black', markersize=circle_radius)
-        form_template_ax.plot(filled_circle_x_coords, [left_circle_y] * len(filled_circle_x_coords),
-                              'o', c='black', markersize=circle_radius)
+        plot_circles(form_template_ax,
+                     zip(empty_circle_x_coords,
+                         [left_circle_y] * len(empty_circle_x_coords)),
+                     circle_radius,
+                     fill=False,
+                     colour='black')
+        plot_circles(form_template_ax,
+                     zip(filled_circle_x_coords, [left_circle_y] * len(filled_circle_x_coords)),
+                     circle_radius,
+                     fill=True,
+                     colour='black')
         form_metadata_circles_config.append(metadata_circles_config)
     circles_ranges = [wb.get_named_range(range_name) for range_name in range_names if re.match('circles_', range_name)]
     if not circles_ranges:
@@ -424,12 +445,17 @@ def main():
                     empty_circle_x_coords.append(top_left_circle_x + col_i * circle_offset_x)
                     empty_circle_y_coords.append(top_left_circle_y - row_i * circle_offset_y)
                     circles_per_row[-1] += 1
-        form_template_ax.plot(empty_circle_x_coords, empty_circle_y_coords,
-                              'o', fillstyle='none', c='black', markersize=circles_dict['radius'])
-        form_template_ax.plot(filled_circle_x_coords, filled_circle_y_coords,
-                              'o', c='black', markersize=circles_dict['radius'])
+        plot_circles(form_template_ax,
+                     zip(empty_circle_x_coords, empty_circle_y_coords),
+                     circles_dict['radius'],
+                     fill=False,
+                     colour='black')
+        plot_circles(form_template_ax,
+                     zip(filled_circle_x_coords, filled_circle_y_coords),
+                     circles_dict['radius'],
+                     fill=True,
+                     colour='black')
 
-        circles_config['circles_per_row'] = circles_per_row
         circles_comment = str(circles_range.comment)
         row_fill = re.findall(row_fill_regex, circles_comment)
         if row_fill:
@@ -446,11 +472,18 @@ def main():
                   f'will prefix with {column_prefix[0]}. To specifc a custom prefix add "column prefix: <prefix>"'
                   f'to the cell group\'s comment via the name manager')
         circles_config['column_prefix'] = column_prefix[0]
-        min_metadata_dimension = min([circles_rectangle['top'] - circles_rectangle['bottom'],
-                                      circles_rectangle['right'] - circles_rectangle['left']])
-        circles_config['radius'] = circles_dict['radius'] / min_metadata_dimension
-        circles_config['possible_rows'] = circles_arr.shape[0]
-        circles_config['possible_columns'] = circles_arr.shape[1]
+        max_circles_dimension = max([circles_rectangle['top'] - circles_rectangle['bottom'],
+                                     circles_rectangle['right'] - circles_rectangle['left']])
+        circles_config['radius'] = circles_dict['radius'] / max_circles_dimension
+
+        top_left_circle_cell = circles_range_cells[0][0]
+        bottom_right_circle_cell = circles_range_cells[-1][-1]
+        possible_rows = bottom_right_circle_cell.row - top_left_circle_cell.row + 1
+        possible_columns = bottom_right_circle_cell.column - top_left_circle_cell.column + 1
+        if circles_arr.shape[0] < possible_rows:
+            circles_per_row.extend([0] * possible_rows - circles_arr.shape[0])
+        circles_config['circles_per_row'] = circles_per_row
+        circles_config['possible_columns'] = possible_columns
         circles_config['name'] = circles_name
         sub_form_template_config['circles'].append(circles_config)
 
