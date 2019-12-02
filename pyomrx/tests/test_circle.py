@@ -24,6 +24,8 @@ def filled_circle(res_folder):
 
 
 def test_filled_circle_is_filled(filled_circle):
-    assert not filled_circle.is_filled
+    assert filled_circle.is_filled
 
 
+if __name__ == '__main__':
+    pytest.main(['-k', 'test_circle', '-svv'])

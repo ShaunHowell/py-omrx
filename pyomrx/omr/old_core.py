@@ -89,7 +89,7 @@ def get_code_from_binary_circles(image,
     code_circles = np.uint16(np.around(code_circles))[0].tolist()
     sorted_circles = sorted(
         code_circles,
-        key=lambda circle: circle[0] ** 2 + circle[1] ** 2,
+        key=lambda circle: circle[0]**2 + circle[1]**2,
         reverse=True)
     code_circles = np.array(sorted_circles)  # read left to right
     if num_circles:
@@ -105,7 +105,7 @@ def get_code_from_binary_circles(image,
         average = cv2.countNonZero(mask) / (circle[2] * circle[2] * 3.14)
         # check if positive detection
         if average > 0.5:
-            paper_code = paper_code + 2 ** i
+            paper_code = paper_code + 2**i
     if paper_code < 0:
         raise ZeroCodeFoundException(
             'paper code not detected properly, please check file')
@@ -175,9 +175,8 @@ def process_boxes(inner_boxes,
             or len(answers) < num_boxes:
         raise OmrException(
             'Must be no nulls in answers and must be {} boxes processed'.
-                format(num_boxes))
+            format(num_boxes))
     return answers
-
 
 
 def response_from_darknesses(darknesses):
@@ -274,7 +273,7 @@ def process_inner_box(inner_box,
         else:
             inner_box_answers.update({
                 'q_{:0>2}'.format(question_number - len(circles_per_header_row) + 1):
-                    response
+                response
             })
     if omr_mode == 'exam':
         inner_box_df = pd.DataFrame(inner_box_answers, index=[0])

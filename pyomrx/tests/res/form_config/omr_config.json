@@ -1,44 +1,44 @@
 {
   "author": "shaun",
-  "created_on": "2019-11-28 09:58:28.789567",
-  "id": "9574afd9-1b02-44d9-8e68-1e3d57277551",
+  "created_on": "2019-12-02 21:51:54.831247",
+  "id": "54a5f102-69a0-4762-a57d-46022d1f51d4",
   "template": {
     "metadata_circles": [
       {
         "rectangle": {
           "top": 0.0,
-          "bottom": 0.03489439853076217,
-          "left": 0.745748987854251,
-          "right": 0.8631578947368421
+          "bottom": 0.035163479333744585,
+          "left": 0.7604166666666666,
+          "right": 0.8693181818181818
         },
         "name": "class_name",
         "decides_sub_form": false,
         "quantity": 5,
-        "radius": 0.04413793103448276
+        "radius": 0.05565217391304348
       },
       {
         "rectangle": {
           "top": 0.0,
-          "bottom": 0.03489439853076217,
-          "left": 0.4404858299595142,
-          "right": 0.6048582995951417
+          "bottom": 0.035163479333744585,
+          "left": 0.4772727272727273,
+          "right": 0.6297348484848485
         },
         "name": "institution",
         "decides_sub_form": false,
         "quantity": 7,
-        "radius": 0.03152709359605912
+        "radius": 0.03975155279503106
       },
       {
         "rectangle": {
-          "top": 0.9498010407101316,
-          "bottom": 0.9846954392408938,
-          "left": 0.9101214574898785,
-          "right": 0.9805668016194332
+          "top": 0.9494139420111042,
+          "bottom": 0.9845774213448488,
+          "left": 0.9128787878787878,
+          "right": 0.978219696969697
         },
         "name": "page",
         "decides_sub_form": false,
         "quantity": 3,
-        "radius": 0.07356321839080461
+        "radius": 0.0927536231884058
       }
     ],
     "sub_forms": {
@@ -47,14 +47,14 @@
           "circles": [
             {
               "rectangle": {
-                "top": 0.03813984610237538,
+                "top": 0.03846153846153845,
                 "bottom": 0.9999999999999999,
-                "left": 0.25763831544178367,
+                "left": 0.30977734753146174,
                 "right": 1.0
               },
               "allowed_row_filling": "many",
               "column_prefix": "A",
-              "radius": 0.007119021134593994,
+              "radius": 0.008976157082748949,
               "circles_per_row": [
                 31,
                 31,
@@ -84,6 +84,46 @@
               ],
               "possible_columns": 31,
               "name": "attendance"
+            },
+            {
+              "rectangle": {
+                "top": 0.03846153846153845,
+                "bottom": 0.9999999999999999,
+                "left": 0.2749273959341723,
+                "right": 0.30977734753146174
+              },
+              "allowed_row_filling": "many",
+              "column_prefix": "dropout",
+              "radius": 0.01029239766081871,
+              "circles_per_row": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ],
+              "possible_columns": 1,
+              "name": "dropout"
             }
           ],
           "metadata_requirements": {}
@@ -91,10 +131,10 @@
       ],
       "locations": [
         {
-          "top": 0.03489439853076217,
-          "bottom": 0.9498010407101317,
+          "top": 0.035163479333744585,
+          "bottom": 0.9494139420111042,
           "left": 0.0,
-          "right": 0.9805668016194332
+          "right": 0.978219696969697
         }
       ]
     }

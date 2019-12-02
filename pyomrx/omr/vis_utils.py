@@ -3,12 +3,18 @@ from PIL import Image
 from matplotlib import pyplot as plt
 
 
-def show_circles_on_image(image, circles, title=None, delayed_show=False, thickness=4):
+def show_circles_on_image(image,
+                          circles,
+                          title=None,
+                          delayed_show=False,
+                          thickness=4):
     temp_image = cv2.cvtColor(image.copy(), cv2.COLOR_GRAY2RGB)
     [
         cv2.circle(
-            temp_image, (c[0], c[1]), c[2], thickness=thickness, color=(255, 0, 0))
-        for c in circles
+            temp_image, (c[0], c[1]),
+            c[2],
+            thickness=thickness,
+            color=(255, 0, 0)) for c in circles
     ]
     plt.figure()
     if title:
