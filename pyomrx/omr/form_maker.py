@@ -23,7 +23,7 @@ from openpyxl.styles.colors import COLOR_INDEX
 
 #### Demo MVP buildout
 # TODO: clean this script into more modular functions, with tests and better error messages
-# TODO: build an OmrFactory class which creates form objects and extracts from batches (multiprocess) for the GUI
+# TODO: build an OmrFactory class which creates form objects and extracts from batches (multiprocess) for the GUI, mustn't block main proces and must update something with progress
 # TODO: make the GUI work with the new extract-side code
 # TODO: try using the full GUI pipeline on a real form. add as a test case
 # TODO: extend the GUI to be able to run this script (new tab probably)
