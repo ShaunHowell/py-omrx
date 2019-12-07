@@ -1,3 +1,4 @@
+import shutil
 from matplotlib.patches import Circle
 from lxml import etree
 from functools import reduce
@@ -22,8 +23,7 @@ import pyomrx
 from openpyxl.styles.colors import COLOR_INDEX
 
 #### Demo MVP buildout
-# TODO: clean this script into more modular functions, with tests and better error messages
-# TODO: build an OmrFactory class which creates form objects and extracts from batches (multiprocess) for the GUI, mustn't block main proces and must update something with progress
+# TODO: Make work with the GUI, mustn't block main proces and must update something with progress
 # TODO: make the GUI work with the new extract-side code
 # TODO: try using the full GUI pipeline on a real form. add as a test case
 # TODO: extend the GUI to be able to run this script (new tab probably)
@@ -35,8 +35,10 @@ from openpyxl.styles.colors import COLOR_INDEX
 # TODO: allow vertical metadata circles
 # TODO: make the joining of multiple circle groups' dfs into a sub form's df more flexible
 # TODO: progress bars for form generation and data extraction
+# TODO: Make OmrFactory use multiprocessing
 
 #### Extra robustness
+# TODO: clean this script into more modular functions, with tests and better error messages
 # TODO: check the circles are looking to be the correct size now
 # TODO: asert that all form components are completely inside their parent component
 # TODO: sort left & right aligned text margins more robustly
@@ -45,7 +47,6 @@ from openpyxl.styles.colors import COLOR_INDEX
 # TODO: brush up all the regex to be as robust as possible
 # TODO: work out how to deal with cells which contain dates...
 # TODO: check if any used cell range is actually multiple ranges (e.g. template!A1:A3+template!B1:B3) and raise a useful error message
-
 
 # atexit.register(plt.show)
 
@@ -65,6 +66,9 @@ BORDER_WIDTH_LOOKUP = dict(thin=0.5, medium=1, thick=2)
 VERSION = pyomrx.__version__
 X_TEXT_BUFFER = 1
 ANY_NS_REGEX = '{.*}'
+TEMP_LOC = './pyomrxtemp'
+DESCRIPTION = 'testing form by shaun from dev work'
+NAME = 'testing_form'
 
 
 def get_rectangle_from_range(range_cells, row_dims, col_dims):
@@ -311,6 +315,10 @@ def plot_circles(ax, centres, radius, fill, colour):
 
 
 def main():
+    if Path(TEMP_LOC).exists() and Path(TEMP_LOC).is_dir():
+        shutil.rmtree(TEMP_LOC)
+    description = DESCRIPTION
+    name = NAME
     wb = pyxl.load_workbook(
         filename='temp/Absence register v31.xlsx', data_only=True)
     theme_xml = etree.fromstring(wb.loaded_theme)
@@ -647,7 +655,8 @@ def main():
             theme_colours=wb_theme_colours)
     output_config = {}
     output_config['author'] = getpass.getuser()
-    # output_config['description'] = input('form description: ')
+    output_config['description'] = description
+    output_config['name'] = name
     output_config['created_on'] = str(datetime.datetime.now())
     output_config['id'] = str(uuid.uuid4())
     template = dict(
@@ -672,7 +681,12 @@ def main():
         str(output_folder / 'example_omr_form_scan.png'),
         bbox_inches='tight',
         pad_inches=0)
-
+    print('making archive')
+    shutil.make_archive(
+        str(output_folder.parent / name), 'zip', str(output_folder))
+    os.rename(
+        str(output_folder.parent / f'{name}.zip'),
+        str(output_folder.parent / f'{name}.omr'))
     print('done')
 
 

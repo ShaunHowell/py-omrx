@@ -11,3 +11,4 @@ yapf==0.26.0
 pytest==4.3.0
 openpyxl==3.0.0
 lxml==4.4.1
+PyPubSub==4.0.3

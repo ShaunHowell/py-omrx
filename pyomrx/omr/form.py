@@ -11,10 +11,13 @@ from pyomrx.omr.circle_group import BinaryCircles, DataCircleGroup
 import imutils
 import numpy as np
 from pyomrx.omr.vis_utils import show_image
+from threading import Event
+from pyomrx.omr.meta import Abortable
 
 
-class OmrForm:
-    def __init__(self, input_image_path, form_config):
+class OmrForm(Abortable):
+    def __init__(self, input_image_path, form_config, abort_event=None):
+        Abortable.__init__(self, abort_event)
         self.input_image_path = Path(input_image_path)
         self.id = form_config['id']
         self.author = form_config['author']
@@ -81,21 +84,26 @@ class OmrForm:
         template = sub_form_config['sub_form_templates'][0]
         for rectangle in sub_form_config['locations']:
             sub_form_image = extract_rectangle_image(self.image, rectangle)
-            print('template')
-            print(template)
-            self.sub_forms.append(OmrSubForm(sub_form_image, template))
+            # print('template')
+            # print(template)
+            self.sub_forms.append(
+                OmrSubForm(
+                    sub_form_image, template, abort_event=self.abort_event))
 
     def _init_metadata_circles(self):
         for metadata_circle_group_config in self.template['metadata_circles']:
             metadata_circles_image = extract_rectangle_image(
                 self.image, metadata_circle_group_config['rectangle'])
             self.metadata_circle_groups.append(
-                BinaryCircles(metadata_circles_image,
-                              metadata_circle_group_config))
+                BinaryCircles(
+                    metadata_circles_image,
+                    metadata_circle_group_config,
+                    abort_event=self.abort_event))
 
 
-class OmrSubForm:
-    def __init__(self, image, template):
+class OmrSubForm(Abortable):
+    def __init__(self, image, template, abort_event=None):
+        Abortable.__init__(self, abort_event)
         self.image = get_one_channel_grey_image(image)
         self.template = template
         # show_image(image, 'sub form')
@@ -110,7 +118,10 @@ class OmrSubForm:
             data_circles_image = extract_rectangle_image(
                 self.image, data_circles_config['rectangle'])
             self.data_circle_groups.append(
-                DataCircleGroup(data_circles_image, data_circles_config))
+                DataCircleGroup(
+                    data_circles_image,
+                    data_circles_config,
+                    abort_event=self.abort_event))
 
     @property
     def values(self):
@@ -119,13 +130,13 @@ class OmrSubForm:
         return self._values
 
     def extract_values(self):
-        dfs = [circle_group.values for circle_group in self.data_circle_groups]
+        dfs = [circle_group.value for circle_group in self.data_circle_groups]
         # TODO: configurably allow different types of joins
         assert all([len(df) == len(dfs[0]) for df in dfs])
         df = pd.concat(dfs, axis=1)
         df = df.sort_index(axis=1)
         self._values = df
-        print(self._values.to_string())
+        # print(self._values.to_string())
 
 
 def process_form(input_image_path, form_config):

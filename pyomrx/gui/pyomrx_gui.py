@@ -1,28 +1,57 @@
-#!/bin/python
+# TODO: progress bar shouldn't block the main application
+# !/bin/python
+import uuid
+import time
+import pandas as pd
+from threading import Thread
+from threading import Event
+import threading
+from pyomrx.omr.omr_factory import OmrFactory
+import json
+import zipfile
 import traceback
 import sys
-from pyomrx.omr.attendance_register import process_attendance_sheet_folder
-from pyomrx.omr.exam_marksheet import process_exam_marksheet_folder
 import wx
 import webbrowser
 from pathlib import Path
-from pyomrx.omr.exceptions import EmptyFolderException
+from pyomrx.omr.exceptions import *
 import pyomrx
+from pubsub import pub
+from pyomrx.omr.meta import Abortable
+
+EVT_SUCCESS_ID = wx.NewId()
+EVT_NONFATAL_ID = wx.NewId()
+EVT_PROCESSING_START_ID = wx.NewId()
+
+DEBUG = True
 
 
-class PyomrxMainFrame(wx.Frame):
+class PyomrxMainFrame(wx.Frame, Abortable):
     def __init__(self, *args, **kw):
         super(PyomrxMainFrame, self).__init__(*args, **kw)
+        Abortable.__init__(self, None)
         sys.excepthook = ExceptionHandler
-        self.input_path = ''
-        self.output_folder = ''
+        self.input_folder_path = Path(
+            'pyomrx/tests/res/example_images_folder') if DEBUG else ''
+        self.output_path = Path(
+            'pyomrx/tests/res/temp_output_file') if DEBUG else ''
+        self.template_path = Path(
+            'pyomrx/tests/res/testing_form.omr') if DEBUG else ''
         self.buttons = []
         self.panel = wx.Panel(self)
         self.create_buttons()
         self.init_ui()
         self.Centre()
+        self.batches_processing = 0
         self.statusbar.SetStatusText('ready')
         self.update_layout()
+        self.Connect(-1, -1, EVT_NONFATAL_ID,
+                     self.handle_processing_nonfatal_fail)
+        self.Connect(-1, -1, EVT_PROCESSING_START_ID,
+                     self.handle_processing_start)
+        self.Connect(-1, -1, EVT_SUCCESS_ID, self.handle_processing_done)
+        self.Bind(wx.EVT_CLOSE, self.handle_close)
+        self.worker_abort_events = {}
 
     def create_buttons(self):
         def create_button(button_type, label, function, with_text=True):
@@ -39,38 +68,43 @@ class PyomrxMainFrame(wx.Frame):
         font = wx.SystemSettings.GetFont(wx.SYS_SYSTEM_FONT)
         font.SetPointSize(9)
 
-        for button_type in ["images", "output"]:
-            create_button(
-                button_type, "Open {} folder".format(button_type),
-                getattr(self, 'choose_{}_folder'.format(button_type)))
+        create_button("template", "Open template",
+                      getattr(self, 'choose_template'))
+        create_button("images", "Choose images folder",
+                      getattr(self, 'choose_images_folder'))
+        create_button("output", "Choose output path",
+                      getattr(self, 'choose_output_path'))
         create_button(
-            'process', 'Process images', self.process_images, with_text=False)
+            'process',
+            'Process images',
+            self.handle_process_images,
+            with_text=False)
 
     def init_ui(self):
         border_width = 10
         self.vbox = wx.BoxSizer(wx.VERTICAL)
         self.vbox.Add((-1, 20), proportion=0, border=border_width)
 
-        hbox = wx.BoxSizer(wx.HORIZONTAL)
-        hbox.Add(
-            wx.StaticText(self.panel, label='Form type:'),
-            proportion=0,
-            flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL,
-            border=border_width)
-        self.form_type_dropdown = wx.Choice(
-            self.panel, choices=['exam marksheet', 'attendance register'])
-        self.form_type_dropdown.SetSelection(0)
-        hbox.Add(
-            self.form_type_dropdown,
-            proportion=0,
-            flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL,
-            border=border_width)
-        self.vbox.Add(
-            hbox,
-            proportion=0,
-            flag=wx.ALIGN_CENTRE | wx.ALL | wx.ALIGN_CENTER_VERTICAL,
-            border=border_width)
-        self.vbox.Add((-1, 5), proportion=0, border=border_width)
+        # hbox = wx.BoxSizer(wx.HORIZONTAL)
+        # hbox.Add(
+        #     wx.StaticText(self.panel, label='Form type:'),
+        #     proportion=0,
+        #     flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL,
+        #     border=border_width)
+        # self.form_type_dropdown = wx.Choice(
+        #     self.panel, choices=['exam marksheet', 'attendance register'])
+        # self.form_type_dropdown.SetSelection(0)
+        # hbox.Add(
+        #     self.form_type_dropdown,
+        #     proportion=0,
+        #     flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL,
+        #     border=border_width)
+        # self.vbox.Add(
+        #     hbox,
+        #     proportion=0,
+        #     flag=wx.ALIGN_CENTRE | wx.ALL | wx.ALIGN_CENTER_VERTICAL,
+        #     border=border_width)
+        # self.vbox.Add((-1, 5), proportion=0, border=border_width)
 
         for button_type, button_dict in self.buttons:
             hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -120,31 +154,57 @@ class PyomrxMainFrame(wx.Frame):
         finally:
             dialog.Destroy()
         if len(path) > 0:
-            self.input_path = Path(path)
+            self.input_folder_path = Path(path)
             text_objext = next(
                 (object[1]['text']
                  for object in self.buttons if object[0] == 'images'), None)
             text_objext.SetLabel('...{}'.format(str(path)[-30:]))
         self.update_layout()
 
-    def choose_output_folder(self, event):
-        dialog = wx.DirDialog(
-            self, 'Choose output directory', '', style=wx.DD_DEFAULT_STYLE)
+    def choose_output_path(self, event):
+        dialog = wx.FileDialog(
+            self, 'Save output csv as...', '', style=wx.DD_DEFAULT_STYLE)
         try:
             if dialog.ShowModal() == wx.ID_CANCEL:
                 return
             path = dialog.GetPath()
         except Exception:
-            wx.LogError('Failed to open directory!')
+            wx.LogError('Failed to choose desired path!')
             raise
         finally:
             dialog.Destroy()
         if len(path) > 0:
-            self.output_folder = Path(path)
+            self.output_path = Path(path)
+            if self.output_path.suffix != '.csv':
+                self.output_path = Path(f'{path}.csv')
             text_objext = next(
                 (object[1]['text']
                  for object in self.buttons if object[0] == 'output'), None)
             text_objext.SetLabel('...{}'.format(str(path)[-30:]))
+        self.update_layout()
+
+    def choose_template(self, event):
+        dialog = wx.FileDialog(
+            self,
+            'Choose template file',
+            '',
+            wildcard='*.omr',
+            style=wx.DD_DEFAULT_STYLE)
+        try:
+            if dialog.ShowModal() == wx.ID_CANCEL:
+                return
+            path = dialog.GetPath()
+        except Exception:
+            wx.LogError('Failed to select file!')
+            raise
+        finally:
+            dialog.Destroy()
+        if len(path) > 0:
+            self.template_path = Path(path)
+            text_objext = next(
+                (object[1]['text']
+                 for object in self.buttons if object[0] == 'template'), None)
+            text_objext.SetLabel(f'...{str(path)[-30:]}')
         self.update_layout()
 
     def update_layout(self):
@@ -153,52 +213,84 @@ class PyomrxMainFrame(wx.Frame):
         self.Fit()
         self.Layout()
 
-    def open_output_folder(self):
-        webbrowser.open(str(self.output_folder))
+    def open_folder(self, path):
+        if Path(path).is_file():
+            path = path.parent
+        webbrowser.open(str(path))
 
-    def process_images(self, event):
-        if not self.input_path or not self.output_folder:
-            raise ValueError('need to set input path and output folder')
-        form_type = self.form_type_dropdown.GetString(
-            self.form_type_dropdown.GetSelection())
-        self.statusbar.PushStatusText('processing {}s'.format(form_type))
-        try:
-            if form_type == 'attendance register':
-                process_attendance_sheet_folder(
-                    input_folder=str(self.input_path),
-                    form_design_path=None,
-                    output_folder=str(self.output_folder))
-            elif form_type == 'exam marksheet':
-                process_exam_marksheet_folder(
-                    input_folder=str(self.input_path),
-                    form_design_path=None,
-                    output_folder=str(self.output_folder))
-            else:
-                raise ValueError(
-                    'got form type: {}, not supported (check spelling?)'.
-                    format(form_type))
-        except EmptyFolderException as e:
-            # frame = wx.GetApp().GetTopWindow()
-            print(e)
-            self.statusbar.PushStatusText('error: empty folder')
-            dlg = ExceptionDialog(
-                'No image files found in the selected folder',
-                parent=None,
-                fatal=False,
-                title='Error')
-            dlg.ShowModal()
-            dlg.Destroy()
-            self.statusbar.PushStatusText('ready')
+    def handle_process_images(self, event):
+        input_folder_path = self.input_folder_path
+        output_path = self.output_path
+        template_path = self.template_path
+        if not input_folder_path or not output_path or not template_path:
+            wx.MessageDialog(
+                self,
+                'Please choose a template, input folder and output folder',
+                style=wx.ICON_INFORMATION).ShowModal()
             return
+        wx.PostEvent(self, ProcessingStartEvent())
+        omr_template = zipfile.ZipFile(template_path, 'r')
+        template_json = omr_template.read('omr_config.json')
+        template_dict = json.loads(template_json.decode())
+        worker_thread = FormProcessingWorker(
+            self,
+            template_dict=template_dict,
+            input_folder_path=input_folder_path,
+            output_folder_path=output_path)
+        self.worker_abort_events[worker_thread.id] = worker_thread.abort_event
+        num_files = len(list(Path(input_folder_path).iterdir()))
+        progress_dialog = ProcessingProgressDialog(
+            worker_id=worker_thread.id,
+            num_files=num_files,
+            input_path=input_folder_path,
+            parent=self,
+            style=wx.PD_SMOOTH | wx.PD_AUTO_HIDE | wx.PD_CAN_ABORT
+            | wx.PD_REMAINING_TIME | wx.PD_ELAPSED_TIME | wx.PD_SMOOTH,
+            abort_event=worker_thread.abort_event)
+        worker_thread.start()
 
+    def handle_processing_start(self, event):
+        self.batches_processing += 1
+        self.update_status_text()
+
+    def update_status_text(self):
+        if self.abort_event.is_set():
+            self.statusbar.PushStatusText('quitting')
+        elif self.batches_processing:
+            self.statusbar.PushStatusText(
+                f'processing {self.batches_processing} '
+                f'folder{"s" if self.batches_processing > 1 else ""}')
+        else:
+            self.statusbar.PushStatusText('ready')
+
+    def handle_processing_nonfatal_fail(self, event):
+        self.batches_processing -= 1
+        self.update_status_text()
+
+    def handle_processing_done(self, event):
+        self.batches_processing -= 1
+        self.update_status_text()
         success_dialog = wx.MessageDialog(
             self.panel,
-            message='Processing finished: open output folder?',
+            message=
+            f'Finished processing\n{event.input_path}\n\nOpen output folder?',
             style=wx.ICON_INFORMATION | wx.YES_NO | wx.NO_DEFAULT | wx.CENTRE,
-            caption='Attendance register processing done').ShowModal()
+            caption='Processing done').ShowModal()
+        del self.worker_abort_events[event.worker_id]
         if success_dialog == 5103:
-            self.open_output_folder()
-        self.statusbar.PushStatusText('ready')
+            self.open_folder(Path(event.output_path).parent)
+
+    def handle_close(self, event):
+        self.abort()
+        self.update_status_text()
+        while len(threading.enumerate()) > 1:
+            time.sleep(0.5)
+        self.Destroy()
+
+    def abort(self):
+        super().abort()
+        for abort_event in self.worker_abort_events.values():
+            abort_event.set()
 
 
 class ExceptionDialog(wx.Dialog):
@@ -293,6 +385,126 @@ def ExceptionHandler(etype, value, trace):
     dlg = ExceptionDialog(exception, parent=None, fatal=True, title='Error')
     dlg.ShowModal()
     dlg.Destroy()
+
+
+class ProcessingSuccessEvent(wx.PyEvent):
+    def __init__(self, data, input_path, output_path, worker_id):
+        wx.PyEvent.__init__(self)
+        self.SetEventType(EVT_SUCCESS_ID)
+        self.data = data
+        self.input_path = input_path
+        self.output_path = output_path
+        self.worker_id = worker_id
+
+
+class ProcessingNonFatalEvent(wx.PyEvent):
+    def __init__(self):
+        wx.PyEvent.__init__(self)
+        self.SetEventType(EVT_NONFATAL_ID)
+
+
+class ProcessingStartEvent(wx.PyEvent):
+    def __init__(self):
+        wx.PyEvent.__init__(self)
+        self.SetEventType(EVT_PROCESSING_START_ID)
+
+
+class FormProcessingWorker(Thread, Abortable):
+    def __init__(self,
+                 parent_window,
+                 template_dict,
+                 input_folder_path,
+                 output_folder_path,
+                 abort_event=None):
+        Thread.__init__(self)
+        Abortable.__init__(self, abort_event)
+        self.id = uuid.uuid4()
+        self._parent_window = parent_window
+        self.omr_factory = OmrFactory(
+            template_dict, abort_event=self.abort_event, id=self.id)
+        self.input_folder_path = input_folder_path
+        self.output_folder_path = output_folder_path
+
+    def run(self):
+        try:
+            df = self.omr_factory.process_images_folder(
+                self.input_folder_path, self.output_folder_path)
+            if df is None:
+                wx.PostEvent(self._parent_window, ProcessingNonFatalEvent())
+            elif isinstance(df, pd.DataFrame):
+                wx.PostEvent(
+                    self._parent_window,
+                    ProcessingSuccessEvent(
+                        data=df,
+                        input_path=self.input_folder_path,
+                        output_path=self.output_folder_path,
+                        worker_id=self.id))
+            else:
+                raise TypeError(
+                    f'got unexpected return type {type(df)} from omr factory')
+        except EmptyFolderException as e:
+            print(e)
+            dlg = ExceptionDialog(
+                'No image files found in the selected folder',
+                parent=None,
+                fatal=False,
+                title='Error')
+            dlg.ShowModal()
+            dlg.Destroy()
+            wx.PostEvent(self._parent_window, ProcessingNonFatalEvent())
+        except AbortException:
+            print(f'aborted processing worker {self.id}')
+            wx.PostEvent(self._parent_window, ProcessingNonFatalEvent())
+
+
+class ProcessingProgressDialog(wx.GenericProgressDialog, Abortable):
+    def __init__(self,
+                 parent,
+                 worker_id,
+                 num_files,
+                 input_path,
+                 abort_event=None,
+                 *args,
+                 **kwargs):
+        self.parent = parent
+        wx.GenericProgressDialog.__init__(
+            self,
+            parent=parent,
+            title='OMR progress',
+            message=f'Processing {num_files} forms in\n{input_path}',
+            maximum=num_files,
+            *args,
+            **kwargs)
+        Abortable.__init__(self, abort_event)
+        self.Bind(wx.EVT_CLOSE, self.close)
+        self.Connect(-1, -1, wx.ID_CANCEL, self.close)
+        pub.subscribe(self.increment_files_processed,
+                      f'{worker_id}.file_processed')
+        self.num_files_processed = 0
+        self.recursive_close_if_aborted()
+
+    def increment_files_processed(self):
+        self.num_files_processed += 1
+        self.Update(self.num_files_processed)
+        self.close_if_cancelled()
+
+    def close_if_cancelled(self):
+        if self.abort_event.is_set():
+            # already been closed
+            return True
+        if self.WasCancelled():
+            self.close('')
+            return True
+        return False
+
+    def recursive_close_if_aborted(self):
+        if not self.close_if_cancelled():
+            wx.CallLater(250, self.recursive_close_if_aborted)
+
+    def close(self, event):
+        # will need multiple abort events to be able to abort for individual folders
+        self.abort()
+        self.Destroy()
 
 
 def main():

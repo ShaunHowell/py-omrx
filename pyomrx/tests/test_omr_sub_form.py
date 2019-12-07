@@ -70,7 +70,7 @@ def test_omr_sub_form_1_data(omr_sub_form_1):
     correct_values.iloc[12, 16] = True
     correct_values = correct_values.sort_index(axis=1)
     print(correct_values.to_string())
-    assert omr_sub_form_1.values.equals(correct_values)
+    assert omr_sub_form_1.value.equals(correct_values)
 
 
 if __name__ == '__main__':

@@ -38,8 +38,8 @@ def test_data_circles_1_values(attendance_data_circles):
     correct_values.iloc[0, 30] = True
     correct_values.iloc[24, 30] = True
     correct_values.iloc[24, 0] = True
-    assert isinstance(attendance_data_circles.values, pd.DataFrame)
-    assert attendance_data_circles.values.equals(correct_values)
+    assert isinstance(attendance_data_circles.value, pd.DataFrame)
+    assert attendance_data_circles.value.equals(correct_values)
 
 
 if __name__ == '__main__':

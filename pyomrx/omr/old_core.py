@@ -19,8 +19,6 @@ from pyomrx.omr.vis_utils import show_circles_on_image, show_image
 import matplotlib.pyplot as plt
 from pyomrx.omr.file_utils import make_folder_if_not_exists
 
-IMAGE_SUFFIXES = ['.png', '.jpg', 'jpeg', '.PNG', '.JPG', '.JPEG']
-
 
 def get_binary_code_from_outer_box(greyscale_outer_box,
                                    h1,

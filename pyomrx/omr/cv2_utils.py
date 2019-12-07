@@ -40,11 +40,9 @@ def get_one_channel_grey_image(image):
 
 def extract_rectangle_image(image, rectangle):
     image_height, image_width = image.shape
-    print(image.shape, rectangle)
     top = int(image_height * rectangle['top'])
     bottom = int(image_height * rectangle['bottom'])
     left = int(image_width * rectangle['left'])
     right = int(image_width * rectangle['right'])
-    print(top, bottom, left, right)
     # TODO: add a buffer outside the specified rectangle to avoid cropping circles if there's skew
     return image[top:bottom, left:right]
