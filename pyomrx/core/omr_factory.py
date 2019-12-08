@@ -2,13 +2,14 @@ import datetime
 import os
 from pathlib import Path
 import pandas as pd
-from pyomrx.omr.form import OmrForm
+from pyomrx.core.form import OmrForm
 from pathlib import Path
 import pyomrx
-from pyomrx.omr.exceptions import EmptyFolderException
+from pyomrx.core.exceptions import EmptyFolderException
 from threading import Event
-from pyomrx.omr.meta import Abortable
+from pyomrx.core.meta import Abortable
 from pubsub import pub
+from pyomrx.gui import DATA_EXTRACTION_TOPIC
 
 
 class OmrFactory(Abortable):
@@ -29,7 +30,7 @@ class OmrFactory(Abortable):
                 self.form_config,
                 abort_event=self.abort_event)
             dfs.append(form.df)
-            pub.sendMessage(f'{self.id}.file_processed')
+            pub.sendMessage(f'{self.id}.{DATA_EXTRACTION_TOPIC}')
         if not dfs:
             raise EmptyFolderException(
                 f'no images found in {input_folder_path}')

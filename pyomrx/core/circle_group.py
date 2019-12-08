@@ -1,10 +1,10 @@
 import pandas as pd
-from pyomrx.omr.cv2_utils import *
+from pyomrx.core.cv2_utils import *
 from scipy.spatial import KDTree
-from pyomrx.omr.circle import Circle
-from pyomrx.omr.vis_utils import show_circles_on_image, show_image
+from pyomrx.core.circle import Circle
+from pyomrx.core.vis_utils import show_circles_on_image, show_image
 from threading import Event
-from pyomrx.omr.meta import Abortable
+from pyomrx.core.meta import Abortable
 
 
 class CircleGroup(Abortable):

@@ -1,4 +1,4 @@
-from pyomrx.omr.exceptions import *
+from pyomrx.core.exceptions import *
 from threading import Event
 
 

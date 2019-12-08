@@ -3,16 +3,16 @@ from PIL import Image
 from imutils.perspective import four_point_transform
 from scipy.spatial.distance import euclidean
 
-from pyomrx.omr.exceptions import OmrException, OmrValidationException
+from pyomrx.core.exceptions import OmrException, OmrValidationException
 import cv2
 from pathlib import Path
-from pyomrx.omr.cv2_utils import load_and_check_image, extract_rectangle_image, get_one_channel_grey_image
-from pyomrx.omr.circle_group import BinaryCircles, DataCircleGroup
+from pyomrx.core.cv2_utils import load_and_check_image, extract_rectangle_image, get_one_channel_grey_image
+from pyomrx.core.circle_group import BinaryCircles, DataCircleGroup
 import imutils
 import numpy as np
-from pyomrx.omr.vis_utils import show_image
+from pyomrx.core.vis_utils import show_image
 from threading import Event
-from pyomrx.omr.meta import Abortable
+from pyomrx.core.meta import Abortable
 
 
 class OmrForm(Abortable):

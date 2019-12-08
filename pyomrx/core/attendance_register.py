@@ -2,10 +2,10 @@ from pathlib import Path
 
 import cv2
 
-from pyomrx.omr.core import get_binary_code_from_outer_box, get_inner_boxes, process_images_folder, get_outer_box, \
+from pyomrx.core.core import get_binary_code_from_outer_box, get_inner_boxes, process_images_folder, get_outer_box, \
     process_boxes
-from pyomrx.omr.vis_utils import show_image
-from pyomrx.omr.exceptions import OmrException
+from pyomrx.core.vis_utils import show_image
+from pyomrx.core.exceptions import OmrException
 import numpy as np
 
 

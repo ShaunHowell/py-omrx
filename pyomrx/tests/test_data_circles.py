@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 import pytest
-from pyomrx.omr.circle_group import DataCircleGroup
+from pyomrx.core.circle_group import DataCircleGroup
 from pathlib import Path
-from pyomrx.omr.cv2_utils import load_and_check_image
+from pyomrx.core.cv2_utils import load_and_check_image
 
 
 @pytest.fixture

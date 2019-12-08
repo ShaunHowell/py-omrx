@@ -1,4 +1,4 @@
-from pyomrx.omr.omr_factory import OmrFactory
+from pyomrx.core.omr_factory import OmrFactory
 import pytest
 import json
 from pathlib import Path

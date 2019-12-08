@@ -1,8 +1,8 @@
 from matplotlib import pyplot as plt
 import cv2
 import numpy as np
-from pyomrx.omr.cv2_utils import *
-from pyomrx.omr.vis_utils import show_image, show_circles_on_image
+from pyomrx.core.cv2_utils import *
+from pyomrx.core.vis_utils import show_image, show_circles_on_image
 
 
 class Circle:
@@ -14,7 +14,6 @@ class Circle:
         self.area = np.pi * self.radius**2
         self._is_filled = None
         # show_image(self.image, str(self.is_filled), delayed_show=True)
-        plt.show()
 
     @property
     def is_filled(self):

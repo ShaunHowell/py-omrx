@@ -3,9 +3,9 @@ script for processing a folder of folders of images, ie each child folder contai
 usage: python3.6 process_exam_marksheets.py <path to folder of folders>
 '''
 import sys
-from pyomrx.omr.exam_marksheet import process_exam_marksheet_folder
+from pyomrx.core.exam_marksheet import process_exam_marksheet_folder
 from pathlib import Path
-from pyomrx.omr.exceptions import OmrException
+from pyomrx.core.exceptions import OmrException
 from pyomrx.default_configs import exam_marksheet
 
 assert len(sys.argv) == 2, 'usage: python3.6 process_exam_marksheets.py <path to folder of folders>'

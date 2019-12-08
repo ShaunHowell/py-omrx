@@ -1,8 +1,8 @@
 import pytest
-from pyomrx.omr.core import *
+from pyomrx.core.core import *
 from pyomrx.tests.fixtures import *
-from pyomrx.omr.accuracy import *
-from pyomrx.omr.form import process_form
+from pyomrx.core.accuracy import *
+from pyomrx.core.form import process_form
 
 
 def test_blank_form(clean_out_folder, example_attendance_data_path):

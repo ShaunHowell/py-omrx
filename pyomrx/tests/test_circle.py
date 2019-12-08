@@ -1,8 +1,8 @@
 import pytest
 from pathlib import Path
-from pyomrx.omr.cv2_utils import *
+from pyomrx.core.cv2_utils import *
 import numpy as np
-from pyomrx.omr.circle import Circle
+from pyomrx.core.circle import Circle
 
 
 @pytest.fixture

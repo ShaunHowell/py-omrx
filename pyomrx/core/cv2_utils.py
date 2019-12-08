@@ -2,7 +2,7 @@ import random
 import numpy as np
 import cv2
 from pathlib import Path
-from pyomrx.omr.exceptions import *
+from pyomrx.core.exceptions import *
 from itertools import product
 
 

@@ -1,5 +1,5 @@
 import pytest
-from pyomrx.omr.form import *
+from pyomrx.core.form import *
 
 
 @pytest.fixture
