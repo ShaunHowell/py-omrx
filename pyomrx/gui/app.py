@@ -32,7 +32,6 @@ class PyomrxMainFrame(wx.Frame, Abortable):
             'pyomrx/tests/res/testing_form.omr') if DEBUG else ''
         self.excel_file_path = Path('pyomrx/tests/res/Absence register v31.xlsx') if DEBUG else ''
         self.convert_output_folder_path = Path('pyomrx/temp/forms') if DEBUG else ''
-        self.new_form_description = 'new_form_description'
         self.buttons = defaultdict(lambda: dict())
         self.tabs = {}
         self.sizers = {}
@@ -69,6 +68,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
 
     def add_button(self, tab, button_name, label, function, with_text=True):
         button = wx.Button(self.tabs[tab], label=label)
+        button.SetMinSize((160,40))
         path_text = wx.StaticText(
             self.tabs[tab], label='_' * 30) if with_text else None
         self.buttons[tab][button_name] = {
@@ -147,6 +147,34 @@ class PyomrxMainFrame(wx.Frame, Abortable):
         self.sizers['generate_forms'] = vbox
         vbox.Add((-1, 20), proportion=0, border=border_width)
 
+        text_hbox = wx.BoxSizer(wx.HORIZONTAL)
+        text_hbox.Add(wx.StaticText(
+            self.tabs['generate_forms'],
+            label='OMR template description:'),
+            proportion=0,
+            flag=wx.ALIGN_LEFT | wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
+            border=border_width)
+        vbox.Add(text_hbox,
+                 proportion=0,
+                 flag=wx.ALIGN_LEFT | wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
+                 border=border_width)
+
+        description_widget_hbox = wx.BoxSizer(wx.HORIZONTAL)
+        self.new_form_description_widget = wx.TextCtrl(self.tabs['generate_forms'],
+                                                       -1,
+                                                       '',
+                                                       wx.DefaultPosition,
+                                                       wx.Size(300,30),
+                                                       style=wx.TE_BESTWRAP)
+        description_widget_hbox.Add(self.new_form_description_widget,
+                             # proportion=0,
+                             flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND,
+                             border=border_width)
+        vbox.Add(description_widget_hbox,
+                 # proportion=0,
+                 flag=wx.ALIGN_CENTRE | wx.ALL | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND,
+                 border=border_width)
+        vbox.Add((-1, 5), proportion=0, border=border_width)
         for button_type, button_dict in self.buttons['generate_forms'].items():
             hbox = wx.BoxSizer(wx.HORIZONTAL)
             hbox.Add(
@@ -173,6 +201,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
                     flag=wx.ALIGN_CENTRE | wx.ALL | wx.ALIGN_CENTER_VERTICAL,
                     border=border_width)
             vbox.Add((-1, 5), proportion=0, border=border_width)
+
         vbox.Add((-1, 20), proportion=0, border=border_width)
 
     def init_statusbar(self):
@@ -314,7 +343,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
     def generate_forms(self, event):
         excel_file_path = self.excel_file_path
         convert_output_folder_path = self.convert_output_folder_path
-        description = self.new_form_description
+        description = self.new_form_description_widget.GetValue()
         if not excel_file_path or not convert_output_folder_path:
             wx.MessageDialog(
                 self,
@@ -424,7 +453,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
 
 def main():
     app = wx.App()
-    frm = PyomrxMainFrame(None, wx.ID_ANY, title='OMR Tool')
+    frm = PyomrxMainFrame(None, wx.ID_ANY, title='OMR Tool',style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
     frm.Show()
     app.MainLoop()
 

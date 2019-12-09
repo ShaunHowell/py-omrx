@@ -25,12 +25,9 @@ from openpyxl.styles.colors import COLOR_INDEX
 from pyomrx.core.meta import Abortable
 
 #### Demo MVP buildout
-# TODO: Make work with the GUI, mustn't block main proces and must update something with progress
-# TODO: make the GUI work with the new extract-side code
-# TODO: try using the full GUI pipeline on a real form. add as a test case
-# TODO: extend the GUI to be able to run this script (new tab probably)
-# TODO: save each permutation's excel file and form files in a '.omrx' (actually a zip) archive along with the json config
 # TODO: generate image for each 'page' in the template worksheet
+# TODO: try using the full GUI pipeline on a real form. add as a test case
+# TODO: save each permutation's excel file and form files in a '.omrx' (actually a zip) archive along with the json config
 
 #### Extra features
 # TODO: actually use border colours
@@ -718,6 +715,8 @@ class FormMaker(Abortable):
         self.raise_for_abort()
         self.update_progress(75)
         print('making archive')
+        shutil.copy(self.excel_file_path, str(TEMP_FOLDER / self.excel_file_path.stem))
+        shutil.copy(str(output_folder / f'{self.name}.png'), str(TEMP_FOLDER / f'{self.name}.png'))
         shutil.make_archive(
             str(output_folder / name), 'zip', str(TEMP_FOLDER))
         self.raise_for_abort()
