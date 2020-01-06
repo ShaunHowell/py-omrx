@@ -212,7 +212,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
 
     def choose_convert_output_folder(self, event):
         dialog = wx.DirDialog(
-            self, 'Choose images directory', '', style=wx.DD_DEFAULT_STYLE)
+            self, 'Choose output folder', '', style=wx.DD_DEFAULT_STYLE)
         try:
             if dialog.ShowModal() == wx.ID_CANCEL:
                 return
@@ -251,7 +251,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
 
     def choose_images_folder(self, event):
         dialog = wx.DirDialog(
-            self, 'Choose images directory', '', style=wx.DD_DEFAULT_STYLE)
+            self, 'Choose images folder', '', style=wx.DD_DEFAULT_STYLE)
         try:
             if dialog.ShowModal() == wx.ID_CANCEL:
                 return

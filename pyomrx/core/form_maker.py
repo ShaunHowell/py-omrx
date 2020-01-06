@@ -319,6 +319,33 @@ def clean_temp_folder(temp_location, remake=False):
         os.makedirs(temp_location)
 
 
+def get_theme_colours_from_wb(wb):
+    theme_xml = etree.fromstring(wb.loaded_theme)
+    # print(etree.tostring(theme_xml, pretty_print=True).decode())
+    wb_theme_colours = []
+    for top_el in filter(
+            lambda el: re.match(ANY_NS_REGEX + 'themeElements', el.tag),
+            theme_xml):
+        # print(top_el.tag)
+        for theme_el in filter(
+                lambda el: re.match(ANY_NS_REGEX + 'clrScheme', el.tag),
+                top_el):
+            for colour_el in theme_el:
+                colour_el = colour_el[0]
+                if re.match(ANY_NS_REGEX + 'sysClr', colour_el.tag):
+                    # print(f'sys: {colour_el.get("lastClr")}')
+                    wb_theme_colours.append('#' + colour_el.get("lastClr"))
+                elif re.match(ANY_NS_REGEX + 'srgbClr', colour_el.tag):
+                    # print(f'srgb: {colour_el.get("val")}')
+                    wb_theme_colours.append('#' + colour_el.get("val"))
+                else:
+                    print('theme colour not parsed:')
+                    print(
+                        etree.tostring(colour_el, pretty_print=True).decode())
+    print(wb_theme_colours)
+    return wb_theme_colours
+
+
 class FormMaker(Abortable):
     def __init__(self, excel_file_path, output_folder, description=None, abort_event=None, id=None):
         Abortable.__init__(self, abort_event)
@@ -327,62 +354,36 @@ class FormMaker(Abortable):
         self.name = self.excel_file_path.stem
         self.description = description or ''
         self.id = id
+        self.wb = pyxl.load_workbook(
+            filename=str(self.excel_file_path), data_only=True)
+        if 'template' not in self.wb:
+            raise FileNotFoundError('couldnt find worksheet called "template"')
+        self.row_dims, self.col_dims = get_row_and_column_dimensions(self.wb['template'])
+        self.wb_theme_colours = get_theme_colours_from_wb(self.wb)
 
     def update_progress(self, progress):
         if self.id:
             pub.sendMessage(f'{self.id}.{FORM_GENERATION_TOPIC}', progress=progress)
 
-    def make_form(self):
-        clean_temp_folder(TEMP_FOLDER, remake=True)
-        self.raise_for_abort()
-        self.update_progress(0)
-        description = self.description
-        name = self.name
-        wb = pyxl.load_workbook(
-            filename=str(self.excel_file_path), data_only=True)
-        self.raise_for_abort()
-        self.update_progress(10)
-        theme_xml = etree.fromstring(wb.loaded_theme)
-        # print(etree.tostring(theme_xml, pretty_print=True).decode())
-        wb_theme_colours = []
-        for top_el in filter(
-                lambda el: re.match(ANY_NS_REGEX + 'themeElements', el.tag),
-                theme_xml):
-            # print(top_el.tag)
-            for theme_el in filter(
-                    lambda el: re.match(ANY_NS_REGEX + 'clrScheme', el.tag),
-                    top_el):
-                for colour_el in theme_el:
-                    colour_el = colour_el[0]
-                    if re.match(ANY_NS_REGEX + 'sysClr', colour_el.tag):
-                        # print(f'sys: {colour_el.get("lastClr")}')
-                        wb_theme_colours.append('#' + colour_el.get("lastClr"))
-                    elif re.match(ANY_NS_REGEX + 'srgbClr', colour_el.tag):
-                        # print(f'srgb: {colour_el.get("val")}')
-                        wb_theme_colours.append('#' + colour_el.get("val"))
-                    else:
-                        print('theme colour not parsed:')
-                        print(
-                            etree.tostring(colour_el, pretty_print=True).decode())
-        print(wb_theme_colours)
-        self.raise_for_abort()
-        self.update_progress(20)
-        if 'template' not in wb:
-            raise FileNotFoundError('couldnt find worksheet called "template"')
-        form_sheet = wb['template']
-        row_dims, col_dims = get_row_and_column_dimensions(form_sheet)
-        range_names = [named_range.name for named_range in wb.get_named_ranges()]
+    def plot_form_image(self, page_name, make_template_dict=True):
+        if 'page_' not in page_name:
+            raise ValueError(f'plot_form_image got page name {page_name}, must contain "page_"')
+
+        form_sheet = self.wb['template']
+        range_names = [named_range.name for named_range in self.wb.get_named_ranges()]
         if 'page_1' not in range_names:
             raise ValueError('page_1 not found in named ranges')
-        form_template_range = wb.get_named_range('page_1')
+        if page_name not in range_names:
+            raise ValueError(f'{page_name} not found in named ranges')
+        form_template_range = self.wb.get_named_range('page_1')
         assert re.match('template!', form_template_range.attr_text
                         ), 'form template range found in non template worksheet'
         form_template_range_cells = form_sheet[form_template_range.attr_text.split(
             '!')[1]]
         form_rectangle = get_rectangle_from_range(
             range_cells=form_template_range_cells,
-            row_dims=row_dims,
-            col_dims=col_dims)
+            row_dims=self.row_dims,
+            col_dims=self.col_dims)
         form_template_fig, form_template_ax = plt.subplots(1, 1, frameon=False)
         form_template_fig.set_size_inches(15.98, 11.93)  # A4
         form_template_ax.set_aspect('equal')
@@ -391,14 +392,14 @@ class FormMaker(Abortable):
         form_rectangle = localise_rectangle_to_form(form_rectangle, form_top_left)
         plot_rectangle(form_rectangle, form_template_ax, thickness=W_THICK)
         if 'sub_form_1' not in range_names:
-            raise ValueError('page_1 not found in named ranges')
-        sub_form_template_range = wb.get_named_range('sub_form_1')
+            raise ValueError('sub_form_1 not found in named ranges')
+        sub_form_template_range = self.wb.get_named_range('sub_form_1')
         assert re.match('template!', sub_form_template_range.attr_text
                         ), 'form template range found in non template worksheet'
         sub_form_range_cells = form_sheet[sub_form_template_range.attr_text.split(
             '!')[1]]
         sub_form_rectangle = get_rectangle_from_range(
-            range_cells=sub_form_range_cells, row_dims=row_dims, col_dims=col_dims)
+            range_cells=sub_form_range_cells, row_dims=self.row_dims, col_dims=self.col_dims)
         sub_form_rectangle = localise_rectangle_to_form(sub_form_rectangle,
                                                         form_top_left)
         sub_form_rectangle_relative = get_relative_rectangle(
@@ -406,7 +407,7 @@ class FormMaker(Abortable):
         # plot_rectangle(sub_form_rectangle, form_template_ax, thickness=W_DEFAULT)
 
         metadata_ranges = [
-            wb.get_named_range(range_name) for range_name in range_names
+            self.wb.get_named_range(range_name) for range_name in range_names
             if re.match('meta_', range_name)
         ]
         form_metadata_circles_config = []
@@ -421,8 +422,8 @@ class FormMaker(Abortable):
             [1]]
             metadata_rectangle = get_rectangle_from_range(
                 range_cells=metadata_range_cells,
-                row_dims=row_dims,
-                col_dims=col_dims)
+                row_dims=self.row_dims,
+                col_dims=self.col_dims)
             metadata_rectangle = localise_rectangle_to_form(
                 metadata_rectangle, form_top_left)
             print(metadata_rectangle)
@@ -452,6 +453,8 @@ class FormMaker(Abortable):
                     f'to the cell group\'s comment via the name manager')
                 decides_sub_form = False
             metadata_circles_config['decides_sub_form'] = decides_sub_form
+            # TODO: translate metadata_range_cells to the correct relative postion in correct page
+
             metadata_dict = parse_circles_from_range(
                 metadata_range_cells, orient='landscape', assert_1d=True)
             metadata_arr = np.squeeze(metadata_dict['array'])
@@ -509,7 +512,7 @@ class FormMaker(Abortable):
         self.raise_for_abort()
         self.update_progress(35)
         circles_ranges = [
-            wb.get_named_range(range_name) for range_name in range_names
+            self.wb.get_named_range(range_name) for range_name in range_names
             if re.match('circles_', range_name)
         ]
         if not circles_ranges:
@@ -524,8 +527,8 @@ class FormMaker(Abortable):
             circles_range_cells = form_sheet[circles_range.attr_text.split('!')[1]]
             circles_rectangle = get_rectangle_from_range(
                 range_cells=circles_range_cells,
-                row_dims=row_dims,
-                col_dims=col_dims)
+                row_dims=self.row_dims,
+                col_dims=self.col_dims)
             circles_rectangle = localise_rectangle_to_form(circles_rectangle,
                                                            form_top_left)
             circles_rectangle_relative = get_relative_rectangle(
@@ -623,14 +626,14 @@ class FormMaker(Abortable):
 
         merged_cells = get_merged_cells(form_sheet)
         for row_index, row in enumerate(form_template_range_cells):
-            row_top = row_dims[row[0].row]['top_y']
-            row_height = row_dims[row[0].row]['ht']
+            row_top = self.row_dims[row[0].row]['top_y']
+            row_height = self.row_dims[row[0].row]['ht']
             for column_index, cell in enumerate(row):
                 if is_merged_cell(cell, merged_cells):
                     continue
                 # print(f'{cell}: {cell.value}, {cell.font.sz}, {cell.row}:{cell.column}')
-                column_left = col_dims[cell.column_letter]['left_x']
-                column_width = col_dims[cell.column_letter]['width']
+                column_left = self.col_dims[cell.column_letter]['left_x']
+                column_width = self.col_dims[cell.column_letter]['width']
                 # form_template_ax.plot([column_left, column_left + column_width, column_left + column_width, column_left],
                 #                       [row_top, row_top, row_top - row_height, row_top - row_height], c='black', alpha=0.05)
                 render_cell(
@@ -642,13 +645,13 @@ class FormMaker(Abortable):
                     cell,
                     draw_top=row_index == 0,
                     draw_left=column_index == 0,
-                    theme_colours=wb_theme_colours)
+                    theme_colours=self.wb_theme_colours)
                 column_left += column_width
         print('finished parsing individual cells')
         print('parsing merged cells styles')
         self.raise_for_abort()
         self.update_progress(50)
-        for  merged_cell in form_sheet.merged_cells.ranges:
+        for merged_cell in form_sheet.merged_cells.ranges:
             merged_cell_range_text = f'{form_sheet.title}!{merged_cell.coord}'
             if not cells_contain_cells(form_template_range.attr_text,
                                        merged_cell_range_text):
@@ -656,15 +659,15 @@ class FormMaker(Abortable):
             # print(f'plotting {merged_cell}')
             left_col = pyxl.utils.get_column_letter(merged_cell.min_col)
             top_left_cell = form_sheet[f'{left_col}{merged_cell.min_row}']
-            merged_cell_left = col_dims[left_col]['left_x']
+            merged_cell_left = self.col_dims[left_col]['left_x']
             merged_cell_width = reduce(
-                lambda w, col_next: w + col_dims[pyxl.utils.get_column_letter(
+                lambda w, col_next: w + self.col_dims[pyxl.utils.get_column_letter(
                     col_next)]['width'],
                 range(merged_cell.min_col, merged_cell.max_col + 1), 0)
-            merged_cell_top = row_dims[merged_cell.min_row]['top_y']
+            merged_cell_top = self.row_dims[merged_cell.min_row]['top_y']
             # print(merged_cell.min_row, merged_cell.max_row + 1)
             merged_cell_height = reduce(
-                lambda h, row_next: h + row_dims[row_next]['ht'],
+                lambda h, row_next: h + self.row_dims[row_next]['ht'],
                 range(merged_cell.min_row, merged_cell.max_row + 1), 0)
             # pp(dict(top=merged_cell_top, left=merged_cell_left, h=merged_cell_height, w=merged_cell_width,
             #         cell=top_left_cell,
@@ -679,18 +682,32 @@ class FormMaker(Abortable):
                 top_left_cell,
                 merged_cell.min_row == 1,
                 merged_cell.min_col == 1,
-                theme_colours=wb_theme_colours)
+                theme_colours=self.wb_theme_colours)
         self.raise_for_abort()
         self.update_progress(65)
+        template = dict(
+            metadata_circles=form_metadata_circles_config,
+            sub_forms=sub_forms_config)
+        return form_template_fig, form_template_ax, template
+
+    def make_form(self):
+        clean_temp_folder(TEMP_FOLDER, remake=True)
+        self.raise_for_abort()
+        self.update_progress(0)
+        description = self.description
+        name = self.name
+        form_template_fig, form_template_ax, template = self.plot_form_image(page_name='page_1',
+                                                                             make_template_dict=True)
+        # for page_range_name in filter(lambda range_name: re.match('(page_[2-9][0-9]*)|(page_1[0-9]+)',
+        #                                                           range_name), self.wb.get_named_ranges()):
+        #     # plot the exact same circles, but filled correctly, and the correct text for the new range
+        #     pass
         output_config = {}
         output_config['author'] = getpass.getuser()
         output_config['description'] = description
         output_config['name'] = name
         output_config['created_on'] = str(datetime.datetime.now())
         output_config['id'] = str(uuid.uuid4())
-        template = dict(
-            metadata_circles=form_metadata_circles_config,
-            sub_forms=sub_forms_config)
         output_config['template'] = template
         output_config['pyomrx_version'] = VERSION
         # pp(output_config)
@@ -729,9 +746,9 @@ class FormMaker(Abortable):
         print('done')
 
 
-def strip_ax_padding(ax):
+def strip_ax_padding(ax, margin=0.02):
     ax.set_axis_off()
-    ax.margins(0, 0)
+    ax.margins(margin, margin)
     ax.xaxis.set_major_locator(plt.NullLocator())
     ax.yaxis.set_major_locator(plt.NullLocator())
     xlim = ax.get_xlim()
@@ -767,7 +784,7 @@ def plot_rectangle(rectangle, ax=None, thickness=W_DEFAULT):
 def main():
     DESCRIPTION = 'testing form by shaun from dev work'
     NAME = 'testing_form'
-    form_maker = FormMaker()
+    form_maker = FormMaker('temp/demo/Absence register v31 temp.xlsx', 'temp/demo')
     form_maker.make_form()
 
 
