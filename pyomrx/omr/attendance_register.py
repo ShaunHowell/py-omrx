@@ -35,7 +35,7 @@ def process_image(input_file_path, form_designs):
         grey_outer_box,
         13 / 2021,
         70 / 2021,
-        680 / 1424,
+        660 / 1424,
         890 / 1424,
         form_design['circle_details']['r_min'],
         form_design['circle_details']['r_max'],
