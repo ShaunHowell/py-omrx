@@ -537,14 +537,16 @@ def process_boxes(inner_boxes,
             inner_box_answers = pd.DataFrame([[box_no + 1, True]],
                                              columns=['box_no', 'omr_error'])
         answers = answers.append(inner_box_answers)
-    num_nulls = answers.loc[:, ~answers.columns.isin(['omr_error', 'marker_error', 'file_name', 'sheet_number',
-                                             'paper_code', 'school_code', 'class_code'])].isnull().sum().sum()
+    num_nulls = answers.loc[:, ~answers.columns.isin([
+        'omr_error', 'marker_error', 'file_name', 'sheet_number', 'paper_code',
+        'school_code', 'class_code'
+    ])].isnull().sum().sum()
     if num_nulls > 0 \
             or len(answers) < num_boxes:
         print(answers.to_string())
         raise OmrException(
-            'Must be no nulls in answers and must be {} boxes processed, got {} nulls and {} boxes'.
-            format(num_boxes,num_nulls,  len(answers)))
+            'Must be no nulls in answers and must be {} boxes processed, got {} nulls and {} boxes'
+            .format(num_boxes, num_nulls, len(answers)))
     return answers
 
 

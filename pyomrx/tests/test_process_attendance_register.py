@@ -4,6 +4,7 @@ from pyomrx.tests.fixtures import *
 from pyomrx.omr.accuracy import *
 
 
+@pytest.mark.skip(reason='old form layout')
 def test_process_attendance_register(clean_out_folder,
                                      example_attendance_data_path):
     input_path = Path(example_attendance_data_path)
