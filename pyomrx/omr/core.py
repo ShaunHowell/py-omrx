@@ -375,6 +375,8 @@ def get_good_circles(candidate_circles,
                 show_circles_on_image(debug_image, filtered_circles,
                                       'ERROR (filtered circles)')
                 raise OmrException('could not fill missing circles')
+    # show_circles_on_image(debug_image, good_circles, 'good_circles')
+
     return good_circles
 
 
@@ -392,7 +394,7 @@ def get_outer_box_contour(original_image):
     kernel = np.ones((13, 13), np.uint8)
     eroded = cv2.erode(thresh, kernel, iterations=1)
     dilated = cv2.dilate(eroded, kernel, iterations=1)
-    # show_image(dilated, title='after erosion-dilation', delayed_show=False)
+    # show_image(dilated, title='after erosion-dilation', delayed_show=True)
 
     edged_image = cv2.Canny(
         dilated,
@@ -415,7 +417,7 @@ def get_outer_box_contour(original_image):
 
     # contour_image = edged_image.copy()
     # cv2.drawContours(contour_image, cnts, -1, (255, 0, 0), 3)
-    # show_image(contour_image, title='contoured_image', delayed_show=False)
+    # show_image(contour_image, title='contoured_image', delayed_show=True)
 
     # validate
     image_perim = 2 * sum(edged_image.shape)
@@ -473,6 +475,7 @@ def get_outer_box(original_image, desired_portrait=True):
     if not portrait == desired_portrait:
         raise OmrValidationException(
             'outer box not found with correct orientation')
+    # show_image(grey_cropped, title='outer_box cropped', delayed_show=True)
     return grey_cropped, original_cropped
 
 
@@ -534,12 +537,14 @@ def process_boxes(inner_boxes,
             inner_box_answers = pd.DataFrame([[box_no + 1, True]],
                                              columns=['box_no', 'omr_error'])
         answers = answers.append(inner_box_answers)
-    if answers.loc[:, ~answers.columns.isin(['omr_error', 'marker_error', 'file_name', 'sheet_number',
-                                             'paper_code', 'school_code', 'class_code'])].isnull().sum().sum() > 0 \
+    num_nulls = answers.loc[:, ~answers.columns.isin(['omr_error', 'marker_error', 'file_name', 'sheet_number',
+                                             'paper_code', 'school_code', 'class_code'])].isnull().sum().sum()
+    if num_nulls > 0 \
             or len(answers) < num_boxes:
+        print(answers.to_string())
         raise OmrException(
-            'Must be no nulls in answers and must be {} boxes processed'.
-            format(num_boxes))
+            'Must be no nulls in answers and must be {} boxes processed, got {} nulls and {} boxes'.
+            format(num_boxes,num_nulls,  len(answers)))
     return answers
 
 
@@ -628,6 +633,8 @@ def process_inner_box(inner_box,
                                                   circles_per_q_row):
         if num_bubbles == 0:
             continue
+        if len(circles) < bubbles_processed + num_bubbles:
+            raise ValueError('not enough circles')
         question_circles = np.array(
             sorted(
                 circles[bubbles_processed:bubbles_processed + num_bubbles],
