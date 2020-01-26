@@ -78,6 +78,15 @@ def process_image(input_file_path, form_designs):
         rotate_boxes=False,
         num_boxes=1,
         omr_mode='attendance')
+    if not all([
+            col in answers.columns for col in [
+                'student_number', 'school_code', 'class_code', 'sheet_number',
+                'file_name'
+            ]
+    ]):
+        raise OmrException(
+            'data extracted from inner box malformed, missing a column heading'
+        )
     answers['student_number'] = answers['student_number'].astype(
         np.int) + len(form_design["questions"]) * (sheet_number - 1)
     answers['school_code'] = school_number

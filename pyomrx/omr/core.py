@@ -1,3 +1,4 @@
+import copy
 import datetime
 import importlib
 import json
@@ -280,7 +281,7 @@ def get_good_circles(candidate_circles,
         circles_per_header_row) > 0 else number_of_rows
     bubble_box_height = inner_box_shape[0] / number_of_rows
     max_circle_search_distance = max([bubble_box_height, bubble_box_width
-                                      ]) * 0.6
+                                      ]) * 0.2
     bubble_spacing = [bubble_box_width, bubble_box_height]
     print('number_of_rows: {}, bubble_box_height:{}'.format(
         number_of_rows, bubble_box_height))
@@ -362,18 +363,18 @@ def get_good_circles(candidate_circles,
                     np.array([[3] * len(expected_locations)]).T
                 ],
                                                            axis=1)
-                show_circles_on_image(
-                    debug_image,
-                    expected_location_circles,
-                    'expected circle locations',
-                    delayed_show=True)
-                show_circles_on_image(
-                    debug_image,
-                    debug_candidate_circles,
-                    'ERROR (candidate circles)',
-                    delayed_show=True)
-                show_circles_on_image(debug_image, filtered_circles,
-                                      'ERROR (filtered circles)')
+                # show_circles_on_image(
+                #     debug_image,
+                #     expected_location_circles,
+                #     'expected circle locations',
+                #     delayed_show=True)
+                # show_circles_on_image(
+                #     debug_image,
+                #     debug_candidate_circles,
+                #     'ERROR (candidate circles)',
+                #     delayed_show=True)
+                # show_circles_on_image(debug_image, filtered_circles,
+                #                       'ERROR (filtered circles)')
                 raise OmrException('could not fill missing circles')
     # show_circles_on_image(debug_image, good_circles, 'good_circles')
 
@@ -601,12 +602,23 @@ def process_inner_box(inner_box,
         dp=1,
         minDist=min_dist,
         param1=60,
-        param2=5,
+        param2=7,
         minRadius=r1 - 2,
         maxRadius=r2)
     if circles is None:
         raise OmrException('failed to get any circles from inner box')
     circles = np.uint16(np.around(circles))[0]
+    # min_circles = copy.deepcopy(circles)
+    # min_circles[:,2] = r1-2
+    # show_circles_on_image(inner_box, min_circles, 'min circle sizes')
+    # max_circles = copy.deepcopy(circles)
+    # for circle in max_circles:
+    #     circle[2] = r2
+    # show_circles_on_image(inner_box, max_circles, 'max circle sizes')
+    # spacing_circles = copy.deepcopy(circles)
+    # for circle in spacing_circles:
+    #     circle[2] = min_dist/2
+    # show_circles_on_image(inner_box, spacing_circles, 'min spacing')
     # show_circles_on_image(inner_box, circles, 'initial candidate circles')
     circles = get_good_circles(
         circles,

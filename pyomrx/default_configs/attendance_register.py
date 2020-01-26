@@ -12,9 +12,9 @@ def default_config():
                 "bottom": 0.03
             },
             "circle_details": {
-                "r_min": 0.01,
-                "r_max": 0.011,
-                "min_spacing": 0.03
+                "r_min": 0.011,
+                "r_max": 0.0113,
+                "min_spacing": 0.033
             },
             "blank_rows":
             0
