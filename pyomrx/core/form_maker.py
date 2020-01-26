@@ -1,4 +1,5 @@
 from pubsub import pub
+from bidi.algorithm import get_display
 import shutil
 from matplotlib.patches import Circle
 from lxml import etree
@@ -49,6 +50,7 @@ from pyomrx.core.meta import Abortable
 
 # atexit.register(plt.show)
 from pyomrx.gui import FORM_GENERATION_TOPIC
+import arabic_reshaper
 
 W_THICK = 5
 W_DEFAULT = 1
@@ -292,10 +294,19 @@ def render_cell(ax, top, left, height, width, cell, draw_top, draw_left,
                 else left + width - FONT_UNIT_PIXELS * 4
             y = top if va == 'top' else top - height / 2 if va == 'center' else top - height
             # print(dict(x=x, y=y,s=str(cell.value), fontdict=font,ha=ha, va=va))
+            cell_text = str(cell.value)
+            reshaped_text = arabic_reshaper.reshape(cell_text)
+            # At this stage the text is reshaped, all letters are in their correct form
+            # based on their surroundings, but if you are going to print the text in a
+            # left-to-right context, which usually happens in libraries/apps that do not
+            # support Arabic and/or right-to-left text rendering, then you need to use
+            # get_display from python-bidi.
+            # Note that this is optional and depends on your usage of the reshaped text.
+            bidi_text = get_display(reshaped_text)
             ax.text(
                 x=x,
                 y=y,
-                s=str(cell.value),
+                s=bidi_text,
                 fontdict=font,
                 ha=ha,
                 va=va,

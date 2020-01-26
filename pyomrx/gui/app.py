@@ -1,5 +1,4 @@
 # !/bin/python
-# TODO: progress bar shouldn't block the main application, so you cna run multiple operations at once
 import os
 import time
 import threading
@@ -453,7 +452,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
 
 def main():
     app = wx.App()
-    frm = PyomrxMainFrame(None, wx.ID_ANY, title='OMR Tool',style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
+    frm = PyomrxMainFrame(None, wx.ID_ANY, title='OMR Tool', style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
     frm.Show()
     app.MainLoop()
 
