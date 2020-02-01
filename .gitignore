@@ -125,6 +125,7 @@ ENV/
 !pyomrx/tests/res/attendance_register/**
 !pyomrx/tests/res/exam_marksheet/**
 !pyomrx/tests/res/example_images_folder/**
+!pyomrx/tests/res/form_config/**
 !pyomrx/tests/res/*
 
 *.zip
