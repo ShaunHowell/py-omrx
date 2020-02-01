@@ -13,6 +13,7 @@ from pyomrx.gui.events import *
 from pyomrx.gui.dialogs import *
 from pyomrx.gui.utils import handle_exception, open_folder
 from pyomrx.gui.workers import *
+from pyomrx import IMAGE_SUFFIXES
 import wx
 
 DEBUG = True
@@ -29,8 +30,10 @@ class PyomrxMainFrame(wx.Frame, Abortable):
             'pyomrx/tests/res/temp_output_file') if DEBUG else ''
         self.omr_config_path = Path(
             'pyomrx/tests/res/testing_form.omr') if DEBUG else ''
-        self.excel_file_path = Path('pyomrx/tests/res/Absence register v31.xlsx') if DEBUG else ''
-        self.convert_output_folder_path = Path('pyomrx/temp/forms') if DEBUG else ''
+        self.excel_file_path = Path(
+            'pyomrx/tests/res/Absence register v31.xlsx') if DEBUG else ''
+        self.convert_output_folder_path = Path(
+            'pyomrx/temp/forms') if DEBUG else ''
         self.buttons = defaultdict(lambda: dict())
         self.tabs = {}
         self.sizers = {}
@@ -48,8 +51,10 @@ class PyomrxMainFrame(wx.Frame, Abortable):
                      self.handle_data_extract_nonfatal_fail)
         self.Connect(-1, -1, EVT_DATA_EXT_START_ID,
                      self.handle_data_extract_start)
-        self.Connect(-1, -1, EVT_DATA_EXT_SUCCESS_ID, self.handle_data_extract_done)
-        self.Connect(-1, -1, EVT_FORM_GEN_SUCCESS_ID, self.handle_form_gen_done)
+        self.Connect(-1, -1, EVT_DATA_EXT_SUCCESS_ID,
+                     self.handle_data_extract_done)
+        self.Connect(-1, -1, EVT_FORM_GEN_SUCCESS_ID,
+                     self.handle_form_gen_done)
         self.Connect(-1, -1, EVT_FORM_GEN_START_ID, self.handle_form_gen_start)
         self.Bind(wx.EVT_CLOSE, self.handle_close)
         self.worker_abort_events = {}
@@ -60,20 +65,18 @@ class PyomrxMainFrame(wx.Frame, Abortable):
         self.tabs['extract_data'] = wx.Panel(self.tab_holder)
         self.tabs['generate_forms'] = wx.Panel(self.tab_holder)
         self.tab_holder.AddPage(self.tabs['extract_data'], "Extract data")
-        self.tab_holder.AddPage(self.tabs['generate_forms'], "Generate template")
+        self.tab_holder.AddPage(self.tabs['generate_forms'],
+                                "Generate template")
         sizer = wx.BoxSizer()
         sizer.Add(self.tab_holder, 1, wx.EXPAND)
         self.top_panel.SetSizer(sizer)
 
     def add_button(self, tab, button_name, label, function, with_text=True):
         button = wx.Button(self.tabs[tab], label=label)
-        button.SetMinSize((160,40))
+        button.SetMinSize((160, 40))
         path_text = wx.StaticText(
             self.tabs[tab], label='_' * 30) if with_text else None
-        self.buttons[tab][button_name] = {
-            'button': button,
-            'text': path_text
-        }
+        self.buttons[tab][button_name] = {'button': button, 'text': path_text}
         button.Bind(wx.EVT_BUTTON, function)
 
     def init_extract_data_tab(self):
@@ -115,7 +118,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
                     hbox,
                     proportion=0,
                     flag=wx.ALIGN_LEFT | wx.ALIGN_BOTTOM | wx.ALL
-                         | wx.ALIGN_CENTER_VERTICAL,
+                    | wx.ALIGN_CENTER_VERTICAL,
                     border=border_width)
             else:
                 vbox.Add(
@@ -147,32 +150,38 @@ class PyomrxMainFrame(wx.Frame, Abortable):
         vbox.Add((-1, 20), proportion=0, border=border_width)
 
         text_hbox = wx.BoxSizer(wx.HORIZONTAL)
-        text_hbox.Add(wx.StaticText(
-            self.tabs['generate_forms'],
-            label='OMR template description:'),
+        text_hbox.Add(
+            wx.StaticText(
+                self.tabs['generate_forms'],
+                label='OMR template description:'),
             proportion=0,
             flag=wx.ALIGN_LEFT | wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
             border=border_width)
-        vbox.Add(text_hbox,
-                 proportion=0,
-                 flag=wx.ALIGN_LEFT | wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
-                 border=border_width)
+        vbox.Add(
+            text_hbox,
+            proportion=0,
+            flag=wx.ALIGN_LEFT | wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
+            border=border_width)
 
         description_widget_hbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.new_form_description_widget = wx.TextCtrl(self.tabs['generate_forms'],
-                                                       -1,
-                                                       '',
-                                                       wx.DefaultPosition,
-                                                       wx.Size(300,30),
-                                                       style=wx.TE_BESTWRAP)
-        description_widget_hbox.Add(self.new_form_description_widget,
-                             # proportion=0,
-                             flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND,
-                             border=border_width)
-        vbox.Add(description_widget_hbox,
-                 # proportion=0,
-                 flag=wx.ALIGN_CENTRE | wx.ALL | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND,
-                 border=border_width)
+        self.new_form_description_widget = wx.TextCtrl(
+            self.tabs['generate_forms'],
+            -1,
+            '',
+            wx.DefaultPosition,
+            wx.Size(300, 30),
+            style=wx.TE_BESTWRAP)
+        description_widget_hbox.Add(
+            self.new_form_description_widget,
+            # proportion=0,
+            flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL | wx.EXPAND,
+            border=border_width)
+        vbox.Add(
+            description_widget_hbox,
+            # proportion=0,
+            flag=wx.ALIGN_CENTRE | wx.ALL | wx.ALIGN_CENTER_VERTICAL
+            | wx.EXPAND,
+            border=border_width)
         vbox.Add((-1, 5), proportion=0, border=border_width)
         for button_type, button_dict in self.buttons['generate_forms'].items():
             hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -191,7 +200,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
                     hbox,
                     proportion=0,
                     flag=wx.ALIGN_LEFT | wx.ALIGN_BOTTOM | wx.ALL
-                         | wx.ALIGN_CENTER_VERTICAL,
+                    | wx.ALIGN_CENTER_VERTICAL,
                     border=border_width)
             else:
                 vbox.Add(
@@ -328,14 +337,17 @@ class PyomrxMainFrame(wx.Frame, Abortable):
             input_folder_path=input_folder_path,
             output_file_path=output_path)
         self.worker_abort_events[worker_thread.id] = worker_thread.abort_event
-        num_files = len(list(Path(input_folder_path).iterdir()))
+        num_files = len([
+            path for path in Path(input_folder_path).iterdir()
+            if path.suffix in IMAGE_SUFFIXES
+        ])
         progress_dialog = DataExtractProgressDialog(
             worker_id=worker_thread.id,
             num_files=num_files,
             input_path=input_folder_path,
             parent=self,
             style=wx.PD_SMOOTH | wx.PD_AUTO_HIDE | wx.PD_CAN_ABORT
-                  | wx.PD_REMAINING_TIME | wx.PD_ELAPSED_TIME | wx.PD_SMOOTH,
+            | wx.PD_REMAINING_TIME | wx.PD_ELAPSED_TIME | wx.PD_SMOOTH,
             abort_event=worker_thread.abort_event)
         worker_thread.start()
 
@@ -349,7 +361,8 @@ class PyomrxMainFrame(wx.Frame, Abortable):
                 'Please choose an input file, name, description and output folder',
                 style=wx.ICON_INFORMATION).ShowModal()
             return
-        output_omr_file_path = Path(f'{convert_output_folder_path}/{excel_file_path.stem}.omr')
+        output_omr_file_path = Path(
+            f'{convert_output_folder_path}/{excel_file_path.stem}.omr')
         if output_omr_file_path.exists():
             replace_file = wx.MessageDialog(
                 self,
@@ -373,7 +386,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
             input_path=excel_file_path,
             parent=self,
             style=wx.PD_SMOOTH | wx.PD_AUTO_HIDE | wx.PD_CAN_ABORT
-                  | wx.PD_REMAINING_TIME | wx.PD_ELAPSED_TIME | wx.PD_SMOOTH,
+            | wx.PD_REMAINING_TIME | wx.PD_ELAPSED_TIME | wx.PD_SMOOTH,
             abort_event=worker_thread.abort_event)
         worker_thread.start()
 
@@ -452,7 +465,11 @@ class PyomrxMainFrame(wx.Frame, Abortable):
 
 def main():
     app = wx.App()
-    frm = PyomrxMainFrame(None, wx.ID_ANY, title='OMR Tool', style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
+    frm = PyomrxMainFrame(
+        None,
+        wx.ID_ANY,
+        title='OMR Tool',
+        style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
     frm.Show()
     app.MainLoop()
 

@@ -1,6 +1,6 @@
 import pytest
 from pyomrx.core.circle_group import BinaryCircles
-from pyomrx.core.core import *
+from pyomrx.core import *
 from pathlib import Path
 from pyomrx.core.cv2_utils import load_and_check_image
 

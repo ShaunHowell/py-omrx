@@ -34,7 +34,8 @@ class DataExtractionWorker(Thread, Abortable):
             df = self.omr_factory.process_images_folder(
                 self.input_folder_path, self.output_file_path)
             if df is None:
-                wx.PostEvent(self._parent_window, DataExtractionNonFatalEvent())
+                wx.PostEvent(self._parent_window,
+                             DataExtractionNonFatalEvent())
             elif isinstance(df, pd.DataFrame):
                 wx.PostEvent(
                     self._parent_window,
@@ -72,11 +73,12 @@ class FormGenerationWorker(Thread, Abortable):
         Abortable.__init__(self, abort_event)
         self.id = uuid.uuid4()
         self._parent_window = parent_window
-        self.form_maker = FormMaker(excel_file_path=excel_file_path,
-                                    output_folder=output_folder_path,
-                                    description=description,
-                                    abort_event=abort_event,
-                                    id=self.id)
+        self.form_maker = FormMaker(
+            excel_file_path=excel_file_path,
+            output_folder=output_folder_path,
+            description=description,
+            abort_event=abort_event,
+            id=self.id)
         self.excel_file_path = excel_file_path
         self.output_folder_path = output_folder_path
 
@@ -84,9 +86,11 @@ class FormGenerationWorker(Thread, Abortable):
         try:
             self.form_maker.make_form()
             wx.PostEvent(
-                self._parent_window, FormGenerationSuccessEvent(input_path=self.excel_file_path,
-                                                                output_path=self.output_folder_path,
-                                                                worker_id=self.id))
+                self._parent_window,
+                FormGenerationSuccessEvent(
+                    input_path=self.excel_file_path,
+                    output_path=self.output_folder_path,
+                    worker_id=self.id))
         except AbortException:
             print(f'aborted form generation worker {self.id}')
             wx.PostEvent(self._parent_window, FormGenerationNonFatalEvent())

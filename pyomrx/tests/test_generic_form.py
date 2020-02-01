@@ -1,5 +1,5 @@
 import pytest
-from pyomrx.core.core import *
+from pyomrx.core import *
 from pyomrx.tests.fixtures import *
 from pyomrx.core.accuracy import *
 from pyomrx.core.form import process_form

@@ -8,7 +8,16 @@ from pyomrx.gui import DATA_EXTRACTION_TOPIC, FORM_GENERATION_TOPIC
 
 
 class WorkerProgressDialog(wx.GenericProgressDialog, Abortable):
-    def __init__(self, parent, worker_id, title, message, pubsub_topic, maximum=100, abort_event=None, *args, **kwargs):
+    def __init__(self,
+                 parent,
+                 worker_id,
+                 title,
+                 message,
+                 pubsub_topic,
+                 maximum=100,
+                 abort_event=None,
+                 *args,
+                 **kwargs):
         self.parent = parent
         wx.GenericProgressDialog.__init__(
             self,
@@ -21,8 +30,7 @@ class WorkerProgressDialog(wx.GenericProgressDialog, Abortable):
         Abortable.__init__(self, abort_event)
         self.Bind(wx.EVT_CLOSE, self.close)
         self.Connect(-1, -1, wx.ID_CANCEL, self.close)
-        pub.subscribe(self.update_progress,
-                      f'{worker_id}.{pubsub_topic}')
+        pub.subscribe(self.update_progress, f'{worker_id}.{pubsub_topic}')
         self.progress = 0
         self.recursive_update()
 
@@ -60,11 +68,17 @@ class DataExtractProgressDialog(WorkerProgressDialog):
                  abort_event=None,
                  *args,
                  **kwargs):
-        WorkerProgressDialog.__init__(self, parent, worker_id, 'Data extraction progress',
-                                      f'Processing {num_files} forms in\n{input_path}',
-                                      pubsub_topic=DATA_EXTRACTION_TOPIC,
-                                      maximum=num_files,
-                                      abort_event=abort_event, *args, **kwargs)
+        WorkerProgressDialog.__init__(
+            self,
+            parent,
+            worker_id,
+            'Data extraction progress',
+            f'Processing {num_files} forms in\n{input_path}',
+            pubsub_topic=DATA_EXTRACTION_TOPIC,
+            maximum=num_files,
+            abort_event=abort_event,
+            *args,
+            **kwargs)
 
 
 class FormGenerationProgressDialog(WorkerProgressDialog):
@@ -75,13 +89,16 @@ class FormGenerationProgressDialog(WorkerProgressDialog):
                  abort_event=None,
                  *args,
                  **kwargs):
-        WorkerProgressDialog.__init__(self,
-                                      parent,
-                                      worker_id,
-                                      'Form generation progress',
-                                      f'Generating OMR forms from \n{input_path}',
-                                      pubsub_topic=FORM_GENERATION_TOPIC,
-                                      abort_event=abort_event, *args, **kwargs)
+        WorkerProgressDialog.__init__(
+            self,
+            parent,
+            worker_id,
+            'Form generation progress',
+            f'Generating OMR forms from \n{input_path}',
+            pubsub_topic=FORM_GENERATION_TOPIC,
+            abort_event=abort_event,
+            *args,
+            **kwargs)
 
 
 class ExceptionDialog(wx.Dialog):
