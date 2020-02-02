@@ -2,11 +2,12 @@ from pprint import pprint as pp
 import openpyxl
 from pyomrx.core.form_maker import FormMaker
 import pytest
+from pathlib import Path
 
 
-def test_translate_sub_range_to_new_parent():
-    form_maker = FormMaker('pyomrx\\tests\\res\\Absence register v31.xlsx',
-                           'temp')
+def test_translate_sub_range_to_new_parent(res_folder):
+    form_maker = FormMaker(
+        str(Path(res_folder) / 'Absence register v31.xlsx'), 'temp')
     # wb = openpyxl.load_workbook('pyomrx\\tests\\res\\Absence register v31.xlsx', data_only=True)
     page_1_range = form_maker.wb.get_named_range('page_1').attr_text
     page_2_range = form_maker.wb.get_named_range('page_2').attr_text
@@ -17,9 +18,9 @@ def test_translate_sub_range_to_new_parent():
     assert translated_circles_range == 'template!$D$32:$AH$56'
 
 
-def test_make_form_doesnt_crash():
-    form_maker = FormMaker('pyomrx\\tests\\res\\Absence register v31.xlsx',
-                           'temp')
+def test_make_form_doesnt_crash(res_folder):
+    form_maker = FormMaker(
+        str(Path(res_folder) / 'Absence register v31.xlsx'), 'temp')
     config = form_maker.make_form()
     pp(config)
 
