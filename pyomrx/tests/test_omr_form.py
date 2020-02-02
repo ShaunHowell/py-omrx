@@ -12,7 +12,7 @@ def omr_form_1(res_folder):
 
 
 def test_omr_form_1_metadata(omr_form_1):
-    correct_values = {'class_name': 3, 'institution': 1, 'page': 1}
+    correct_values = {'class_name': 0, 'institution': 1, 'page': 1}
     assert omr_form_1.metadata_values == correct_values
 
 
