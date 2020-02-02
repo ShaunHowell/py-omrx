@@ -145,8 +145,7 @@ class OmrSubForm(Abortable):
 def process_form(input_image_path, form_config):
     assert Path(input_image_path).exists(), 'check input file path'
     form = OmrForm(input_image_path, form_config)
-    form.extract_data()
-    return form.data
+    return form.df
 
 
 def get_outer_box_contour(original_image):

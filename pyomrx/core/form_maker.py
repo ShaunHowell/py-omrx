@@ -923,6 +923,11 @@ class FormMaker(Abortable):
         shutil.make_archive(str(output_folder / name), 'zip', str(TEMP_FOLDER))
         self.raise_for_abort()
         self.update_progress(90)
+        if (output_folder / f'{name}.omr').exists():
+            print(
+                f'WARNING: {output_folder} / {name}.omr already exists, will overwrite'
+            )
+            os.remove(str(output_folder / f'{name}.omr'))
         os.rename(
             str(output_folder / f'{name}.zip'),
             str(output_folder / f'{name}.omr'))

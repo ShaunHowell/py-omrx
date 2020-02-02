@@ -5,20 +5,6 @@ from pathlib import Path
 
 
 @pytest.fixture
-def clean_out_folder(request):
-    out_folder_path = Path(__file__).parent / 'out'
-
-    def delete_folder():
-        shutil.rmtree(str(out_folder_path))
-
-    if out_folder_path.exists():
-        delete_folder()
-    os.mkdir(str(out_folder_path))
-    request.addfinalizer(delete_folder)
-    return str(out_folder_path)
-
-
-@pytest.fixture
 def example_attendance_data_path():
     tests_folder = Path(__file__).parent
     assert str(tests_folder.parts[-1]) == 'tests'

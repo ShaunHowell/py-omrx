@@ -14,10 +14,9 @@ def omr_factory_1(res_folder):
 def test_process_images_folder(res_folder, omr_factory_1):
     image_folder_path = str(Path(res_folder) / 'example_images_folder')
     df = omr_factory_1.process_images_folder(image_folder_path)
-    print(df.to_string())
     trues = [(0, 'A00'), (-1, 'A00'), (0, 'dropout00'), (-1, 'dropout00')]
     for i, j in trues:
-        assert df[j].iloc[i] == True
+        assert df[j].iloc[i] is True
 
 
 if __name__ == '__main__':

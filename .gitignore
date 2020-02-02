@@ -130,3 +130,4 @@ ENV/
 
 *.zip
 **errors.txt
+**pyomrxtemp**
