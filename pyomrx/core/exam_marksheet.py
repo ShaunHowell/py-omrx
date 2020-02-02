@@ -2,9 +2,9 @@ from pathlib import Path
 
 import cv2
 
-from pyomrx.omr.core import get_binary_code_from_outer_box, get_inner_boxes, process_images_folder, get_outer_box, process_boxes
-from pyomrx.omr.exceptions import OmrException
-from pyomrx.omr.vis_utils import show_circles_on_image, show_image
+from pyomrx.core.core import get_binary_code_from_outer_box, get_inner_boxes, process_images_folder, get_outer_box, process_boxes
+from pyomrx.core.exceptions import OmrException
+from pyomrx.core.vis_utils import show_circles_on_image, show_image
 
 
 def process_exam_marksheet_folder(input_folder,

@@ -1,7 +1,7 @@
 import os
 
-from pyomrx.omr.attendance_register import process_attendance_sheet_folder
-from pyomrx.omr.accuracy import *
+from pyomrx.core.attendance_register import process_attendance_sheet_folder
+from pyomrx.core.accuracy import *
 from pathlib import Path
 
 input_path = Path('data')

@@ -45,7 +45,7 @@ def find_omr_accuracy(omr_output_location,
     for q_id in omr_df.filter(
             regex=
             '((?:\A|_)[0-9])|(paper_code)|(school_code)|(class_code)|(sheet_number)'
-    ).columns.values.tolist():
+    ).columns.value.tolist():
         print('processing question ', q_id)
         for i, row in merged_df.iterrows():
             if pd.isnull(row['{}_x'.format(q_id)]):

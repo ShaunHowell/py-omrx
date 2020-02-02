@@ -12,3 +12,7 @@ class ZeroCodeFoundException(OmrException):
 
 class EmptyFolderException(FileNotFoundError):
     pass
+
+
+class AbortException(OmrException):
+    pass
