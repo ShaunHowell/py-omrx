@@ -8,13 +8,13 @@ def default_config():
             ],
             "inner_box_margins": {
                 "top": 0.055,
-                "left": 0.302,
+                "left": 0.286,
                 "bottom": 0.03
             },
             "circle_details": {
-                "r_min": 0.01,
-                "r_max": 0.011,
-                "min_spacing": 0.025
+                "r_min": 0.011,
+                "r_max": 0.0113,
+                "min_spacing": 0.033
             },
             "blank_rows":
             0
