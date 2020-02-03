@@ -22,7 +22,14 @@ def test_make_form_doesnt_crash(res_folder):
     form_maker = FormMaker(
         str(Path(res_folder) / 'Absence register v31.xlsx'), 'temp')
     config = form_maker.make_form()
-    pp(config)
+
+
+def test_no_prefix_if_none(res_folder):
+    form_maker = FormMaker(
+        str(Path(res_folder) / 'Absence register v31.xlsx'), 'temp')
+    config = form_maker.make_form()
+    assert config['template']['sub_forms']['sub_form_templates'][0]['circles'][
+        'attendance']['column_prefix'] == None
 
 
 if __name__ == '__main__':

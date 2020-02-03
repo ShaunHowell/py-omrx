@@ -17,7 +17,7 @@ def omr_sub_form_1(res_folder):
             'allowed_row_filling':
             'many',
             'column_prefix':
-            'A',
+            None,
             'radius':
             0.008976157082748949,
             'circles_per_row': [
@@ -73,5 +73,17 @@ def test_omr_sub_form_1_data(omr_sub_form_1):
     assert omr_sub_form_1.values.equals(correct_values)
 
 
+def test_dont_add_number_if_only_one_column(omr_sub_form_1):
+    columns = omr_sub_form_1.values.columns.tolist()
+    assert 'dropout' in columns
+    assert 'dropout00' not in columns
+
+
+def test_no_col_prefix_if_prefix_none(omr_sub_form_1):
+    columns = omr_sub_form_1.values.columns.tolist()
+    for num in range(31):
+        assert f'{num:02}' in columns
+
+
 if __name__ == '__main__':
-    pytest.main(['-k', 'test_omr_sub_form_1_data', '-s'])
+    pytest.main(['-k', 'test_no_col_prefix_if_prefix_none', '-s'])

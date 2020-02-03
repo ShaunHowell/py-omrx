@@ -235,10 +235,24 @@ class DataCircleGroup(CircleGroup):
             values.append([])
             for circle in row:
                 values[-1].append(circle.is_filled)
-        columns = [
-            f'{self.config["column_prefix"]}{i:02}'
-            for i in range(self.config["possible_columns"])
-        ]
+        if self.config['possible_columns'] == 1:
+            if self.config['column_prefix'] == None:
+                print(
+                    'WARNING: found a column prefix of None and only 1 columns: will set column name to "0"'
+                )
+                columns = ['0']
+            else:
+                columns = [self.config['column_prefix']]
+        elif self.config['possible_columns'] > 1:
+            prefix = self.config["column_prefix"] or ''
+            columns = [
+                f'{prefix}{i:02}'
+                for i in range(self.config["possible_columns"])
+            ]
+        else:
+            raise ValueError(
+                f'possible columns of {self.config["possible_columns"]} not allowed'
+            )
         self._value = pd.DataFrame(values, columns=columns)
         return True
 
