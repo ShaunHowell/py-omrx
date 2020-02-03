@@ -693,7 +693,11 @@ class FormMaker(Abortable):
                     f'WARNING: column prefix not specified for circles group called {circles_name}, '
                     f'will prefix with {column_prefix[0]}. To specifc a custom prefix add "column prefix: <prefix>" '
                     f'to the cell group\'s comment via the name manager')
-            circles_config['column_prefix'] = column_prefix[0]
+            if column_prefix[0].lower() == 'none':
+                column_prefix = None
+            else:
+                column_prefix = column_prefix[0]
+            circles_config['column_prefix'] = column_prefix
             max_circles_dimension = max([
                 circles_rectangle['top'] - circles_rectangle['bottom'],
                 circles_rectangle['right'] - circles_rectangle['left']

@@ -236,10 +236,17 @@ class DataCircleGroup(CircleGroup):
             for circle in row:
                 values[-1].append(circle.is_filled)
         if self.config['possible_columns'] == 1:
-            columns = [self.config['column_prefix']]
+            if self.config['column_prefix'] == None:
+                print(
+                    'WARNING: found a column prefix of None and only 1 columns: will set column name to "0"'
+                )
+                columns = ['0']
+            else:
+                columns = [self.config['column_prefix']]
         elif self.config['possible_columns'] > 1:
+            prefix = self.config["column_prefix"] or ''
             columns = [
-                f'{self.config["column_prefix"]}{i:02}'
+                f'{prefix}{i:02}'
                 for i in range(self.config["possible_columns"])
             ]
         else:
