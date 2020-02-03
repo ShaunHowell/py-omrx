@@ -73,5 +73,11 @@ def test_omr_sub_form_1_data(omr_sub_form_1):
     assert omr_sub_form_1.values.equals(correct_values)
 
 
+def test_dont_add_number_if_only_one_column(omr_sub_form_1):
+    columns = omr_sub_form_1.values.columns.tolist()
+    assert 'dropout' in columns
+    assert 'dropout00' not in columns
+
+
 if __name__ == '__main__':
-    pytest.main(['-k', 'test_omr_sub_form_1_data', '-s'])
+    pytest.main(['-k', 'test_dont_add_number_if_only_one_column', '-s'])
