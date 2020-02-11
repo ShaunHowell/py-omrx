@@ -5,6 +5,7 @@ from pyomrx.core.circle import Circle
 from pyomrx.core.vis_utils import show_circles_on_image, show_image
 from threading import Event
 from pyomrx.core.meta import Abortable
+import copy
 
 
 class CircleGroup(Abortable):
@@ -77,7 +78,7 @@ class CircleGroup(Abortable):
         if candidate_circles is None:
             raise OmrException('failed to get any circles from image')
         candidate_circles = np.uint16(np.around(candidate_circles))[0]
-        # debug_candidate_circles = copy.deepcopy(candidate_circles)
+        debug_candidate_circles = copy.deepcopy(candidate_circles)
         # show_circles_on_image(
         #     debug_image, candidate_circles, 'candidate_circles', delayed_show=True,
         #     thickness=1)
@@ -222,6 +223,7 @@ class DataCircleGroup(CircleGroup):
         self.raise_for_abort()
         # show_image(self.image, 'data_circles')
         absolute_radius = self.config['radius'] * max(self.image.shape)
+        # FIXME: refactor this bit: just assume where the circles will be instead of trying to do anything fancy
         bare_circles_list = self.extract_circles_grid(
             self.image, self.config['circles_per_row'], absolute_radius,
             self.config['possible_columns'])
@@ -238,16 +240,16 @@ class DataCircleGroup(CircleGroup):
         if self.config['possible_columns'] == 1:
             if self.config['column_prefix'] == None:
                 print(
-                    'WARNING: found a column prefix of None and only 1 columns: will set column name to "0"'
+                    'WARNING: found a column prefix of None and only 1 columns: will set column name to "1"'
                 )
-                columns = ['0']
+                columns = ['1']
             else:
                 columns = [self.config['column_prefix']]
         elif self.config['possible_columns'] > 1:
             prefix = self.config["column_prefix"] or ''
             columns = [
                 f'{prefix}{i:02}'
-                for i in range(self.config["possible_columns"])
+                for i in range(1, self.config["possible_columns"]+1)
             ]
         else:
             raise ValueError(

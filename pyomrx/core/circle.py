@@ -13,7 +13,7 @@ class Circle:
         self.radius = int(np.mean(self.image.shape) / 2) - 1
         self.area = np.pi * self.radius**2
         self._is_filled = None
-        # show_image(self.image, str(self.is_filled), delayed_show=True)
+        # show_image(self.image, str(self.is_filled), delayed_show=False)
 
     @property
     def is_filled(self):

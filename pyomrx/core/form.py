@@ -66,7 +66,7 @@ class OmrForm(Abortable):
         for metadata_name, metadata_value in self.metadata_values.items():
             df.loc[:, metadata_name] = metadata_value
         if 'page' in df.columns.tolist():
-            df.index = df.index + len(df) * (df['page'] - 1)
+            df.index = df.index + len(df) * (df['page'] - 1) + 1
         # TODO: add an optional field in the sub form comments whereby the index can be given a column heading
         self._df = df
         return True
