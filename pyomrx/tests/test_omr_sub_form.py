@@ -58,7 +58,7 @@ def omr_sub_form_1(res_folder):
 
 
 def test_omr_sub_form_1_data(omr_sub_form_1):
-    columns = ['dropout00'] + [f'A{i:02}' for i in range(31)]
+    columns = ['dropout'] + [f'{i:02}' for i in range(1, 32)]
     correct_values = pd.DataFrame(
         np.zeros([25, 32]).astype(bool), columns=columns)
     correct_values.iloc[0, 0] = True
@@ -70,7 +70,7 @@ def test_omr_sub_form_1_data(omr_sub_form_1):
     correct_values.iloc[12, 16] = True
     correct_values = correct_values.sort_index(axis=1)
     print(correct_values.to_string())
-    assert omr_sub_form_1.values.equals(correct_values)
+    assert omr_sub_form_1.values.to_dict() == correct_values.to_dict()
 
 
 def test_dont_add_number_if_only_one_column(omr_sub_form_1):
@@ -81,7 +81,7 @@ def test_dont_add_number_if_only_one_column(omr_sub_form_1):
 
 def test_no_col_prefix_if_prefix_none(omr_sub_form_1):
     columns = omr_sub_form_1.values.columns.tolist()
-    for num in range(31):
+    for num in range(1, 32):
         assert f'{num:02}' in columns
 
 

@@ -11,7 +11,6 @@ from pyomrx.core.circle_group import BinaryCircles, DataCircleGroup
 import imutils
 import numpy as np
 from pyomrx.core.vis_utils import show_image
-from threading import Event
 from pyomrx.core.meta import Abortable
 
 
@@ -27,7 +26,6 @@ class OmrForm(Abortable):
         self._data_values = None
         self._metadata_values = None
         self.image = None
-        # self.metadata_circle_groups = self.template['metadata_circles']
         self.sub_forms = []
         self._load_image()
         # show_image(self.image, 'omr form')
