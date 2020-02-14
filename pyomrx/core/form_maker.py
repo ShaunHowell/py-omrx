@@ -308,7 +308,7 @@ def render_cell(ax, top, left, height, width, cell, draw_top, draw_left,
             if cell.font.color is None:
                 pass
             elif cell.font.color.type == 'theme':
-                # FIXME: super janky but have no idea why the theme colour list isn't sorted correctly
+                # TODO: super janky but have no idea why the theme colour list isn't sorted correctly
                 if cell.font.color.theme == 1:
                     colour = theme_colours[0]
                 elif cell.font.color.theme == 0:

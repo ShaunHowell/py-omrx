@@ -11,7 +11,6 @@ from pyomrx.core.circle_group import BinaryCircles, DataCircleGroup
 import imutils
 import numpy as np
 from pyomrx.core.vis_utils import show_image
-from threading import Event
 from pyomrx.core.meta import Abortable
 
 
@@ -27,7 +26,6 @@ class OmrForm(Abortable):
         self._data_values = None
         self._metadata_values = None
         self.image = None
-        # self.metadata_circle_groups = self.template['metadata_circles']
         self.sub_forms = []
         self._load_image()
         # show_image(self.image, 'omr form')
@@ -66,7 +64,7 @@ class OmrForm(Abortable):
         for metadata_name, metadata_value in self.metadata_values.items():
             df.loc[:, metadata_name] = metadata_value
         if 'page' in df.columns.tolist():
-            df.index = df.index + len(df) * (df['page'] - 1)
+            df.index = df.index + len(df) * (df['page'] - 1) + 1
         # TODO: add an optional field in the sub form comments whereby the index can be given a column heading
         self._df = df
         return True

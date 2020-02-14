@@ -1,9 +1,8 @@
+from scipy.spatial import distance
+from scipy.optimize import minimize
 import pandas as pd
 from pyomrx.core.cv2_utils import *
-from scipy.spatial import KDTree
 from pyomrx.core.circle import Circle
-from pyomrx.core.vis_utils import show_circles_on_image, show_image
-from threading import Event
 from pyomrx.core.meta import Abortable
 
 
@@ -32,40 +31,23 @@ class CircleGroup(Abortable):
                              radius_tolerance=0.2,
                              hough_param_1=60,
                              hough_param_2=5):
-        # print(radius)
-        debug_image = image.copy()
         possible_rows = len(circles_per_row)
         possible_columns = possible_columns or max(circles_per_row)
         assert len(
             image.shape
         ) == 2, f'must be 1 channel 2D grey image, image has shape {image.shape}'
+        row_height = image.shape[0] / possible_rows
+        column_width = image.shape[1] / possible_columns
+        expected_circles = get_expected_circles(
+            circles_per_row, row_height, column_width, radius=radius)
+        self.raise_for_abort()
+        # show_circles_on_image(image, expected_circles.astype(int).tolist(),
+        #                       'expected circles', thickness=2)
         min_distance = get_min_distance(*image.shape, possible_rows,
                                         possible_columns)
         min_radius = int(radius * (1 - radius_tolerance))
         max_radius = int(radius * (1 + radius_tolerance))
-        row_height = image.shape[0] / possible_rows
-        # print(image.shape[0], possible_rows)
-        column_width = image.shape[1] / possible_columns
-        expected_locations = expected_circle_locations(
-            circles_per_row, row_height, column_width)
-        debug_expected_circles_min = [(x, y, min_radius)
-                                      for x, y in expected_locations]
-        # show_circles_on_image(
-        #     debug_image,
-        #     debug_expected_circles_min,
-        #     'expected smallest circles',
-        #     delayed_show=True,
-        #     thickness=1)
-        debug_expected_circles_max = [(x, y, max_radius)
-                                      for x, y in expected_locations]
-        # show_circles_on_image(
-        #     debug_image,
-        #     debug_expected_circles_max,
-        #     'expected largest circles',
-        #     delayed_show=False,
-        #     thickness=1)
-        self.raise_for_abort()
-        candidate_circles = cv2.HoughCircles(
+        seen_circles = cv2.HoughCircles(
             image,
             cv2.HOUGH_GRADIENT,
             dp=1,
@@ -74,112 +56,18 @@ class CircleGroup(Abortable):
             param2=hough_param_2,
             minRadius=min_radius,
             maxRadius=max_radius)
-        if candidate_circles is None:
-            raise OmrException('failed to get any circles from image')
-        candidate_circles = np.uint16(np.around(candidate_circles))[0]
-        # debug_candidate_circles = copy.deepcopy(candidate_circles)
-        # show_circles_on_image(
-        #     debug_image, candidate_circles, 'candidate_circles', delayed_show=True,
-        #     thickness=1)
-        candidate_circles = sorted(
-            candidate_circles.copy().tolist(),
-            key=lambda circ: circ[0] + circ[1])
-        self.raise_for_abort()
-        assert len(np.array(candidate_circles).shape
-                   ) == 2, 'shape must be (n,3), [} was passed'.format(
-                       np.array(candidate_circles).shape)
-        self.raise_for_abort()
-        max_circle_search_distance = get_max_search_distance(
-            *image.shape, possible_rows, possible_columns)
-        filtered_circles = []
-        good_x_coords, good_y_coords = {}, {}
-        for x, y in expected_locations:
-            self.raise_for_abort()
-            try:
-                good_match = nearby_circle(x, y, candidate_circles,
-                                           max_circle_search_distance)
-                if good_match:
-                    filtered_circles.append(good_match)
-                    if good_x_coords.get(x) == None:
-                        good_x_coords[x] = []
-                    if good_y_coords.get(y) == None:
-                        good_y_coords[y] = []
-                    good_x_coords[x].append(good_match[0])
-                    good_y_coords[y].append(good_match[1])
-                    candidate_circles.remove(good_match)
-            except OmrValidationException as e:
-                print('WARNING: Found too few circles')
-                break
-        if len(filtered_circles) < sum(circles_per_row) * 0.5:
-            raise OmrValidationException(
-                'less than half the expected circles found')
-        self.raise_for_abort()
-        # show_circles_on_image(debug_image, filtered_circles, 'filtered circles')
-        CIRCLE_SHRINK_FACTOR = 1  # 0.85
-        good_circles = list(
-            map(lambda c: [c[0], c[1],
-                           int(c[2] * CIRCLE_SHRINK_FACTOR)],
-                filtered_circles.copy()))
-        y_coord_options = np.unique(
-            [coord[1] for coord in expected_locations]).tolist()
-        x_coord_options = np.unique(
-            [coord[0] for coord in expected_locations]).tolist()
-
-        for x, y in expected_locations:
-            self.raise_for_abort()
-            if not nearby_circle(x, y, filtered_circles,
-                                 max_circle_search_distance):
-                try:
-                    if good_x_coords.get(x):
-                        good_x = int(np.mean(good_x_coords.get(x)))
-                    else:
-                        prev_x_expected_coord = x_coord_options[
-                            x_coord_options.index(x) - 1]
-                        next_x_expected_coord = x_coord_options[
-                            x_coord_options.index(x) + 1]
-                        prev_x_mean = np.mean(
-                            good_x_coords.get(prev_x_expected_coord))
-                        next_x_mean = np.mean(
-                            good_x_coords.get(next_x_expected_coord))
-                        good_x = int(np.mean([prev_x_mean, next_x_mean]))
-                    if good_y_coords.get(y):
-                        good_y = int(np.mean(good_y_coords.get(y)))
-                    else:
-                        prev_y_expected_coord = y_coord_options[
-                            y_coord_options.index(y) - 1]
-                        next_y_expected_coord = y_coord_options[
-                            y_coord_options.index(y) + 1]
-                        prev_y_mean = np.mean(
-                            good_y_coords.get(prev_y_expected_coord))
-                        next_y_mean = np.mean(
-                            good_y_coords.get(next_y_expected_coord))
-                        good_y = int(np.mean([prev_y_mean, next_y_mean]))
-                    assert good_x
-                    assert good_y
-                    good_circles.append([good_x, good_y, radius])
-                except:
-                    expected_location_circles = np.concatenate([
-                        np.array(expected_locations),
-                        np.array([[3] * len(expected_locations)]).T
-                    ],
-                                                               axis=1)
-                    show_circles_on_image(
-                        image,
-                        expected_location_circles,
-                        'expected circle locations',
-                        delayed_show=True)
-                    show_circles_on_image(
-                        image,
-                        candidate_circles,
-                        'ERROR (candidate circles)',
-                        delayed_show=True)
-                    show_circles_on_image(image, filtered_circles,
-                                          'ERROR (filtered circles)')
-                    raise OmrException('could not fill missing circles')
+        if seen_circles is None:
+            raise OmrException('failed to identify any circles from image')
+        seen_circles = seen_circles[0]
+        # show_circles_on_image(image, seen_circles,
+        #                       'seen circles', thickness=2)
+        good_circles = get_best_fitting_grid(
+            circles_grid=expected_circles, seen_circles=seen_circles)
+        good_circles = good_circles.astype(int).tolist()
         # show_circles_on_image(image, good_circles,
-        #                       'good circles', thickness=1)
-
-        return good_circles
+        #                       'good circles', thickness=2)
+        good_circles_grid = circles_list_to_grid(good_circles, circles_per_row)
+        return good_circles_grid
 
 
 class BinaryCircles(CircleGroup):
@@ -191,11 +79,11 @@ class BinaryCircles(CircleGroup):
     def _extract_value(self):
         # print(f'extracting for binary circles {self.name}')
         absolute_radius = self.config['radius'] * max(self.image.shape)
-        bare_circles_list = self.extract_circles_grid(
+        bare_circles_grid = self.extract_circles_grid(
             self.image, [self.config['quantity']], absolute_radius,
             self.config['quantity'])
-        bare_circles_grid = circles_list_to_grid(bare_circles_list,
-                                                 [self.config['quantity']])
+        # bare_circles_grid = circles_list_to_grid(bare_circles_list,
+        #                                          [self.config['quantity']])
         self.circles = init_circles_from_grid(self.image, bare_circles_grid)[0]
         # TODO: seems like form circles are above the row centerline
         # TODO: seems like expected circle size is still smaller than actual circles
@@ -222,13 +110,14 @@ class DataCircleGroup(CircleGroup):
         self.raise_for_abort()
         # show_image(self.image, 'data_circles')
         absolute_radius = self.config['radius'] * max(self.image.shape)
-        bare_circles_list = self.extract_circles_grid(
+        # FIXME: refactor this bit: get hough circles and expected grid, then optimise x_shift, y_shift, rotation, & scaling of expected grid to maximise fit with hough circles
+        bare_circles_grid = self.extract_circles_grid(
             self.image, self.config['circles_per_row'], absolute_radius,
             self.config['possible_columns'])
-        bare_circles_grid = circles_list_to_grid(
-            bare_circles_list, self.config['circles_per_row'])
+        # bare_circles_grid = circles_list_to_grid(
+        #     bare_circles_grid, self.config['circles_per_row'])
+        # print(bare_circles_grid)
         self.circles = init_circles_from_grid(self.image, bare_circles_grid)
-        # TODO: seems like form circles are above the row centerline
         # TODO: seems like expected circle size is still smaller than actual circles
         values = []
         for row in self.circles:
@@ -238,16 +127,16 @@ class DataCircleGroup(CircleGroup):
         if self.config['possible_columns'] == 1:
             if self.config['column_prefix'] == None:
                 print(
-                    'WARNING: found a column prefix of None and only 1 columns: will set column name to "0"'
+                    'WARNING: found a column prefix of None and only 1 columns: will set column name to "1"'
                 )
-                columns = ['0']
+                columns = ['1']
             else:
                 columns = [self.config['column_prefix']]
         elif self.config['possible_columns'] > 1:
             prefix = self.config["column_prefix"] or ''
             columns = [
                 f'{prefix}{i:02}'
-                for i in range(self.config["possible_columns"])
+                for i in range(1, self.config["possible_columns"] + 1)
             ]
         else:
             raise ValueError(
@@ -257,57 +146,19 @@ class DataCircleGroup(CircleGroup):
         return True
 
 
-def nearby_circle(x, y, circles, max_distance=np.inf):
-    if len(circles) == 0:
-        raise OmrValidationException('no more candidate circles available')
-    circle_coords = np.array(circles)[:, :2]
-    d, i = KDTree(circle_coords).query([x, y],
-                                       distance_upper_bound=max_distance)
-    if d != np.inf:
-        return circles[i]
-    else:
-        return None
-
-
-def expected_circle_locations(circles_per_row,
-                              row_height,
-                              column_width,
-                              top_left_position=None):
+def get_expected_circles(circles_per_row, row_height, column_width, radius):
     expected_locations = []
-    top_left_position = top_left_position or [row_height / 2, column_width / 2]
+    top_left_position = [row_height / 2, column_width / 2]
     # print(top_left_position)
     y = top_left_position[0]
     for row, num_circles in enumerate(circles_per_row):
         x = top_left_position[1]
         for column in range(num_circles):
-            expected_locations.append([int(x), int(y)])
+            expected_locations.append([x, y, radius])
             x += column_width
         y += row_height
-    return expected_locations
-
-
-def circles_from_grid(x_coords, y_coords, circles_per_header_row,
-                      circles_per_q_row):
-    # print('x coords: {},\ny coords: {}'.format(x_coords, y_coords))
-    # print('len x: {}, len y: {}'.format(len(x_coords), len(y_coords)))
-    circles = []
-    x_coords = sorted(x_coords)
-    y_coords = sorted(y_coords)
-    try:
-        assert len(x_coords) == max(circles_per_header_row + circles_per_q_row)
-        assert len(y_coords) == len(circles_per_header_row + circles_per_q_row)
-    except:
-        raise OmrValidationException('wrong number of x or y clusters made')
-    # Find average circle size
-    x_deltas = list(map(lambda el: el[1] - el[0], zip(x_coords, x_coords[1:])))
-    x_box_size = sum(x_deltas) / len(x_deltas)
-    circle_size = x_box_size * 0.20
-    # Make most likely circle locations
-    for y_coord, circles_for_row in zip(
-            y_coords, circles_per_header_row + circles_per_q_row):
-        for x_coord, _ in zip(x_coords, range(circles_for_row)):
-            circles.append([int(x_coord), int(y_coord), int(circle_size)])
-    return circles
+    expected_circles = np.array(expected_locations).astype(float)
+    return expected_circles
 
 
 def get_min_distance(height, width, rows, columns, tolerance=0.1):
@@ -348,3 +199,79 @@ def init_circles_from_grid(image, circle_grid):
             circle_image = image[y_lim_low:y_lim_high, x_lim_low:x_lim_high]
             circles[-1].append(Circle(circle_image))
     return circles
+
+
+def get_best_fitting_grid(circles_grid, seen_circles):
+    result = minimize(
+        circle_adjustment_scipy_objective_function_wrapper,
+        method='powell',
+        tol=1e-4,
+        x0=np.array([0.0, 0.0, 1.0, 1.0, 0.0]),
+        args=(circles_grid, seen_circles),
+        # bounds=((-10, 10), (-10, 10), (0.85, 1.15), (-5, 5))
+    )
+    new_grid = adjust_grid_circles(circles_grid, *result.x)
+    return new_grid
+
+
+def circle_adjustment_scipy_objective_function_wrapper(x, *args):
+    x_shift, y_shift, grow_x, grow_y, rotation = x
+    circles_grid, seen_circles = args
+    loss = evaluate_circle_adjustment(circles_grid, seen_circles, x_shift,
+                                      y_shift, grow_x, grow_y, rotation)
+    # print(f'calling objective func: {x} -> loss = {loss}')
+    return loss
+
+
+def evaluate_circle_adjustment(circles_grid, seen_circles, x_shift, y_shift,
+                               grow_x, grow_y, rotation):
+    new_grid = adjust_grid_circles(circles_grid, x_shift, y_shift, grow_x,
+                                   grow_y, rotation)
+    return evaluate_circles_distance(new_grid, seen_circles)
+
+
+def rotate_points_around_origin(points, origin, angle):
+    """
+    Rotate a 2D array of points counterclockwise by a given angle around a given origin.
+
+    The angle should be given in degrees.
+    """
+    angle = angle * np.pi / 180
+    ox, oy = origin.tolist()
+    new_points = np.copy(points)
+
+    new_points[:, 0] = ox + np.cos(angle) * (
+        points[:, 0] - ox) - np.sin(angle) * (points[:, 1] - oy)
+    new_points[:, 1] = oy + np.sin(angle) * (
+        points[:, 0] - ox) + np.cos(angle) * (points[:, 1] - oy)
+    return new_points
+
+
+def adjust_grid_circles(circles_grid, x_shift, y_shift, grow_x, grow_y,
+                        rotation):
+    new_grid = np.copy(circles_grid).astype(float)
+    new_grid[:, 0] += x_shift
+    new_grid[:, 1] += y_shift
+    grid_centre = np.mean(new_grid[:, :2], axis=0)
+    # print(new_grid)
+    # print(grid_centre)
+    # plt.plot(*grid_centre.tolist(), 'o')
+    new_grid[:, 0] = (
+        new_grid[:, 0] - grid_centre[0]) * grow_x + grid_centre[0]
+    new_grid[:, 1] = (
+        new_grid[:, 1] - grid_centre[1]) * grow_y + grid_centre[1]
+    new_grid = rotate_points_around_origin(
+        new_grid, grid_centre, angle=rotation)
+    return new_grid
+
+
+def evaluate_circles_distance(candidate_circles, seen_circles):
+    candidate_points = np.array(candidate_circles)[:, :2]
+    hough_points = np.array(seen_circles)[:, :2]
+    distances = find_closest_point_distances(candidate_points, hough_points)
+    return np.sum(distances)
+
+
+def find_closest_point_distances(candidate_points, seen_points):
+    dists = distance.cdist(candidate_points, seen_points).min(axis=1)
+    return dists

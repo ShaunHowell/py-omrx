@@ -17,7 +17,7 @@ def test_omr_form_1_metadata(omr_form_1):
 
 
 def test_omr_form_1_data(omr_form_1):
-    columns = ['dropout00'] + [f'A{i:02}' for i in range(31)]
+    columns = ['dropout'] + [f'A{i:02}' for i in range(1, 32)]
     correct_values = pd.DataFrame(
         np.zeros([25, 32]).astype(bool), columns=columns)
     for i, j in [(0, 0), (0, 1), (0, 2), (0, 15), (0, 31), (12, 15), (-1, 0),
