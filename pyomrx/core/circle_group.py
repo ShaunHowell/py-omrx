@@ -150,9 +150,8 @@ class DataCircleGroup(CircleGroup):
     def _get_value_one_per_row(self):
         values = []
         for row in self.circles:
-            # TODO: get response from darkness function from old core
-            response = respg
-            values.append(circle.is_filled)
+            response = single_response_from_darknesses([circle.relative_fill for circle in row])
+            values.append(response)
         return values
 
     def _get_value_many_per_row(self):
@@ -163,6 +162,23 @@ class DataCircleGroup(CircleGroup):
                 values[-1].append(circle.is_filled)
         return values
 
+
+def single_response_from_darknesses(darknesses):
+    if len(darknesses) < 2:
+        return -3  # omr error because it didn't get enough circles
+    if max(darknesses) < 0.4:  # was 0.09
+        return -1  # -1 means the row doesn't have a response
+    filled_circles = list(filter(lambda d: d > 0.6,
+                                 darknesses))  # was 0.25 cutoff
+    if len(filled_circles) > 1:
+        return -2  # -2 means more than one response detected
+    if len(filled_circles) < 1:
+        return -3  # -3 means the omr algorithm couldn't work out the filled in box (abstention)
+    darknesses = enumerate(darknesses)
+    darknesses = sorted(darknesses, key=lambda circle: circle[1])
+    if darknesses[-1][1] / darknesses[-2][1] < 1.6:
+        return -3  # -3 because there wasn't enough difference between the 1st and 2nd darkest circles
+    return darknesses[-1][0]
 
 def get_expected_circles(circles_per_row, row_height, column_width, radius):
     expected_locations = []

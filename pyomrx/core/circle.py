@@ -13,11 +13,18 @@ class Circle:
         self.radius = int(np.mean(self.image.shape) / 2) - 1
         self.area = np.pi * self.radius**2
         self._is_filled = None
+        self._relative_fill = None
         # show_image(self.image, str(self.is_filled), delayed_show=False)
 
     @property
     def is_filled(self):
         if self._is_filled is None:
+            self._is_filled = True if self.relative_fill >= self.fill_threshold else False
+        return self._is_filled
+
+    @property
+    def relative_fill(self):
+        if self._relative_fill is None:
             binary_image = cv2.threshold(
                 self.image, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
             mask = np.zeros(self.image.shape, dtype="uint8")
@@ -30,6 +37,5 @@ class Circle:
                 thickness=-1)
             mask = cv2.bitwise_and(binary_image, binary_image, mask=mask)
             # show_image(mask, 'final circle image')
-            relative_fill = cv2.countNonZero(mask) / self.area
-            self._is_filled = True if relative_fill >= 0.3 else False
-        return self._is_filled
+            self._relative_fill = cv2.countNonZero(mask) / self.area
+        return self._relative_fill
