@@ -11,19 +11,19 @@ def attendance_data_circles(res_folder):
     image = load_and_check_image(image_path)
     config = {
         "allowed_row_filling":
-            "many",
+        "many",
         "column_prefix":
-            "A",
+        "A",
         "radius":
-            0.007119021134593994,
+        0.007119021134593994,
         "circles_per_row": [
             31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31,
             31, 31, 31, 31, 31, 31, 31, 31
         ],
         "possible_columns":
-            31,
+        31,
         "name":
-            "attendance"
+        "attendance"
     }
     return DataCircleGroup(image, config)
 
@@ -44,17 +44,54 @@ def test_attendance_data_circles_1_values(attendance_data_circles):
         assert attendance_data_circles.value.equals(correct_values)
 
 
+@pytest.fixture
+def exam_data_circles(res_folder):
+    config = {
+        "rectangle": {
+            "top": 0.23529411764705882,
+            "bottom": 1.0,
+            "left": 0.14483751912863443,
+            "right": 1.0
+        },
+        "column_prefix":
+        "A",
+        "radius":
+        0.009401709401709403,
+        "circles_per_row": [
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0
+        ],
+        "possible_columns":
+        10,
+        "name":
+        "scores",
+        "allowed_row_filling":
+        "one"
+    }
+    image_path = str(
+        Path(res_folder) / 'exam_form' / 'data_circles' /
+        'example_exam_data_circles_1.png')
+    image = load_and_check_image(image_path)
+    return DataCircleGroup(image, config)
+
+
 class TestExamCircleGrid:
-    def test_example_exam_data_circles(self):
-        assert False
+    def test_example_exam_data_circles(self, exam_data_circles):
+        df = exam_data_circles.value
+        print(df.to_string())
+        correct_values = [0, 1, 1, -1, 0, -1, -1, -2, 0, 0, 6]
+        for i, correct_value in enumerate(correct_values):
+            column = f'A{i+1:02}'
+            print(column)
+            assert df.loc[0, column] == correct_value
 
 
 class TestFittingCircleGrid:
-
     def test_optimise_grid_fit_x_translate(self):
         candidate_circles = [(9, 11, 3), (9, 11, 3)]
         hough_circles = [(1, 3, 3), (100, 12, 3), (11, 11, 3), (20, 11, 3)]
-        new_grid_circles = get_best_fitting_grid(candidate_circles, hough_circles)
+        new_grid_circles = get_best_fitting_grid(candidate_circles,
+                                                 hough_circles)
         correct_grid_circles = [(11, 11, 3), (11, 11, 3)]
         print(new_grid_circles)
         closeness = evaluate_circles_distance(new_grid_circles,
@@ -64,7 +101,8 @@ class TestFittingCircleGrid:
     def test_optimise_grid_fit_x_y_translate(self):
         candidate_circles = [(9, 10, 3), (9, 10, 3)]
         hough_circles = [(1, 3, 3), (100, 12, 3), (11, 11, 3), (20, 11, 3)]
-        new_grid_circles = get_best_fitting_grid(candidate_circles, hough_circles)
+        new_grid_circles = get_best_fitting_grid(candidate_circles,
+                                                 hough_circles)
         correct_grid_circles = [(11, 11, 3), (11, 11, 3)]
         closeness = evaluate_circles_distance(new_grid_circles,
                                               correct_grid_circles)
@@ -73,10 +111,11 @@ class TestFittingCircleGrid:
 
     def test_optimise_grid_fit_x_y_translate_rotate_grow(self):
         candidate_circles = [(9, 10, 3), (9, 10, 3)]
-        candidate_circles = adjust_grid_circles(candidate_circles, 2, 2, 1.1, 1.1,
-                                                3.2)
+        candidate_circles = adjust_grid_circles(candidate_circles, 2, 2, 1.1,
+                                                1.1, 3.2)
         hough_circles = [(1, 3, 3), (100, 12, 3), (11, 11, 3), (20, 11, 3)]
-        new_grid_circles = get_best_fitting_grid(candidate_circles, hough_circles)
+        new_grid_circles = get_best_fitting_grid(candidate_circles,
+                                                 hough_circles)
         correct_grid_circles = [(11, 11, 3), (11, 11, 3)]
         closeness = evaluate_circles_distance(new_grid_circles,
                                               correct_grid_circles)
@@ -97,7 +136,8 @@ class TestFittingCircleGrid:
     def test_evaluate_circle_fit(self):
         candidate_circles = [(10, 10, 3), (12, 12, 3)]
         hough_circles = [(1, 3, 3), (100, 12, 3), (11, 11, 3), (20, 11, 3)]
-        total_dist = evaluate_circles_distance(candidate_circles, hough_circles)
+        total_dist = evaluate_circles_distance(candidate_circles,
+                                               hough_circles)
         assert np.equal(total_dist, np.sqrt(2) * 2)
 
     def test_adjust_grid_grow_double(self):
@@ -106,8 +146,8 @@ class TestFittingCircleGrid:
         # plt.plot(circles[:, 0], circles[:, 1], 'o')
         # plt.plot(new_circles[:, 0], new_circles[:, 1], 'o')
         # plt.show()
-        correct_circles = np.array([[-0.5, -0.5, 3], [-0.5, 1.5, 3], [1.5, 1.5, 3],
-                                    [1.5, -0.5, 3]])
+        correct_circles = np.array([[-0.5, -0.5, 3], [-0.5, 1.5, 3],
+                                    [1.5, 1.5, 3], [1.5, -0.5, 3]])
         closeness = evaluate_circles_distance(new_circles, correct_circles)
         assert closeness < 1e-5
 
@@ -155,13 +195,17 @@ class TestResponseFromDarknesses:
         assert single_response_from_darknesses(example) == -2
 
     def test_middle_ground_abstention_response_from_darknesses(self):
-        example = [0.5, 0.5, 0.5, 0.5, 0.32288229793390616, 0.20960613544780968]
+        example = [
+            0.5, 0.5, 0.5, 0.5, 0.32288229793390616, 0.20960613544780968
+        ]
         assert single_response_from_darknesses(example) == -3
 
     def test_closeness_abstention_response_from_darknesses(self):
-        example = [0.59, 0.7, 0.5, 0.5, 0.32288229793390616, 0.20960613544780968]
+        example = [
+            0.59, 0.7, 0.5, 0.5, 0.32288229793390616, 0.20960613544780968
+        ]
         assert single_response_from_darknesses(example) == -3
 
 
 if __name__ == '__main__':
-    pytest.main(['-s', '-k', 'test_data_circles_1_values'])
+    pytest.main(['-s', '-k', 'test_example_exam_data_circles'])

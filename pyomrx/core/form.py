@@ -97,8 +97,9 @@ class OmrForm(Abortable):
                 self.image, metadata_circle_group_config['rectangle'])
             if metadata_circle_group_config['orientation'] == 'portrait':
                 metadata_circles_image = np.array(
-                    Image.fromarray(metadata_circles_image).rotate(90, expand=True))
-            show_image(metadata_circles_image)
+                    Image.fromarray(metadata_circles_image).rotate(
+                        90, expand=True))
+            # show_image(metadata_circles_image)
             self.metadata_circle_groups.append(
                 BinaryCircles(
                     metadata_circles_image,

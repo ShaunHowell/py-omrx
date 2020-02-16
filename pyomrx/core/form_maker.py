@@ -132,7 +132,7 @@ def assert_equal_rectangles(rect_a, rect_b, row_dims, col_dims, form_sheet):
 
 def get_rectangle_area(rectangle):
     return (rectangle['top'] - rectangle['bottom']) * (
-            rectangle['right'] - rectangle['left'])
+        rectangle['right'] - rectangle['left'])
 
 
 def get_row_and_column_dimensions(form_sheet):
@@ -161,10 +161,10 @@ def get_relative_rectangle(inner_rectangle, outer_rectangle):
     relative_inner_rectangle = dict(
         top=(outer_rectangle['top'] - inner_rectangle['top']) / outer_height,
         bottom=(outer_rectangle['top'] - inner_rectangle['bottom']) /
-               outer_height,
+        outer_height,
         left=(inner_rectangle['left'] - outer_rectangle['left']) / outer_width,
         right=(inner_rectangle['right'] - outer_rectangle['left']) /
-              outer_width)
+        outer_width)
     return relative_inner_rectangle
 
 
@@ -342,8 +342,9 @@ def render_cell(ax, top, left, height, width, cell, theme_colours):
                 y = top if va == 'top' else top - height / 2 if va == 'center' else top - height
                 rotation = -90
             else:
-                raise ValueError(f'cell rotation must either be 0 (horiontal) or 180 (?) (vertical). '
-                                 f'Got {cell.alignment.textRotation}')
+                raise ValueError(
+                    f'cell rotation must either be 0 (horiontal) or 180 (?) (vertical). '
+                    f'Got {cell.alignment.textRotation}')
             # print(dict(x=x, y=y,s=str(cell.value), fontdict=font,ha=ha, va=va))
             ax.text(
                 x=x,
@@ -367,12 +368,10 @@ def plot_circles(ax, centres, radius, fill, colour):
 
 
 def get_circle_image_locations(circles_array, circles_rectangle):
-    circle_offset_x = (
-                              circles_rectangle['right'] -
-                              circles_rectangle['left']) / circles_array.shape[1]
-    circle_offset_y = (
-                              circles_rectangle['top'] -
-                              circles_rectangle['bottom']) / circles_array.shape[0]
+    circle_offset_x = (circles_rectangle['right'] -
+                       circles_rectangle['left']) / circles_array.shape[1]
+    circle_offset_y = (circles_rectangle['top'] -
+                       circles_rectangle['bottom']) / circles_array.shape[0]
     top_left_circle_x = circles_rectangle['left'] + circle_offset_x / 2
     top_left_circle_y = circles_rectangle['top'] - circle_offset_y / 2
     empty_circle_x_coords = []
@@ -397,7 +396,8 @@ def get_circle_image_locations(circles_array, circles_rectangle):
                 empty_circle_y_coords.append(top_left_circle_y -
                                              row_i * circle_offset_y)
                 circles_per_row[-1] += 1
-    return  empty_circle_x_coords, empty_circle_y_coords, circles_per_row
+    return empty_circle_x_coords, empty_circle_y_coords, circles_per_row
+
 
 def clean_temp_folder(temp_location, remake=False):
     if Path(temp_location).exists() and Path(temp_location).is_dir():
@@ -509,7 +509,7 @@ class FormMaker(Abortable):
             old_parent=self.form_template_range.attr_text,
             new_parent=page_range.attr_text)
         form_template_range_cells = form_sheet[form_template_range.split('!')
-        [1]]
+                                               [1]]
         form_rectangle_abs = get_rectangle_from_range(
             range_cells=form_template_range_cells,
             row_dims=self.row_dims,
@@ -528,7 +528,7 @@ class FormMaker(Abortable):
             old_parent=self.form_template_range.attr_text,
             new_parent=page_range.attr_text)
         sub_form_template_cells = form_sheet[sub_form_template_range.split('!')
-        [1]]
+                                             [1]]
         sub_form_template_rectangle = get_rectangle_from_range(
             range_cells=sub_form_template_cells,
             row_dims=self.row_dims,
@@ -538,7 +538,9 @@ class FormMaker(Abortable):
         sub_form_template_rectangle_relative = get_relative_rectangle(
             sub_form_template_rectangle, form_rectangle)
         sub_form_locations = [sub_form_template_rectangle_relative]
-        for sub_form_range_name in [name for name in self.range_names if 'sub_form_' in name]:
+        for sub_form_range_name in [
+                name for name in self.range_names if 'sub_form_' in name
+        ]:
             if sub_form_range_name == 'sub_form_1':
                 continue
             sub_form_range = self.wb.get_named_range(sub_form_range_name)
@@ -546,8 +548,7 @@ class FormMaker(Abortable):
                 child=sub_form_range.attr_text,
                 old_parent=self.form_template_range.attr_text,
                 new_parent=page_range.attr_text)
-            sub_form_range_cells = form_sheet[sub_form_range.split('!')
-            [1]]
+            sub_form_range_cells = form_sheet[sub_form_range.split('!')[1]]
             sub_form_rectangle = get_rectangle_from_range(
                 range_cells=sub_form_range_cells,
                 row_dims=self.row_dims,
@@ -565,17 +566,19 @@ class FormMaker(Abortable):
                 circles_name = re.findall('circles_(.+)',
                                           template_circles_range.name)[0]
                 print(f'processing circles {circles_name}')
-                circles_range_cells = form_sheet[circles_range_str.split('!')[1]]
+                circles_range_cells = form_sheet[circles_range_str.split('!')
+                                                 [1]]
                 circles_rectangle = get_rectangle_from_range(
                     range_cells=circles_range_cells,
                     row_dims=self.row_dims,
                     col_dims=self.col_dims)
                 circles_rectangle = localise_rectangle_to_form(
                     circles_rectangle, form_top_left)
-                circles_dict = parse_circles_from_range(circles_range_cells, allow_empty=True)
+                circles_dict = parse_circles_from_range(
+                    circles_range_cells, allow_empty=True)
                 circles_arr = circles_dict['array']
-                circle_x_coords, circle_y_coords, circles_per_row = get_circle_image_locations(circles_arr,
-                                                                                               circles_rectangle)
+                circle_x_coords, circle_y_coords, circles_per_row = get_circle_image_locations(
+                    circles_arr, circles_rectangle)
                 plot_circles(
                     form_template_ax,
                     zip(circle_x_coords, circle_y_coords),
@@ -637,7 +640,7 @@ class FormMaker(Abortable):
             metadata_value = 0
             for bit_index, cell_value in enumerate(
                     reversed(metadata_arr.tolist())):
-                metadata_value = metadata_value + bit_index ** 2 if cell_value else metadata_value
+                metadata_value = metadata_value + bit_index**2 if cell_value else metadata_value
             # if decides_sub_form:
             #     form_metadata_values[metadata_name] = metadata_value
             metadata_circles_config['quantity'] = metadata_arr.size
@@ -654,16 +657,20 @@ class FormMaker(Abortable):
                 'radius'] = circle_radius / max_metadata_dimension
             if metadata_dict['orient'] == 'landscape':
                 metadata_circle_offset = (
-                                                 metadata_rectangle['right'] -
-                                                 metadata_rectangle['left']) / metadata_arr.size
+                    metadata_rectangle['right'] -
+                    metadata_rectangle['left']) / metadata_arr.size
                 first_circle_x = metadata_rectangle[
-                                     'left'] + metadata_circle_offset / 2
-                first_circle_y = (metadata_rectangle['top'] + metadata_rectangle['bottom']) / 2
+                    'left'] + metadata_circle_offset / 2
+                first_circle_y = (metadata_rectangle['top'] +
+                                  metadata_rectangle['bottom']) / 2
             elif metadata_dict['orient'] == 'portrait':
-                metadata_circle_offset = (metadata_rectangle['top'] -
-                                          metadata_rectangle['bottom']) / metadata_arr.size
-                first_circle_x = (metadata_rectangle['right'] + metadata_rectangle['left']) / 2
-                first_circle_y = metadata_rectangle['top'] - metadata_circle_offset / 2
+                metadata_circle_offset = (
+                    metadata_rectangle['top'] -
+                    metadata_rectangle['bottom']) / metadata_arr.size
+                first_circle_x = (metadata_rectangle['right'] +
+                                  metadata_rectangle['left']) / 2
+                first_circle_y = metadata_rectangle[
+                    'top'] - metadata_circle_offset / 2
 
             empty_circle_varying_coords = []
             filled_circle_varying_coords = []
@@ -679,15 +686,19 @@ class FormMaker(Abortable):
                 else:
                     empty_circle_varying_coords.append(unknown_circle_coord)
             if metadata_dict['orient'] == 'landscape:':
-                empty_circle_coords = zip(empty_circle_varying_coords,
-                                          [first_circle_y] * len(empty_circle_varying_coords))
-                filled_circle_coords = zip(filled_circle_varying_coords,
-                                           [first_circle_y] * len(filled_circle_varying_coords))
+                empty_circle_coords = zip(
+                    empty_circle_varying_coords,
+                    [first_circle_y] * len(empty_circle_varying_coords))
+                filled_circle_coords = zip(
+                    filled_circle_varying_coords,
+                    [first_circle_y] * len(filled_circle_varying_coords))
             elif metadata_dict['orient'] == 'portrait':
-                empty_circle_coords = zip([first_circle_x] * len(empty_circle_varying_coords),
-                                          empty_circle_varying_coords)
-                filled_circle_coords = zip([first_circle_x] * len(filled_circle_varying_coords),
-                                           filled_circle_varying_coords)
+                empty_circle_coords = zip(
+                    [first_circle_x] * len(empty_circle_varying_coords),
+                    empty_circle_varying_coords)
+                filled_circle_coords = zip(
+                    [first_circle_x] * len(filled_circle_varying_coords),
+                    filled_circle_varying_coords)
             plot_circles(
                 form_template_ax,
                 empty_circle_coords,
@@ -725,15 +736,16 @@ class FormMaker(Abortable):
             circles_rectangle = localise_rectangle_to_form(
                 circles_rectangle, form_top_left)
             circles_rectangle_relative = get_relative_rectangle(
-                circles_rectangle, sub_form_rectangle)
+                circles_rectangle, sub_form_template_rectangle)
             circles_config = {
                 'rectangle': copy.deepcopy(circles_rectangle_relative)
             }
             # plot_rectangle(circles_rectangle, form_template_ax, thickness=W_THIN)
-            circles_dict = parse_circles_from_range(circles_range_cells, allow_empty=True)
-            circles_arr=circles_dict['array']
-            circle_x_coords, circle_y_coords, circles_per_row = get_circle_image_locations(circles_arr,
-                                                                                           circles_rectangle)
+            circles_dict = parse_circles_from_range(
+                circles_range_cells, allow_empty=True)
+            circles_arr = circles_dict['array']
+            circle_x_coords, circle_y_coords, circles_per_row = get_circle_image_locations(
+                circles_arr, circles_rectangle)
             plot_circles(
                 form_template_ax,
                 zip(circle_x_coords, circle_y_coords),
@@ -799,14 +811,14 @@ class FormMaker(Abortable):
         merged_cells = get_merged_cells(form_sheet)
         for row_index, row in enumerate(form_template_range_cells):
             row_top = self.row_dims[
-                          row[0].row]['top_y'] - form_rectangle_abs['top']
+                row[0].row]['top_y'] - form_rectangle_abs['top']
             row_height = self.row_dims[row[0].row]['ht']
             for column_index, cell in enumerate(row):
                 if is_merged_cell(cell, merged_cells):
                     continue
                 # print(f'{cell}: {cell.value}, {cell.font.sz}, {cell.row}:{cell.column}')
                 column_left = self.col_dims[
-                                  cell.column_letter]['left_x'] - form_rectangle_abs['left']
+                    cell.column_letter]['left_x'] - form_rectangle_abs['left']
                 column_width = self.col_dims[cell.column_letter]['width']
                 # form_template_ax.plot([column_left, column_left + column_width, column_left + column_width, column_left],
                 #                       [row_top, row_top, row_top - row_height, row_top - row_height], c='black', alpha=0.05)
@@ -832,13 +844,13 @@ class FormMaker(Abortable):
             left_col = pyxl.utils.get_column_letter(merged_cell.min_col)
             top_left_cell = form_sheet[f'{left_col}{merged_cell.min_row}']
             merged_cell_left = self.col_dims[left_col][
-                                   'left_x'] - form_rectangle_abs['left']
+                'left_x'] - form_rectangle_abs['left']
             merged_cell_width = reduce(
                 lambda w, col_next: w + self.col_dims[
                     pyxl.utils.get_column_letter(col_next)]['width'],
                 range(merged_cell.min_col, merged_cell.max_col + 1), 0)
             merged_cell_top = self.row_dims[
-                                  merged_cell.min_row]['top_y'] - form_rectangle_abs['top']
+                merged_cell.min_row]['top_y'] - form_rectangle_abs['top']
             # print(merged_cell.min_row, merged_cell.max_row + 1)
             merged_cell_height = reduce(
                 lambda h, row_next: h + self.row_dims[row_next]['ht'],
@@ -969,8 +981,8 @@ class FormMaker(Abortable):
 
         # other pages
         for page_number in [
-            int(re.findall('page_([0-9]+)', name)[0])
-            for name in self.range_names if re.match('page_[0-9]+', name)
+                int(re.findall('page_([0-9]+)', name)[0])
+                for name in self.range_names if re.match('page_[0-9]+', name)
         ]:
             if page_number == 1:
                 continue
