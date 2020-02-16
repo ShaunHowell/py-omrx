@@ -82,7 +82,7 @@ class OmrForm(Abortable):
 
     def _init_sub_forms(self):
         sub_form_config = self.template['sub_forms']
-        template = sub_form_config['sub_form_templates'][0]
+        template = sub_form_config['sub_form_template']
         for rectangle in sub_form_config['locations']:
             sub_form_image = extract_rectangle_image(self.image, rectangle)
             # print('template')
@@ -95,6 +95,10 @@ class OmrForm(Abortable):
         for metadata_circle_group_config in self.template['metadata_circles']:
             metadata_circles_image = extract_rectangle_image(
                 self.image, metadata_circle_group_config['rectangle'])
+            if metadata_circle_group_config['orientation'] == 'portrait':
+                metadata_circles_image = np.array(
+                    Image.fromarray(metadata_circles_image).rotate(90, expand=True))
+            show_image(metadata_circles_image)
             self.metadata_circle_groups.append(
                 BinaryCircles(
                     metadata_circles_image,
@@ -114,7 +118,7 @@ class OmrSubForm(Abortable):
 
     def _init_circle_groups(self):
         # sub_form_config = self.template['sub_forms']
-        # template = sub_form_config['sub_form_templates'][0]
+        # template = sub_form_config['sub_form_template']
         for data_circles_config in self.template['circles']:
             data_circles_image = extract_rectangle_image(
                 self.image, data_circles_config['rectangle'])

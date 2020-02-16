@@ -53,6 +53,8 @@ from pyomrx.core.meta import Abortable
 from pyomrx.gui import FORM_GENERATION_TOPIC
 import arabic_reshaper
 
+#FIXME: seems like 'prefix: none' is broken
+
 W_THICK = 5
 W_DEFAULT = 1
 W_THIN = 0.5
@@ -187,11 +189,11 @@ def parse_circles_from_range(metadata_range_cells,
                 row_values.append(False)
             elif encoded_cell_value == FULL_CIRCLE:
                 row_values.append(True)
-            elif encoded_cell_value == b'' and allow_empty:
+            elif encoded_cell_value in [b'', b'None'] and allow_empty:
                 row_values.append(np.NaN)
             else:
                 raise CircleParseError(
-                    f'character {cell.value} ({str(cell.value).encode()}) found in {cell}, not allowed'
+                    f'character {cell.value} ({encoded_cell_value}) found in {cell}, not allowed'
                 )
             if circle_radius is not None:
                 if cell.font.sz * CIRCLE_FONT_MULTIPLIER * FONT_UNIT_PIXELS != circle_radius:
@@ -486,16 +488,37 @@ class FormMaker(Abortable):
             child=self.sub_form_template_range.attr_text,
             old_parent=self.form_template_range.attr_text,
             new_parent=page_range.attr_text)
-        sub_form_range_cells = form_sheet[sub_form_template_range.split('!')
+        sub_form_template_cells = form_sheet[sub_form_template_range.split('!')
                                           [1]]
-        sub_form_rectangle = get_rectangle_from_range(
-            range_cells=sub_form_range_cells,
+        sub_form_template_rectangle = get_rectangle_from_range(
+            range_cells=sub_form_template_cells,
             row_dims=self.row_dims,
             col_dims=self.col_dims)
-        sub_form_rectangle = localise_rectangle_to_form(
-            sub_form_rectangle, form_top_left)
-        sub_form_rectangle_relative = get_relative_rectangle(
-            sub_form_rectangle, form_rectangle)
+        sub_form_template_rectangle = localise_rectangle_to_form(
+            sub_form_template_rectangle , form_top_left)
+        sub_form_template_rectangle_relative = get_relative_rectangle(
+            sub_form_template_rectangle , form_rectangle)
+        sub_form_locations = [sub_form_template_rectangle_relative]
+        for sub_form_range_name in [name for name in self.range_names if 'sub_form_' in name]:
+            if sub_form_range_name == 'sub_form_1':
+                continue
+            sub_form_range = self.wb.get_named_range(sub_form_range_name)
+            sub_form_range = self.translate_sub_range_to_new_parent(
+                child=sub_form_range.attr_text,
+                old_parent=self.form_template_range.attr_text,
+                new_parent=page_range.attr_text)
+            sub_form_range_cells = form_sheet[sub_form_range.split('!')
+            [1]]
+            sub_form_rectangle = get_rectangle_from_range(
+                range_cells=sub_form_range_cells,
+                row_dims=self.row_dims,
+                col_dims=self.col_dims)
+            sub_form_rectangle = localise_rectangle_to_form(
+                sub_form_rectangle, form_top_left)
+            sub_form_rectangle_relative = get_relative_rectangle(
+                sub_form_rectangle, form_rectangle)
+            sub_form_locations.append(sub_form_rectangle_relative)
+
 
         form_metadata_circles_config = []
         self.raise_for_abort()
@@ -544,7 +567,8 @@ class FormMaker(Abortable):
                 decides_sub_form = False
             metadata_circles_config['decides_sub_form'] = decides_sub_form
             metadata_dict = parse_circles_from_range(
-                metadata_range_cells, orient='landscape', assert_1d=True)
+                metadata_range_cells, assert_1d=True)
+            metadata_circles_config['orientation'] = metadata_dict['orient']
             metadata_arr = np.squeeze(metadata_dict['array'])
             circle_radius = metadata_dict['radius']
             metadata_value = 0
@@ -629,7 +653,7 @@ class FormMaker(Abortable):
                 'rectangle': copy.deepcopy(circles_rectangle_relative)
             }
             # plot_rectangle(circles_rectangle, form_template_ax, thickness=W_THIN)
-            circles_dict = parse_circles_from_range(circles_range_cells)
+            circles_dict = parse_circles_from_range(circles_range_cells, allow_empty=True)
             circles_arr = circles_dict['array']
             circle_offset_x = (
                 circles_rectangle['right'] -
@@ -720,8 +744,8 @@ class FormMaker(Abortable):
         self.update_progress(40)
 
         sub_forms_config = dict(
-            sub_form_templates=[sub_form_template_config],
-            locations=[sub_form_rectangle_relative])
+            sub_form_template=sub_form_template_config,
+            locations=sub_form_locations)
 
         merged_cells = get_merged_cells(form_sheet)
         for row_index, row in enumerate(form_template_range_cells):
@@ -879,6 +903,7 @@ class FormMaker(Abortable):
         output_folder = self.output_folder
         os.makedirs(str(output_folder), exist_ok=True)
         config_temp_path = str(TEMP_FOLDER / 'omr_config.json')
+        pp(output_config)
         json.dump(output_config, open(config_temp_path, 'w'))
         strip_ax_padding(form_template_ax)
         form_template_fig.subplots_adjust(

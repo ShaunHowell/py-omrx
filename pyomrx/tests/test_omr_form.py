@@ -10,6 +10,13 @@ def omr_form_1(res_folder):
         open(str(Path(res_folder) / 'form_config' / 'omr_config.json')))
     return OmrForm(image_path, config)
 
+@pytest.fixture
+def exam_omr_form(res_folder):
+    image_path = str(Path(res_folder) / 'example_omr_form_scan_1.png')
+    config = json.load(
+        open(str(Path(res_folder) / 'exam_form_config.json')))
+    return OmrForm(image_path, config)
+
 
 def test_omr_form_1_metadata(omr_form_1):
     correct_values = {'class_name': 0, 'institution': 1, 'page': 1}
@@ -28,5 +35,10 @@ def test_omr_form_1_data(omr_form_1):
     assert omr_form_1.data.equals(correct_values)
 
 
+def test_portrait_metadata(exam_omr_form):
+    print(exam_omr_form.metadata_circle_groups[0].image)
+
+
+
 if __name__ == '__main__':
-    pytest.main(['-k', 'test_omr_form_1_data', '-s'])
+    pytest.main(['-k', 'test_portrait_metadata', '-s'])

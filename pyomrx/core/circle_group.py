@@ -119,11 +119,13 @@ class DataCircleGroup(CircleGroup):
         # print(bare_circles_grid)
         self.circles = init_circles_from_grid(self.image, bare_circles_grid)
         # TODO: seems like expected circle size is still smaller than actual circles
-        values = []
-        for row in self.circles:
-            values.append([])
-            for circle in row:
-                values[-1].append(circle.is_filled)
+        if self.row_filling == 'many':
+            values = self._extract_value_many_per_row()
+        elif self.row_filling == 'one':
+            values = self._extract_value_one_per_row()
+        else:
+            raise ValueError(f'row_filling of {self.row_filling} not allowed')
+
         if self.config['possible_columns'] == 1:
             if self.config['column_prefix'] == None:
                 print(
@@ -144,6 +146,22 @@ class DataCircleGroup(CircleGroup):
             )
         self._value = pd.DataFrame(values, columns=columns)
         return True
+
+    def _get_value_one_per_row(self):
+        values = []
+        for row in self.circles:
+            # TODO: get response from darkness function from old core
+            response = respg
+            values.append(circle.is_filled)
+        return values
+
+    def _get_value_many_per_row(self):
+        values = []
+        for row in self.circles:
+            values.append([])
+            for circle in row:
+                values[-1].append(circle.is_filled)
+        return values
 
 
 def get_expected_circles(circles_per_row, row_height, column_width, radius):
