@@ -1,5 +1,4 @@
 from pubsub import pub
-from bidi.algorithm import get_display
 import shutil
 from matplotlib.patches import Circle
 from lxml import etree
@@ -26,9 +25,6 @@ from openpyxl.styles.colors import COLOR_INDEX
 from pyomrx.core.meta import Abortable
 
 #### Demo MVP buildout
-# TODO: generate image for each 'page' in the template worksheet
-# TODO: try using the full GUI pipeline on a real form. add as a test case
-# TODO: save each permutation's excel file and form files in a '.omrx' (actually a zip) archive along with the json config
 # TODO: redo progress bar update calls for new multipage feature
 
 #### Extra features
@@ -51,7 +47,6 @@ from pyomrx.core.meta import Abortable
 
 # atexit.register(plt.show)
 from pyomrx.gui import FORM_GENERATION_TOPIC
-import arabic_reshaper
 
 #FIXME: seems like 'prefix: none' is broken
 
@@ -332,19 +327,10 @@ def render_cell(ax, top, left, height, width, cell, draw_top, draw_left,
                 else left + width - FONT_UNIT_PIXELS * 4
             y = top if va == 'top' else top - height / 2 if va == 'center' else top - height
             # print(dict(x=x, y=y,s=str(cell.value), fontdict=font,ha=ha, va=va))
-            cell_text = str(cell.value)
-            reshaped_text = arabic_reshaper.reshape(cell_text)
-            # At this stage the text is reshaped, all letters are in their correct form
-            # based on their surroundings, but if you are going to print the text in a
-            # left-to-right context, which usually happens in libraries/apps that do not
-            # support Arabic and/or right-to-left text rendering, then you need to use
-            # get_display from python-bidi.
-            # Note that this is optional and depends on your usage of the reshaped text.
-            bidi_text = get_display(reshaped_text)
             ax.text(
                 x=x,
                 y=y,
-                s=bidi_text,
+                s=str(cell.value),
                 fontdict=font,
                 ha=ha,
                 va=va,
