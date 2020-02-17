@@ -24,17 +24,9 @@ import pyomrx
 from openpyxl.styles.colors import COLOR_INDEX
 from pyomrx.core.meta import Abortable
 
-#### Demo MVP buildout
-# TODO: redo progress bar update calls for new multipage feature
-
-#### Extra features
-# TODO: actually use border colours
-# TODO: allow vertical metadata circles
-# TODO: make the joining of multiple circle groups' dfs into a sub form's df more flexible
-# TODO: progress bars for form generation and data extraction
-# TODO: Make OmrFactory use multiprocessing
-
 #### Extra robustness
+# TODO: catch exceptions raised in worker processes
+# TODO: assert circle groups are either (above-below and one per row) or (side-to-side and many per row)
 # TODO: clean this script into more modular functions, with tests and better error messages
 # TODO: check the circles are looking to be the correct size now
 # TODO: asert that all form components are completely inside their parent component
@@ -48,8 +40,8 @@ from pyomrx.core.meta import Abortable
 # atexit.register(plt.show)
 from pyomrx.gui import FORM_GENERATION_TOPIC
 
-# TODO: exam sheets: allow metadata circles to be portrait in extraction code
-
+LANDSCAPE = 'landscape'
+PORTRAIT = 'portrait'
 W_THICK = 5
 W_DEFAULT = 1
 W_THIN = 0.5
@@ -203,9 +195,9 @@ def parse_circles_from_range(metadata_range_cells,
     if assert_1d and not 1 in circles_array.shape:
         raise CircleParseError(f'2D circles area found: must be 1D')
     if circles_array.shape[1] > circles_array.shape[0]:
-        orientation = 'landscape'
+        orientation = LANDSCAPE
     elif circles_array.shape[0] > circles_array.shape[1]:
-        orientation = 'portrait'
+        orientation = PORTRAIT
     else:
         orientation = 'equal'
     if orient and orientation != orient:
@@ -306,7 +298,7 @@ def render_cell(ax, top, left, height, width, cell, theme_colours):
             if cell.font.color is None:
                 pass
             elif cell.font.color.type == 'theme':
-                # TODO: super janky but have no idea why the theme colour list isn't sorted correctly
+                # super janky but have no idea why the theme colour list isn't sorted correctly
                 if cell.font.color.theme == 1:
                     colour = theme_colours[0]
                 elif cell.font.color.theme == 0:
@@ -587,7 +579,6 @@ class FormMaker(Abortable):
                     colour='black')
         form_metadata_circles_config = []
         self.raise_for_abort()
-        self.update_progress(30)
         form_metadata_values = {}
         # Removed this functionality as not required
         # decides_sub_form_regex = COMMENT_PROP_START_REGEX + 'decides sub form: (yes|no)' + COMMENT_PROP_END_REGEX
@@ -655,7 +646,7 @@ class FormMaker(Abortable):
             # print(f'relative radius: {circle_radius / max_metadata_dimension}')
             metadata_circles_config[
                 'radius'] = circle_radius / max_metadata_dimension
-            if metadata_dict['orient'] == 'landscape':
+            if metadata_dict['orient'] == LANDSCAPE:
                 metadata_circle_offset = (
                     metadata_rectangle['right'] -
                     metadata_rectangle['left']) / metadata_arr.size
@@ -663,7 +654,7 @@ class FormMaker(Abortable):
                     'left'] + metadata_circle_offset / 2
                 first_circle_y = (metadata_rectangle['top'] +
                                   metadata_rectangle['bottom']) / 2
-            elif metadata_dict['orient'] == 'portrait':
+            elif metadata_dict['orient'] == PORTRAIT:
                 metadata_circle_offset = (
                     metadata_rectangle['top'] -
                     metadata_rectangle['bottom']) / metadata_arr.size
@@ -675,9 +666,9 @@ class FormMaker(Abortable):
             empty_circle_varying_coords = []
             filled_circle_varying_coords = []
             for metadata_circle_i, circle_val in enumerate(metadata_arr):
-                if metadata_dict['orient'] == 'landscape':
+                if metadata_dict['orient'] == LANDSCAPE:
                     unknown_circle_coord = first_circle_x + metadata_circle_i * metadata_circle_offset
-                elif metadata_dict['orient'] == 'portrait':
+                elif metadata_dict['orient'] == PORTRAIT:
                     unknown_circle_coord = first_circle_y - metadata_circle_i * metadata_circle_offset
                 if np.isnan(circle_val):
                     continue
@@ -685,14 +676,14 @@ class FormMaker(Abortable):
                     filled_circle_varying_coords.append(unknown_circle_coord)
                 else:
                     empty_circle_varying_coords.append(unknown_circle_coord)
-            if metadata_dict['orient'] == 'landscape:':
+            if metadata_dict['orient'] == LANDSCAPE:
                 empty_circle_coords = zip(
                     empty_circle_varying_coords,
                     [first_circle_y] * len(empty_circle_varying_coords))
                 filled_circle_coords = zip(
                     filled_circle_varying_coords,
                     [first_circle_y] * len(filled_circle_varying_coords))
-            elif metadata_dict['orient'] == 'portrait':
+            elif metadata_dict['orient'] == PORTRAIT:
                 empty_circle_coords = zip(
                     [first_circle_x] * len(empty_circle_varying_coords),
                     empty_circle_varying_coords)
@@ -713,7 +704,6 @@ class FormMaker(Abortable):
                 colour='black')
             form_metadata_circles_config.append(metadata_circles_config)
         self.raise_for_abort()
-        self.update_progress(35)
 
         sub_form_template_config = dict(circles=[], metadata_requirements={})
         row_fill_regex = COMMENT_PROP_START_REGEX + 'row fill:\s*(many|one)' + COMMENT_PROP_END_REGEX
@@ -764,10 +754,10 @@ class FormMaker(Abortable):
             if row_fill:
                 circles_config['allowed_row_filling'] = row_fill[0]
             else:
-                print(
-                    f'WARNING: row fill not specified for circles group called {circles_name}, '
-                    f'will assume many circles per row can be filled in. To enforce one per row add "row fill: one"'
-                    f'to the cell group\'s comment via the name manager')
+                raise ValueError(
+                    f'row fill not specified for circles group called {circles_name}, '
+                    f'cell groups comment should include "row fill: one," or "row_fill: many,"'
+                )
             column_prefix = re.findall(col_prefix_regex, circles_comment)
             if not column_prefix:
                 num_default_col_prefixes += 1
@@ -802,7 +792,6 @@ class FormMaker(Abortable):
             circles_config['name'] = circles_name
             sub_form_template_config['circles'].append(circles_config)
         self.raise_for_abort()
-        self.update_progress(40)
 
         sub_forms_config = dict(
             sub_form_template=sub_form_template_config,
@@ -834,7 +823,6 @@ class FormMaker(Abortable):
         print('finished parsing individual cells')
         print('parsing merged cells styles')
         self.raise_for_abort()
-        self.update_progress(50)
         for merged_cell in form_sheet.merged_cells.ranges:
             merged_cell_range_text = f'{form_sheet.title}!{merged_cell.coord}'
             if not cells_contain_cells(form_template_range,
@@ -868,7 +856,6 @@ class FormMaker(Abortable):
                 top_left_cell,
                 theme_colours=self.wb_theme_colours)
         self.raise_for_abort()
-        self.update_progress(65)
         template = dict(
             metadata_circles=form_metadata_circles_config,
             sub_forms=sub_forms_config)
@@ -980,10 +967,14 @@ class FormMaker(Abortable):
         #     pad_inches=0)
 
         # other pages
-        for page_number in [
-                int(re.findall('page_([0-9]+)', name)[0])
-                for name in self.range_names if re.match('page_[0-9]+', name)
-        ]:
+        page_numbers = [
+            int(re.findall('page_([0-9]+)', name)[0])
+            for name in self.range_names if re.match('page_[0-9]+', name)
+        ]
+        num_pages = len(page_numbers)
+        self.update_progress(80 / num_pages)
+        for i, page_number in enumerate(page_numbers):
+            self.raise_for_abort()
             if page_number == 1:
                 continue
             page_fig, page_ax, _ = self.plot_form_page_image(page_number)
@@ -997,9 +988,8 @@ class FormMaker(Abortable):
             # plt.show()
             page_fig.savefig(
                 page_fig_temp_path, bbox_inches='tight', pad_inches=0)
+            self.update_progress((i + 1) * 80 / num_pages)
 
-        self.raise_for_abort()
-        self.update_progress(75)
         print('making archive')
         for file_path in filenames_to_copy:
             file_path = Path(file_path)

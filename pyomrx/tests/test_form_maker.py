@@ -27,32 +27,19 @@ class TestAbsenceRegisterForms:
         form_maker = FormMaker(
             str(Path(res_folder) / 'Absence register v31.xlsx'), 'temp')
         config = form_maker.make_form()
-        assert config['template']['sub_forms']['sub_form_template']['circles'][
-            'attendance']['column_prefix'] == None
+        assert next(
+            filter(
+                lambda circle_group: circle_group['name'] == 'attendance',
+                config['template']['sub_forms']['sub_form_template']
+                ['circles']))['column_prefix'] is None
 
 
 class TestExamForms:
     def test_make_form(self, res_folder):
         form_maker = FormMaker(
-            str(Path(res_folder) / 'example_exam_form.xlsx'), 'temp')
+            str(Path(res_folder) / 'exam_form' / 'example_exam_form.xlsx'),
+            'temp')
         config = form_maker.make_form()
-
-
-def test_make_form_doesnt_crash(res_folder):
-    form_maker = FormMaker(
-        str(Path(res_folder) / 'Absence register v31.xlsx'), 'temp')
-    config = form_maker.make_form()
-
-
-def test_no_prefix_if_none(res_folder):
-    form_maker = FormMaker(
-        str(Path(res_folder) / 'Absence register v31.xlsx'), 'temp')
-    config = form_maker.make_form()
-    assert next(
-        filter(
-            lambda circle_group: circle_group['name'] == 'attendance',
-            config['template']['sub_forms']['sub_form_templates'][0]
-            ['circles']))['column_prefix'] == None
 
 
 if __name__ == '__main__':

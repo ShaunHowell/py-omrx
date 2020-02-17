@@ -9,7 +9,7 @@ from pyomrx.core.form_maker import FormMaker
 from pyomrx.core.meta import Abortable
 from pyomrx.core.omr_factory import OmrFactory
 from pyomrx.gui.events import DataExtractionNonFatalEvent, DataExtractionSuccessEvent, \
-    FormGenerationSuccessEvent, FormGenerationNonFatalEvent
+    FormGenerationSuccessEvent, FormGenerationNonFatalEvent, FatalEvent
 from pyomrx.gui.dialogs import ExceptionDialog
 
 
@@ -60,6 +60,9 @@ class DataExtractionWorker(Thread, Abortable):
         except AbortException:
             print(f'aborted processing worker {self.id}')
             wx.PostEvent(self._parent_window, DataExtractionNonFatalEvent())
+        except BaseException as e:
+            print(f'fatal exception in worker {self.id}')
+            wx.PostEvent(self._parent_window, FatalEvent(e))
 
 
 class FormGenerationWorker(Thread, Abortable):
@@ -94,3 +97,6 @@ class FormGenerationWorker(Thread, Abortable):
         except AbortException:
             print(f'aborted form generation worker {self.id}')
             wx.PostEvent(self._parent_window, FormGenerationNonFatalEvent())
+        except BaseException as e:
+            print(f'fatal exception in worker {self.id}')
+            wx.PostEvent(self._parent_window, FatalEvent(e))
