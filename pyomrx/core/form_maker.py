@@ -1,3 +1,5 @@
+# atexit.register(plt.show)
+from pyomrx.gui import FORM_GENERATION_TOPIC
 from pubsub import pub
 import shutil
 from matplotlib.patches import Circle
@@ -24,9 +26,16 @@ import pyomrx
 from openpyxl.styles.colors import COLOR_INDEX
 from pyomrx.core.meta import Abortable
 
+#### Long grass features
+# TODO: support all possible circles arrangements:
+#  - [x] ones circles above-below ones-circles (sf -> one row of ints)
+#  - [x] many circles left-right of many-circles (sf -> many rows of bools)
+#  - [ ] ones-circles above-below many-circles (sf -> many rows of bools, ones ints on each row)
+#  - [ ] ones-circles left-right of many-circles (sf -> many rows of bools, ones ints in single column of different values)
+#  - [ ] many-circles above-below many-circles (sf -> many rows of bools, just like bigger many circles)
+#  - [ ] ones-circles left-right of ones-circles (sf -> one row of values)
+
 #### Extra robustness
-# TODO: catch exceptions raised in worker processes
-# TODO: assert circle groups are either (above-below and one per row) or (side-to-side and many per row)
 # TODO: clean this script into more modular functions, with tests and better error messages
 # TODO: check the circles are looking to be the correct size now
 # TODO: asert that all form components are completely inside their parent component
@@ -36,9 +45,6 @@ from pyomrx.core.meta import Abortable
 # TODO: brush up all the regex to be as robust as possible
 # TODO: work out how to deal with cells which contain dates...
 # TODO: check if any used cell range is actually multiple ranges (e.g. template!A1:A3+template!B1:B3) and raise a useful error message
-
-# atexit.register(plt.show)
-from pyomrx.gui import FORM_GENERATION_TOPIC
 
 LANDSCAPE = 'landscape'
 PORTRAIT = 'portrait'
@@ -53,7 +59,7 @@ CIRCLE_FONT_MULTIPLIER = 0.4
 EMPTY_CIRCLE = b'\xe2\x97\x8b'
 FULL_CIRCLE = b'\xe2\x97\x8f'
 COMMENT_PROP_START_REGEX = '(?:\A|\n|,\s*)'
-COMMENT_PROP_END_REGEX = '(?:\n|\Z|,)'
+COMMENT_PROP_END_REGEX = '([^,\n]+)'
 BORDER_WIDTH_LOOKUP = dict(thin=0.5, medium=1, thick=2)
 VERSION = pyomrx.__version__
 X_TEXT_BUFFER = 1
@@ -425,6 +431,13 @@ def get_theme_colours_from_wb(wb):
     return wb_theme_colours
 
 
+def assert_circle_ranges_well_formed(circle_ranges):
+    '''all circle ranges must be stacked perfectly in either a vetical or horizontal line,
+     ie must all either share one x size or all share one y size'''
+
+    assert False
+
+
 class FormMaker(Abortable):
     def __init__(self,
                  excel_file_path,
@@ -706,9 +719,13 @@ class FormMaker(Abortable):
         self.raise_for_abort()
 
         sub_form_template_config = dict(circles=[], metadata_requirements={})
-        row_fill_regex = COMMENT_PROP_START_REGEX + 'row fill:\s*(many|one)' + COMMENT_PROP_END_REGEX
-        col_prefix_regex = COMMENT_PROP_START_REGEX + 'column prefix:\s*(.+)' + COMMENT_PROP_END_REGEX
+        row_fill_regex = COMMENT_PROP_START_REGEX + 'row fill:\s*(many|one)'
+        col_prefix_regex = COMMENT_PROP_START_REGEX + 'column prefix:\s*' + COMMENT_PROP_END_REGEX
+        index_name_regex = COMMENT_PROP_START_REGEX + 'index name:\s*' + COMMENT_PROP_END_REGEX
         num_default_col_prefixes = 0
+        shared_dimension = None
+        reference_circles = None
+        allowed_circles_fill_type = None
         for template_circles_range in self.circles_ranges:
             circles_range_str = self.translate_sub_range_to_new_parent(
                 child=template_circles_range.attr_text,
@@ -725,6 +742,31 @@ class FormMaker(Abortable):
                 col_dims=self.col_dims)
             circles_rectangle = localise_rectangle_to_form(
                 circles_rectangle, form_top_left)
+            if reference_circles:
+                if shared_dimension == 'x':
+                    assert circles_rectangle['left'] == reference_circles[
+                        'left']
+                    assert circles_rectangle['right'] == reference_circles[
+                        'right']
+                elif shared_dimension == 'y':
+                    assert circles_rectangle['top'] == reference_circles['top']
+                    assert circles_rectangle['bottom'] == reference_circles[
+                        'bottom']
+                else:
+                    if circles_rectangle['left'] == reference_circles['left'] and \
+                            circles_rectangle['right'] == reference_circles['right']:
+                        shared_dimension = 'x'
+                    elif circles_rectangle['top'] == reference_circles['top'] and \
+                            circles_rectangle['bottom'] == reference_circles['bottom']:
+                        shared_dimension = 'y'
+                    else:
+                        raise ValueError(
+                            'circle groups must all be either stacked vertically or horizontally, '
+                            'and must be same width/height respectively')
+            else:
+                reference_circles = copy.deepcopy(circles_rectangle)
+            # assert_circle_ranges_well_formed(self.circles_ranges)
+
             circles_rectangle_relative = get_relative_rectangle(
                 circles_rectangle, sub_form_template_rectangle)
             circles_config = {
@@ -751,13 +793,20 @@ class FormMaker(Abortable):
 
             circles_comment = str(template_circles_range.comment)
             row_fill = re.findall(row_fill_regex, circles_comment)
-            if row_fill:
-                circles_config['allowed_row_filling'] = row_fill[0]
-            else:
+            if not row_fill:
                 raise ValueError(
                     f'row fill not specified for circles group called {circles_name}, '
                     f'cell groups comment should include "row fill: one," or "row_fill: many,"'
                 )
+            circles_config['allowed_row_filling'] = row_fill[0]
+            if allowed_circles_fill_type:
+                if allowed_circles_fill_type != circles_config[
+                        'allowed_row_filling']:
+                    raise ValueError(
+                        'all circle groups must have same row fill type')
+            else:
+                allowed_circles_fill_type = circles_config[
+                    'allowed_row_filling']
             column_prefix = re.findall(col_prefix_regex, circles_comment)
             if not column_prefix:
                 num_default_col_prefixes += 1
@@ -773,6 +822,11 @@ class FormMaker(Abortable):
             else:
                 column_prefix = column_prefix[0]
             circles_config['column_prefix'] = column_prefix
+
+            index_name = re.findall(index_name_regex, circles_comment)
+            if index_name:
+                circles_config['index_name'] = index_name[0]
+
             max_circles_dimension = max([
                 circles_rectangle['top'] - circles_rectangle['bottom'],
                 circles_rectangle['right'] - circles_rectangle['left']
@@ -1051,7 +1105,7 @@ def plot_rectangle(rectangle, ax=None, thickness=W_DEFAULT):
 def main():
     # DESCRIPTION = 'testing form by shaun from dev work'
     # NAME = 'testing_exam_form'
-    form_maker = FormMaker('pyomrx/tests/res/exam_form/example_exam_form.xlsx',
+    form_maker = FormMaker('pyomrx/tests/res/Absence register v31.xlsx',
                            'temp/example_exam_form')
     form_maker.make_form()
 

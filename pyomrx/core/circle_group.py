@@ -145,7 +145,15 @@ class DataCircleGroup(CircleGroup):
             raise ValueError(
                 f'possible columns of {self.config["possible_columns"]} not allowed'
             )
-        self._value = pd.DataFrame(values, columns=columns)
+        df = pd.DataFrame(values, columns=columns)
+        if self.config.get('index_name'):
+            df.index.name = self.config.get('index_name')
+        if self.row_filling == 'one':
+            df['omr_error'] = df.apply(
+                lambda row: any([value == -3 for value in row]), axis=1)
+            df['marker_error'] = df.apply(
+                lambda row: any([value in [-1, -2] for value in row]), axis=1)
+        self._value = df
         return True
 
     def _get_value_one_per_row(self):

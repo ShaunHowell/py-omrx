@@ -27,7 +27,13 @@ def test_omr_form_1_data(omr_form_1):
                  (-1, 1), (-1, 2), (-1, -1)]:
         correct_values.iloc[i, j] = True
     correct_values = correct_values.sort_index(axis=1)
+    correct_values.index += 1
+    correct_values.index.name = 'student_number'
+    correct_values['sub_form'] = 1
+    print('correct values:')
     print(correct_values.to_string())
+    print('extracted:')
+    print(omr_form_1.data.to_string())
     assert omr_form_1.data.equals(correct_values)
 
 

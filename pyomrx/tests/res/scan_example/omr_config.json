@@ -87,7 +87,8 @@
               31
             ],
             "possible_columns": 31,
-            "name": "attendance"
+            "name": "attendance",
+            "index_name": "student_number"
           },
           {
             "rectangle": {
@@ -127,7 +128,8 @@
               1
             ],
             "possible_columns": 1,
-            "name": "dropout"
+            "name": "dropout",
+            "index_name": "student_number"
           }
         ],
         "metadata_requirements": {}
