@@ -8,6 +8,8 @@ EVT_FORM_GEN_START_ID = wx.NewId()
 EVT_FORM_GEN_SUCCESS_ID = wx.NewId()
 EVT_FORM_GEN_NONFATAL_ID = wx.NewId()
 
+EVT_FATAL_ID = wx.NewId()
+
 
 class DataExtractionStartEvent(wx.PyEvent):
     def __init__(self):
@@ -50,3 +52,10 @@ class FormGenerationNonFatalEvent(wx.PyEvent):
     def __init__(self):
         wx.PyEvent.__init__(self)
         self.SetEventType(EVT_FORM_GEN_NONFATAL_ID)
+
+
+class FatalEvent(wx.PyEvent):
+    def __init__(self, exception):
+        wx.PyEvent.__init__(self)
+        self.SetEventType(EVT_FATAL_ID)
+        self.exception = exception

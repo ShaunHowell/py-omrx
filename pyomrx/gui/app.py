@@ -55,6 +55,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
                      self.handle_data_extract_done)
         self.Connect(-1, -1, EVT_FORM_GEN_SUCCESS_ID,
                      self.handle_form_gen_done)
+        self.Connect(-1, -1, EVT_FATAL_ID, self.handle_worker_exception)
         self.Connect(-1, -1, EVT_FORM_GEN_START_ID, self.handle_form_gen_start)
         self.Bind(wx.EVT_CLOSE, self.handle_close)
         self.worker_abort_events = {}
@@ -349,6 +350,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
             style=wx.PD_SMOOTH | wx.PD_AUTO_HIDE | wx.PD_CAN_ABORT
             | wx.PD_REMAINING_TIME | wx.PD_ELAPSED_TIME | wx.PD_SMOOTH,
             abort_event=worker_thread.abort_event)
+
         worker_thread.start()
 
     def generate_forms(self, event):
@@ -427,6 +429,9 @@ class PyomrxMainFrame(wx.Frame, Abortable):
         del self.worker_abort_events[event.worker_id]
         if success_dialog == 5103:
             open_folder(Path(event.output_path))
+
+    def handle_worker_exception(self, event):
+        raise event.exception
 
     def handle_close(self, event):
         self.abort()

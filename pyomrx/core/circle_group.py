@@ -4,6 +4,7 @@ import pandas as pd
 from pyomrx.core.cv2_utils import *
 from pyomrx.core.circle import Circle
 from pyomrx.core.meta import Abortable
+from pyomrx.core.vis_utils import show_circles_on_image, show_image
 
 
 class CircleGroup(Abortable):
@@ -24,13 +25,13 @@ class CircleGroup(Abortable):
         raise NotImplementedError()
 
     def extract_circles_grid(self,
-                             image,
                              circles_per_row,
                              radius,
                              possible_columns=None,
                              radius_tolerance=0.2,
                              hough_param_1=60,
                              hough_param_2=5):
+        image = self.image
         possible_rows = len(circles_per_row)
         possible_columns = possible_columns or max(circles_per_row)
         assert len(
@@ -80,7 +81,7 @@ class BinaryCircles(CircleGroup):
         # print(f'extracting for binary circles {self.name}')
         absolute_radius = self.config['radius'] * max(self.image.shape)
         bare_circles_grid = self.extract_circles_grid(
-            self.image, [self.config['quantity']], absolute_radius,
+            [self.config['quantity']], absolute_radius,
             self.config['quantity'])
         # bare_circles_grid = circles_list_to_grid(bare_circles_list,
         #                                          [self.config['quantity']])
@@ -101,29 +102,25 @@ class DataCircleGroup(CircleGroup):
         self.raise_for_abort()
         self.row_filling = config['allowed_row_filling']
         self.circles = []
-        if self.row_filling != 'many':
-            raise NotImplementedError(
-                'cant do single circle per row data circles yet (eg exam forms)'
-            )
 
     def _extract_value(self):
         self.raise_for_abort()
         # show_image(self.image, 'data_circles')
         absolute_radius = self.config['radius'] * max(self.image.shape)
-        # FIXME: refactor this bit: get hough circles and expected grid, then optimise x_shift, y_shift, rotation, & scaling of expected grid to maximise fit with hough circles
         bare_circles_grid = self.extract_circles_grid(
-            self.image, self.config['circles_per_row'], absolute_radius,
+            self.config['circles_per_row'], absolute_radius,
             self.config['possible_columns'])
         # bare_circles_grid = circles_list_to_grid(
         #     bare_circles_grid, self.config['circles_per_row'])
         # print(bare_circles_grid)
         self.circles = init_circles_from_grid(self.image, bare_circles_grid)
-        # TODO: seems like expected circle size is still smaller than actual circles
-        values = []
-        for row in self.circles:
-            values.append([])
-            for circle in row:
-                values[-1].append(circle.is_filled)
+        if self.row_filling == 'many':
+            values = self._get_value_many_per_row()
+        elif self.row_filling == 'one':
+            values = self._get_value_one_per_row()
+        else:
+            raise ValueError(f'row_filling of {self.row_filling} not allowed')
+
         if self.config['possible_columns'] == 1:
             if self.config['column_prefix'] == None:
                 print(
@@ -134,16 +131,68 @@ class DataCircleGroup(CircleGroup):
                 columns = [self.config['column_prefix']]
         elif self.config['possible_columns'] > 1:
             prefix = self.config["column_prefix"] or ''
-            columns = [
-                f'{prefix}{i:02}'
-                for i in range(1, self.config["possible_columns"] + 1)
-            ]
+            if self.row_filling == 'many':
+                columns = [
+                    f'{prefix}{i:02}'
+                    for i in range(1, self.config["possible_columns"] + 1)
+                ]
+            else:
+                columns = [
+                    f'{prefix}{i:02}' for i in range(1,
+                                                     len(self.circles) + 1)
+                ]
         else:
             raise ValueError(
                 f'possible columns of {self.config["possible_columns"]} not allowed'
             )
-        self._value = pd.DataFrame(values, columns=columns)
+        df = pd.DataFrame(values, columns=columns)
+        if self.config.get('index_name'):
+            df.index.name = self.config.get('index_name')
+        if self.row_filling == 'one':
+            df['omr_error'] = df.apply(
+                lambda row: any([value == -3 for value in row]), axis=1)
+            df['marker_error'] = df.apply(
+                lambda row: any([value in [-1, -2] for value in row]), axis=1)
+        self._value = df
         return True
+
+    def _get_value_one_per_row(self):
+        values = []
+        for row in self.circles:
+            if not row:
+                # skip if no circles on this row
+                continue
+            response = single_response_from_darknesses(
+                [circle.relative_fill for circle in row])
+            values.append(response)
+        return [values]
+
+    def _get_value_many_per_row(self):
+        values = []
+        for row in self.circles:
+            values.append([])
+            for circle in row:
+                values[-1].append(circle.is_filled)
+        return values
+
+
+def single_response_from_darknesses(darknesses):
+    if len(darknesses) < 2:
+        return -3  # omr error because it didn't get enough circles
+    if max(darknesses) < 0.4:  # was 0.09
+        return -1  # -1 means the row doesn't have a response
+    filled_circles = list(filter(lambda d: d > 0.6,
+                                 darknesses))  # was 0.25 cutoff
+    if len(filled_circles) > 1:
+        return -2  # -2 means more than one response detected
+    if len(filled_circles) < 1:
+        return -3  # -3 means the omr algorithm couldn't work out the filled in box (abstention)
+    darknesses = enumerate(darknesses)
+    darknesses = sorted(darknesses, key=lambda circle: circle[1])
+    if darknesses[-2][1] > 0:
+        if darknesses[-1][1] / darknesses[-2][1] < 1.6:
+            return -3  # -3 because there wasn't enough difference between the 1st and 2nd darkest circles
+    return darknesses[-1][0]
 
 
 def get_expected_circles(circles_per_row, row_height, column_width, radius):
@@ -178,6 +227,8 @@ def get_max_search_distance(height, width, rows, columns, tolerance=0.3):
 def circles_list_to_grid(circles, circles_per_row):
     circles_grid = []
     for row_length in circles_per_row:
+        if not row_length:
+            continue
         circles_grid.append([])
         for circle_index in range(row_length):
             circles_grid[-1].append(circles.pop(0))

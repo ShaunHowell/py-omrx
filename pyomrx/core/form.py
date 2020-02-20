@@ -55,17 +55,25 @@ class OmrForm(Abortable):
         return self._df
 
     def extract_data(self):
-        dfs = [sub_form.values for sub_form in self.sub_forms]
-        self._data_values = pd.concat(dfs, axis=0)
+        dfs = []
+        for sub_form_number, sub_form in enumerate(self.sub_forms):
+            df = sub_form.values
+            df['sub_form'] = sub_form_number + 1
+            dfs.append(df)
+        df = pd.concat(dfs, axis=0)
+        if 'page' in self.metadata_values:
+            index_name = df.index.name
+            df.index = df.index + len(df) * (
+                self.metadata_values['page'] - 1) + 1
+            df.index.name = index_name
+        self._data_values = df
         return True
 
     def extract_df(self):
         df = self.data.copy()
         for metadata_name, metadata_value in self.metadata_values.items():
             df.loc[:, metadata_name] = metadata_value
-        if 'page' in df.columns.tolist():
-            df.index = df.index + len(df) * (df['page'] - 1) + 1
-        # TODO: add an optional field in the sub form comments whereby the index can be given a column heading
+        df['file'] = str(self.input_image_path.name)
         self._df = df
         return True
 
@@ -82,7 +90,7 @@ class OmrForm(Abortable):
 
     def _init_sub_forms(self):
         sub_form_config = self.template['sub_forms']
-        template = sub_form_config['sub_form_templates'][0]
+        template = sub_form_config['sub_form_template']
         for rectangle in sub_form_config['locations']:
             sub_form_image = extract_rectangle_image(self.image, rectangle)
             # print('template')
@@ -95,6 +103,11 @@ class OmrForm(Abortable):
         for metadata_circle_group_config in self.template['metadata_circles']:
             metadata_circles_image = extract_rectangle_image(
                 self.image, metadata_circle_group_config['rectangle'])
+            if metadata_circle_group_config['orientation'] == 'portrait':
+                metadata_circles_image = np.array(
+                    Image.fromarray(metadata_circles_image).rotate(
+                        90, expand=True))
+            # show_image(metadata_circles_image)
             self.metadata_circle_groups.append(
                 BinaryCircles(
                     metadata_circles_image,
@@ -114,7 +127,7 @@ class OmrSubForm(Abortable):
 
     def _init_circle_groups(self):
         # sub_form_config = self.template['sub_forms']
-        # template = sub_form_config['sub_form_templates'][0]
+        # template = sub_form_config['sub_form_template']
         for data_circles_config in self.template['circles']:
             data_circles_image = extract_rectangle_image(
                 self.image, data_circles_config['rectangle'])
@@ -132,7 +145,6 @@ class OmrSubForm(Abortable):
 
     def extract_values(self):
         dfs = [circle_group.value for circle_group in self.data_circle_groups]
-        # TODO: configurably allow different types of joins
         assert all([len(df) == len(dfs[0]) for df in dfs])
         df = pd.concat(dfs, axis=1)
         df = df.sort_index(axis=1)

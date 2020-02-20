@@ -16,7 +16,8 @@
         "name": "class_name",
         "decides_sub_form": false,
         "quantity": 5,
-        "radius": 0.05565217391304348
+        "radius": 0.05565217391304348,
+        "orientation": "landscape"
       },
       {
         "rectangle": {
@@ -28,7 +29,8 @@
         "name": "institution",
         "decides_sub_form": false,
         "quantity": 7,
-        "radius": 0.03975155279503106
+        "radius": 0.03975155279503106,
+        "orientation": "landscape"
       },
       {
         "rectangle": {
@@ -40,97 +42,98 @@
         "name": "page",
         "decides_sub_form": false,
         "quantity": 3,
-        "radius": 0.0927536231884058
+        "radius": 0.0927536231884058,
+        "orientation": "landscape"
       }
     ],
     "sub_forms": {
-      "sub_form_templates": [
-        {
-          "circles": [
-            {
-              "rectangle": {
-                "top": 0.03846153846153845,
-                "bottom": 0.9999999999999999,
-                "left": 0.30977734753146174,
-                "right": 1.0
-              },
-              "allowed_row_filling": "many",
-              "column_prefix": "A",
-              "radius": 0.008976157082748949,
-              "circles_per_row": [
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31,
-                31
-              ],
-              "possible_columns": 31,
-              "name": "attendance"
+      "sub_form_template": {
+        "circles": [
+          {
+            "rectangle": {
+              "top": 0.03846153846153845,
+              "bottom": 0.9999999999999999,
+              "left": 0.30977734753146174,
+              "right": 1.0
             },
-            {
-              "rectangle": {
-                "top": 0.03846153846153845,
-                "bottom": 0.9999999999999999,
-                "left": 0.2749273959341723,
-                "right": 0.30977734753146174
-              },
-              "allowed_row_filling": "many",
-              "column_prefix": "dropout",
-              "radius": 0.01029239766081871,
-              "circles_per_row": [
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1
-              ],
-              "possible_columns": 1,
-              "name": "dropout"
-            }
-          ],
-          "metadata_requirements": {}
-        }
-      ],
+            "allowed_row_filling": "many",
+            "column_prefix": "A",
+            "radius": 0.008976157082748949,
+            "circles_per_row": [
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31,
+              31
+            ],
+            "possible_columns": 31,
+            "name": "attendance",
+            "index_name": "student_number"
+          },
+          {
+            "rectangle": {
+              "top": 0.03846153846153845,
+              "bottom": 0.9999999999999999,
+              "left": 0.2749273959341723,
+              "right": 0.30977734753146174
+            },
+            "allowed_row_filling": "many",
+            "column_prefix": "dropout",
+            "radius": 0.01029239766081871,
+            "circles_per_row": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "possible_columns": 1,
+            "name": "dropout",
+            "index_name": "student_number"
+          }
+        ],
+        "metadata_requirements": {}
+      },
       "locations": [
         {
           "top": 0.035163479333744585,
