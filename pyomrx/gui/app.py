@@ -36,7 +36,6 @@ class PyomrxMainFrame(wx.Frame, Abortable):
             'pyomrx/temp/forms') if DEBUG else ''
         self.buttons = defaultdict(lambda: dict())
         self.tabs = {}
-        self.dialogs = []
         self.sizers = {}
         self.init_tabs()
         self.init_extract_data_tab()
@@ -351,7 +350,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
             style=wx.PD_SMOOTH | wx.PD_AUTO_HIDE | wx.PD_CAN_ABORT
             | wx.PD_REMAINING_TIME | wx.PD_ELAPSED_TIME | wx.PD_SMOOTH,
             abort_event=worker_thread.abort_event)
-        self.dialogs.append(progress_dialog)
+
         worker_thread.start()
 
     def generate_forms(self, event):
@@ -391,7 +390,6 @@ class PyomrxMainFrame(wx.Frame, Abortable):
             style=wx.PD_SMOOTH | wx.PD_AUTO_HIDE | wx.PD_CAN_ABORT
             | wx.PD_REMAINING_TIME | wx.PD_ELAPSED_TIME | wx.PD_SMOOTH,
             abort_event=worker_thread.abort_event)
-        self.dialogs.append(progress_dialog)
         worker_thread.start()
 
     def handle_data_extract_start(self, event):
