@@ -7,9 +7,23 @@ from pyomrx.core.meta import Abortable
 from pyomrx.core.vis_utils import show_circles_on_image, show_image
 
 
+def assert_image_fits_circles(image, config):
+    image_shape = image.shape
+    circle_radius_pixels = max(image_shape) * config['radius']
+    required_min_width = circle_radius_pixels * config['possible_columns']
+    likely_max_width = circle_radius_pixels * config['possible_columns'] * 2
+    required_min_height = circle_radius_pixels * len(config['circles_per_row'])
+    likely_max_height = circle_radius_pixels * len(config['circles_per_row']) * 2
+    if not required_min_width < image_shape[1] < likely_max_width \
+            and required_min_height < image_shape[0] < likely_max_height:
+        raise OmrValidationException(f'circle group image with shape {image_shape} '
+                                     f'cannot fit circle group with config {config}')
+
+
 class CircleGroup(Abortable):
     def __init__(self, image, config, abort_event=None):
         Abortable.__init__(self, abort_event)
+        assert_image_fits_circles(image, config)
         self.image = get_one_channel_grey_image(image)
         self.config = config
         self.name = config['name']
@@ -92,7 +106,7 @@ class BinaryCircles(CircleGroup):
         value = 0
         for i, circle in enumerate(reversed(self.circles)):
             if circle.is_filled:
-                value = value + 2**i
+                value = value + 2 ** i
         self._value = value
 
 
@@ -292,9 +306,9 @@ def rotate_points_around_origin(points, origin, angle):
     new_points = np.copy(points)
 
     new_points[:, 0] = ox + np.cos(angle) * (
-        points[:, 0] - ox) - np.sin(angle) * (points[:, 1] - oy)
+            points[:, 0] - ox) - np.sin(angle) * (points[:, 1] - oy)
     new_points[:, 1] = oy + np.sin(angle) * (
-        points[:, 0] - ox) + np.cos(angle) * (points[:, 1] - oy)
+            points[:, 0] - ox) + np.cos(angle) * (points[:, 1] - oy)
     return new_points
 
 
@@ -308,9 +322,9 @@ def adjust_grid_circles(circles_grid, x_shift, y_shift, grow_x, grow_y,
     # print(grid_centre)
     # plt.plot(*grid_centre.tolist(), 'o')
     new_grid[:, 0] = (
-        new_grid[:, 0] - grid_centre[0]) * grow_x + grid_centre[0]
+                             new_grid[:, 0] - grid_centre[0]) * grow_x + grid_centre[0]
     new_grid[:, 1] = (
-        new_grid[:, 1] - grid_centre[1]) * grow_y + grid_centre[1]
+                             new_grid[:, 1] - grid_centre[1]) * grow_y + grid_centre[1]
     new_grid = rotate_points_around_origin(
         new_grid, grid_centre, angle=rotation)
     return new_grid
