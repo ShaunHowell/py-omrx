@@ -51,7 +51,8 @@ class Circle:
             else:
                 self._is_filled = False
 
-            if self._is_filled is None and os.environ.get('debug').lower() == 'true':
+            if self._is_filled is None and os.environ.get(
+                    'debug').lower() == 'true':
                 print(f'total area relative fill: {relative_fill_total}')
                 print(f'radius: {self.radius}')
                 debug_image = cv2.cvtColor(self.image, cv2.COLOR_GRAY2RGB)
