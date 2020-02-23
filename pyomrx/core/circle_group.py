@@ -4,12 +4,28 @@ import pandas as pd
 from pyomrx.core.cv2_utils import *
 from pyomrx.core.circle import Circle
 from pyomrx.core.meta import Abortable
-from pyomrx.core.vis_utils import show_circles_on_image, show_image
+
+
+def assert_image_fits_circles(image, config):
+    image_shape = image.shape
+    possible_columns = config.get('possible_columns') or config.get('quantity')
+    num_rows = len(config.get('circles_per_row', [])) or 1
+    circle_radius_pixels = max(image_shape) * config['radius']
+    required_min_width = circle_radius_pixels * possible_columns
+    likely_max_width = circle_radius_pixels * possible_columns * 2
+    required_min_height = circle_radius_pixels * num_rows
+    likely_max_height = circle_radius_pixels * num_rows * 2
+    if not required_min_width < image_shape[1] < likely_max_width \
+            and required_min_height < image_shape[0] < likely_max_height:
+        raise OmrValidationException(
+            f'circle group image with shape {image_shape} '
+            f'cannot fit circle group with config {config}')
 
 
 class CircleGroup(Abortable):
     def __init__(self, image, config, abort_event=None):
         Abortable.__init__(self, abort_event)
+        assert_image_fits_circles(image, config)
         self.image = get_one_channel_grey_image(image)
         self.config = config
         self.name = config['name']
@@ -73,22 +89,18 @@ class CircleGroup(Abortable):
 
 class BinaryCircles(CircleGroup):
     def __init__(self, image, config, abort_event=None):
-        # TODO: assert that the image is approximately the correct dimensions for the radius and number of circles
         CircleGroup.__init__(self, image, config, abort_event)
         # show_image(image, f'binary circles {config["name"]}')
 
     def _extract_value(self):
-        # print(f'extracting for binary circles {self.name}')
         absolute_radius = self.config['radius'] * max(self.image.shape)
         bare_circles_grid = self.extract_circles_grid(
             [self.config['quantity']], absolute_radius,
             self.config['quantity'])
         # bare_circles_grid = circles_list_to_grid(bare_circles_list,
         #                                          [self.config['quantity']])
-        self.circles = init_circles_from_grid(self.image, bare_circles_grid)[0]
-        # TODO: seems like form circles are above the row centerline
-        # TODO: seems like expected circle size is still smaller than actual circles
-        # print(self.circles)
+        self.circles = init_circle_objects_from_grid(self.image,
+                                                     bare_circles_grid)[0]
         value = 0
         for i, circle in enumerate(reversed(self.circles)):
             if circle.is_filled:
@@ -112,8 +124,8 @@ class DataCircleGroup(CircleGroup):
             self.config['possible_columns'])
         # bare_circles_grid = circles_list_to_grid(
         #     bare_circles_grid, self.config['circles_per_row'])
-        # print(bare_circles_grid)
-        self.circles = init_circles_from_grid(self.image, bare_circles_grid)
+        self.circles = init_circle_objects_from_grid(self.image,
+                                                     bare_circles_grid)
         if self.row_filling == 'many':
             values = self._get_value_many_per_row()
         elif self.row_filling == 'one':
@@ -162,8 +174,7 @@ class DataCircleGroup(CircleGroup):
             if not row:
                 # skip if no circles on this row
                 continue
-            response = single_response_from_darknesses(
-                [circle.relative_fill for circle in row])
+            response = single_response_from_row(row)
             values.append(response)
         return [values]
 
@@ -176,29 +187,24 @@ class DataCircleGroup(CircleGroup):
         return values
 
 
-def single_response_from_darknesses(darknesses):
-    if len(darknesses) < 2:
+def single_response_from_row(circles):
+    if len(circles) < 2:
         return -3  # omr error because it didn't get enough circles
-    if max(darknesses) < 0.4:  # was 0.09
+    if all([circle.is_filled is False for circle in circles]):
         return -1  # -1 means the row doesn't have a response
-    filled_circles = list(filter(lambda d: d > 0.6,
-                                 darknesses))  # was 0.25 cutoff
-    if len(filled_circles) > 1:
+    if len([circle for circle in circles if circle.is_filled]) > 1:
         return -2  # -2 means more than one response detected
-    if len(filled_circles) < 1:
-        return -3  # -3 means the omr algorithm couldn't work out the filled in box (abstention)
-    darknesses = enumerate(darknesses)
-    darknesses = sorted(darknesses, key=lambda circle: circle[1])
-    if darknesses[-2][1] > 0:
-        if darknesses[-1][1] / darknesses[-2][1] < 1.6:
-            return -3  # -3 because there wasn't enough difference between the 1st and 2nd darkest circles
-    return darknesses[-1][0]
+    if any([circle for circle in circles if circle.is_filled is None]):
+        return -3  # -3 because at least one circle was uncertain
+    for i, circle in enumerate(circles):
+        if circle.is_filled:
+            return i
+    raise ValueError('single_response_from_row unable to get a response')
 
 
 def get_expected_circles(circles_per_row, row_height, column_width, radius):
     expected_locations = []
     top_left_position = [row_height / 2, column_width / 2]
-    # print(top_left_position)
     y = top_left_position[0]
     for row, num_circles in enumerate(circles_per_row):
         x = top_left_position[1]
@@ -217,13 +223,6 @@ def get_min_distance(height, width, rows, columns, tolerance=0.1):
     return min_distance
 
 
-def get_max_search_distance(height, width, rows, columns, tolerance=0.3):
-    row_height = height / rows
-    column_width = width / columns
-    max_distance = max(row_height, column_width) * tolerance
-    return max_distance
-
-
 def circles_list_to_grid(circles, circles_per_row):
     circles_grid = []
     for row_length in circles_per_row:
@@ -235,20 +234,31 @@ def circles_list_to_grid(circles, circles_per_row):
     return circles_grid
 
 
-def init_circles_from_grid(image, circle_grid):
+def init_circle_objects_from_grid(image, circle_grid, margin_ratio=0.8):
     circles = []
+    y_max, x_max = image.shape
     for circle_row in circle_grid:
         circles.append([])
         for bare_circle in circle_row:
             x = bare_circle[0]
             y = bare_circle[1]
             radius = bare_circle[2]
-            x_lim_low = int(x - radius)
-            x_lim_high = int(x + radius)
-            y_lim_low = int(y - radius)
-            y_lim_high = int(y + radius)
+            margin = radius * margin_ratio
+            x_lim_low = int(x - radius - margin)
+            x_lim_high = int(x + radius + margin)
+            y_lim_low = int(y - radius - margin)
+            y_lim_high = int(y + radius + margin)
+
+            # adjust to ensure square image inside bounds
+            adjust = min(
+                min(0, x_lim_low), min(0, x_max - x_lim_high), min(
+                    0, y_lim_low), min(0, y_max - y_lim_high)) * -1
+            x_lim_low += adjust
+            x_lim_high -= adjust
+            y_lim_low += adjust
+            y_lim_high -= adjust
             circle_image = image[y_lim_low:y_lim_high, x_lim_low:x_lim_high]
-            circles[-1].append(Circle(circle_image))
+            circles[-1].append(Circle(circle_image, radius=radius))
     return circles
 
 
@@ -270,7 +280,6 @@ def circle_adjustment_scipy_objective_function_wrapper(x, *args):
     circles_grid, seen_circles = args
     loss = evaluate_circle_adjustment(circles_grid, seen_circles, x_shift,
                                       y_shift, grow_x, grow_y, rotation)
-    # print(f'calling objective func: {x} -> loss = {loss}')
     return loss
 
 
@@ -304,8 +313,6 @@ def adjust_grid_circles(circles_grid, x_shift, y_shift, grow_x, grow_y,
     new_grid[:, 0] += x_shift
     new_grid[:, 1] += y_shift
     grid_centre = np.mean(new_grid[:, :2], axis=0)
-    # print(new_grid)
-    # print(grid_centre)
     # plt.plot(*grid_centre.tolist(), 'o')
     new_grid[:, 0] = (
         new_grid[:, 0] - grid_centre[0]) * grow_x + grid_centre[0]
@@ -324,5 +331,12 @@ def evaluate_circles_distance(candidate_circles, seen_circles):
 
 
 def find_closest_point_distances(candidate_points, seen_points):
-    dists = distance.cdist(candidate_points, seen_points).min(axis=1)
+    spacing = max([
+        abs(candidate_points[1][0] - candidate_points[0][0]),
+        abs(candidate_points[1][1] - candidate_points[0][1])
+    ])
+    dists = np.clip(
+        distance.cdist(candidate_points, seen_points).min(axis=1),
+        a_min=0,
+        a_max=spacing * 2)
     return dists
