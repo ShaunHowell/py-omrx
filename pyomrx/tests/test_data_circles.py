@@ -2,7 +2,7 @@ import pytest
 from pyomrx.core.circle_group import *
 from pathlib import Path
 from pyomrx.core.cv2_utils import load_and_check_image
-from pyomrx.core.circle_group import single_response_from_darknesses
+from pyomrx.core.circle_group import single_response_from_row
 
 
 @pytest.fixture
@@ -169,42 +169,6 @@ class TestFittingCircleGrid:
             circles, new_new_circles)
         assert closeness_after_one_rotate > 0.1
         assert closeness_after_two_rotate < 1e-5
-
-
-class TestResponseFromDarknesses:
-    def test_good_response_from_darknesses(self):
-        example = [
-            0.17548420642142207, 0.21935525802677758, 0.20798128168464836,
-            0.15436110750032495, 0.180358767710906, 0.20473157415832574,
-            0.9960353568178864, 0.18523332900038994, 0.32288229793390616,
-            0.20960613544780968
-        ]
-        assert single_response_from_darknesses(example) == 6
-
-    def test_no_response_from_darknesses(self):
-        example = [0.1706096451319381, 0.2915782024062279]
-        assert single_response_from_darknesses(example) == -1
-
-    def test_double_response_from_darknesses(self):
-        example = [
-            0.17548420642142207, 0.21935525802677758, 0.9960353568178864,
-            0.15436110750032495, 0.180358767710906, 0.20473157415832574,
-            0.9960353568178864, 0.18523332900038994, 0.32288229793390616,
-            0.20960613544780968
-        ]
-        assert single_response_from_darknesses(example) == -2
-
-    def test_middle_ground_abstention_response_from_darknesses(self):
-        example = [
-            0.5, 0.5, 0.5, 0.5, 0.32288229793390616, 0.20960613544780968
-        ]
-        assert single_response_from_darknesses(example) == -3
-
-    def test_closeness_abstention_response_from_darknesses(self):
-        example = [
-            0.59, 0.7, 0.5, 0.5, 0.32288229793390616, 0.20960613544780968
-        ]
-        assert single_response_from_darknesses(example) == -3
 
 
 if __name__ == '__main__':

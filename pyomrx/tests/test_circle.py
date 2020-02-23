@@ -9,7 +9,7 @@ from pyomrx.core.circle import Circle
 def empty_circle(res_folder):
     image_path = str(Path(res_folder) / 'empty_circle.png')
     image = load_and_check_image(image_path)
-    return Circle(image)
+    return Circle(image, 6)
 
 
 def test_empty_circle_is_not_filled(empty_circle):
@@ -20,7 +20,7 @@ def test_empty_circle_is_not_filled(empty_circle):
 def filled_circle(res_folder):
     image_path = str(Path(res_folder) / 'filled_circle.png')
     image = load_and_check_image(image_path)
-    return Circle(image)
+    return Circle(image, 6)
 
 
 def test_filled_circle_is_filled(filled_circle):

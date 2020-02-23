@@ -67,6 +67,7 @@ ANY_NS_REGEX = '{.*}'
 TEMP_FOLDER = Path('./pyomrxtemp')
 VA_HA_MAP = dict(top='right', center='center', bottom='left')
 HA_VA_MAP = dict(right='bottom', center='center', left='top')
+CIRCLE_LINE_COLOUR = (0.8, 0.8, 0.8)
 
 
 def get_rectangle_from_range(range_cells, row_dims, col_dims):
@@ -355,13 +356,13 @@ def render_cell(ax, top, left, height, width, cell, theme_colours):
                 rotation=rotation)
 
 
-def plot_circles(ax, centres, radius, fill, colour):
-    patches = []
+def plot_circles(ax, centres, radius, fill):
     for centre in centres:
         circle = Circle((centre[0], centre[1]),
                         radius,
                         fill=fill,
-                        color=colour)
+                        edgecolor=CIRCLE_LINE_COLOUR,
+                        facecolor='black')
         ax.add_patch(circle)
 
 
@@ -588,8 +589,7 @@ class FormMaker(Abortable):
                     form_template_ax,
                     zip(circle_x_coords, circle_y_coords),
                     circles_dict['radius'],
-                    fill=False,
-                    colour='black')
+                    fill=False)
         form_metadata_circles_config = []
         self.raise_for_abort()
         form_metadata_values = {}
@@ -707,14 +707,12 @@ class FormMaker(Abortable):
                 form_template_ax,
                 empty_circle_coords,
                 circle_radius,
-                fill=False,
-                colour='black')
+                fill=False)
             plot_circles(
                 form_template_ax,
                 filled_circle_coords,
                 circle_radius,
-                fill=True,
-                colour='black')
+                fill=True)
             form_metadata_circles_config.append(metadata_circles_config)
         self.raise_for_abort()
 
@@ -782,14 +780,12 @@ class FormMaker(Abortable):
                 form_template_ax,
                 zip(circle_x_coords, circle_y_coords),
                 circles_dict['radius'],
-                fill=False,
-                colour='black')
+                fill=False)
             # plot_circles(
             #     form_template_ax,
             #     zip(filled_circle_x_coords, filled_circle_y_coords),
             #     circles_dict['radius'],
-            #     fill=True,
-            #     colour='black')
+            #     fill=True)
 
             circles_comment = str(template_circles_range.comment)
             row_fill = re.findall(row_fill_regex, circles_comment)

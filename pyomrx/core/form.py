@@ -57,9 +57,9 @@ class OmrForm(Abortable):
     def extract_data(self):
         dfs = []
         for sub_form_number, sub_form in enumerate(self.sub_forms):
-            df = sub_form.values
-            df['sub_form'] = sub_form_number + 1
-            dfs.append(df)
+            sub_form_df = sub_form.values
+            sub_form_df['sub_form'] = sub_form_number + 1
+            dfs.append(sub_form_df)
         df = pd.concat(dfs, axis=0)
         if 'page' in self.metadata_values:
             index_name = df.index.name
@@ -107,7 +107,7 @@ class OmrForm(Abortable):
                 metadata_circles_image = np.array(
                     Image.fromarray(metadata_circles_image).rotate(
                         90, expand=True))
-            # show_image(metadata_circles_image)
+            # show_image(metadata_circles_image, f'metadata {metadata_circle_group_config["name"]}')
             self.metadata_circle_groups.append(
                 BinaryCircles(
                     metadata_circles_image,
@@ -147,8 +147,16 @@ class OmrSubForm(Abortable):
         dfs = [circle_group.value for circle_group in self.data_circle_groups]
         assert all([len(df) == len(dfs[0]) for df in dfs])
         df = pd.concat(dfs, axis=1)
+        for error_column in ['marker_error', 'omr_error']:
+            if error_column in df.columns:
+                error_column_df = df[[error_column]].any(axis=1).to_frame()
+                error_column_df.columns = [error_column]
+                df = pd.concat(
+                    [df.drop(error_column, axis=1), error_column_df], axis=1)
+
         df = df.sort_index(axis=1)
         self._values = df
+
         # print(self._values.to_string())
 
 
