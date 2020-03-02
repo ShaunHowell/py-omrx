@@ -1,7 +1,5 @@
 import pytest
-from pathlib import Path
-from pyomrx.core.cv2_utils import *
-import numpy as np
+from pyomrx.utils.cv2_utils import *
 from pyomrx.core.circle import Circle
 
 

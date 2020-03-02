@@ -1,8 +1,7 @@
 import pytest
 from pyomrx.core.circle_group import *
 from pathlib import Path
-from pyomrx.core.cv2_utils import load_and_check_image
-from pyomrx.core.circle_group import single_response_from_row
+from pyomrx.utils.cv2_utils import load_and_check_image
 
 
 @pytest.fixture

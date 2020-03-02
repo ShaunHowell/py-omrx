@@ -1,0 +1,86 @@
+{
+  "author": "shaun",
+  "created_on": "2020-02-22 14:09:44.022352",
+  "description": "manually created config for 2020 L3T1 LA exam",
+  "id": "2020febL3T1LAexamManual",
+  "name": "example_exam_form",
+  "pyomrx_version": "2.3.0",
+  "template": {
+    "metadata_circles": [
+      {
+        "name": "paper_code",
+        "orientation": "portrait",
+        "quantity": 3,
+        "radius": 0.08148148148148149,
+        "rectangle": {
+          "bottom": 0.25,
+          "left": 0.9287090076794157,
+          "right": 0.96,
+          "top": 0.15
+        }
+      }
+    ],
+    "sub_forms": {
+      "locations": [
+        {
+          "bottom": 0.9722222222222222,
+          "left": 0.023763664106861444,
+          "right": 0.3016484478575181,
+          "top": 0.027777777777777776
+        },
+        {
+          "bottom": 0.9722222222222222,
+          "left": 0.3254121119643795,
+          "right": 0.6032968957150362,
+          "top": 0.027777777777777776
+        },
+        {
+          "bottom": 0.9722222222222222,
+          "left": 0.6270605598218976,
+          "right": 0.9049453435725542,
+          "top": 0.027777777777777776
+        }
+      ],
+      "sub_form_template": {
+        "circles": [
+          {
+            "allowed_row_filling": "one",
+            "circles_per_row": [
+              10,
+              10,
+              10,
+              10
+            ],
+            "column_prefix": "C",
+            "name": "code",
+            "possible_columns": 10,
+            "radius": 0.022,
+            "rectangle": {
+              "bottom": 0.238,
+              "left": 0.102,
+              "right": 1.0,
+              "top": 0.1
+            }
+          },
+          {
+            "allowed_row_filling": "one",
+            "circles_per_row": [
+             5,5,5,5,5,5,2,2,2,2,2,2,2,2,2,2,3,3,3,0,0,0
+            ],
+            "column_prefix": "A",
+            "name": "scores",
+            "possible_columns": 10,
+            "radius": 0.011,
+            "rectangle": {
+              "bottom": 1.0,
+              "left": 0.1,
+              "right": 1.0,
+              "top": 0.268
+            }
+          }
+        ],
+        "metadata_requirements": {}
+      }
+    }
+  }
+}
