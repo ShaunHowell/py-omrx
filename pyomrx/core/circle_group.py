@@ -1,9 +1,10 @@
 from scipy.spatial import distance
 from scipy.optimize import minimize
 import pandas as pd
-from pyomrx.core.cv2_utils import *
+from pyomrx.utils.cv2_utils import *
 from pyomrx.core.circle import Circle
 from pyomrx.core.meta import Abortable
+from pyomrx.utils.vis_utils import *
 
 
 def assert_image_fits_circles(image, config):
@@ -30,6 +31,7 @@ class CircleGroup(Abortable):
         self.config = config
         self.name = config['name']
         self._value = None
+        # show_image(image, f'circle group {config["name"]}')
 
     @property
     def value(self):
@@ -97,8 +99,6 @@ class BinaryCircles(CircleGroup):
         bare_circles_grid = self.extract_circles_grid(
             [self.config['quantity']], absolute_radius,
             self.config['quantity'])
-        # bare_circles_grid = circles_list_to_grid(bare_circles_list,
-        #                                          [self.config['quantity']])
         self.circles = init_circle_objects_from_grid(self.image,
                                                      bare_circles_grid)[0]
         value = 0
@@ -113,6 +113,7 @@ class DataCircleGroup(CircleGroup):
         CircleGroup.__init__(self, image, config, abort_event)
         self.raise_for_abort()
         self.row_filling = config['allowed_row_filling']
+
         self.circles = []
 
     def _extract_value(self):
@@ -165,6 +166,9 @@ class DataCircleGroup(CircleGroup):
                 lambda row: any([value == -3 for value in row]), axis=1)
             df['marker_error'] = df.apply(
                 lambda row: any([value in [-1, -2] for value in row]), axis=1)
+        if self.row_filling == 'many':
+            df['omr_error'] = df.apply(
+                lambda row: any([np.isnan(value) for value in row]), axis=1)
         self._value = df
         return True
 

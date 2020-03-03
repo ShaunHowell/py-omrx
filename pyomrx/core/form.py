@@ -1,16 +1,17 @@
+from pyomrx.utils.env_utils import debug_mode
 import pandas as pd
 from PIL import Image
 from imutils.perspective import four_point_transform
 from scipy.spatial.distance import euclidean
 
-from pyomrx.core.exceptions import OmrException, OmrValidationException
+from pyomrx.core.exceptions import *
 import cv2
 from pathlib import Path
-from pyomrx.core.cv2_utils import load_and_check_image, extract_rectangle_image, get_one_channel_grey_image
+from pyomrx.utils.cv2_utils import load_and_check_image, extract_rectangle_image, get_one_channel_grey_image
 from pyomrx.core.circle_group import BinaryCircles, DataCircleGroup
 import imutils
 import numpy as np
-from pyomrx.core.vis_utils import show_image
+from pyomrx.utils.vis_utils import show_image
 from pyomrx.core.meta import Abortable
 
 
@@ -51,7 +52,12 @@ class OmrForm(Abortable):
     @property
     def df(self):
         if self._df is None:
-            self.extract_df()
+            try:
+                self.extract_df()
+            except CircleParseError:
+                if debug_mode():
+                    show_image(self.image, self.input_image_path.name)
+                raise
         return self._df
 
     def extract_data(self):
@@ -85,7 +91,8 @@ class OmrForm(Abortable):
             # show_image(rgb_outer_box, 'outer box')
         except OmrException as e:
             raise OmrException(
-                'no suitable outer contour found:\n{}'.format(e))
+                f'no suitable outer contour found in {self.input_image_path.name}:\n{e}'
+            )
         self.image = grey_outer_box
 
     def _init_sub_forms(self):
@@ -215,8 +222,9 @@ def get_outer_box_contour(original_image):
         if len(approx) == 4:
             docCnt = approx
             break
-    min_acceptable_perim = image_perim * 0.5
-    if type(docCnt) != np.ndarray or perim < min_acceptable_perim:
+    min_acceptable_perim = image_perim * 0.66
+    if (type(docCnt) != np.ndarray
+            or perim < min_acceptable_perim) and debug_mode():
         temp_image = cv2.cvtColor(edged_image, cv2.COLOR_GRAY2RGB)
         cv2.drawContours(temp_image, [docCnt], -1, (255, 0, 0), 3)
         show_image(temp_image)

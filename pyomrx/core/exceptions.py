@@ -16,3 +16,7 @@ class EmptyFolderException(FileNotFoundError):
 
 class AbortException(OmrException):
     pass
+
+
+class CircleParseError(Exception):
+    pass

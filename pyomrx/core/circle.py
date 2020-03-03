@@ -1,20 +1,22 @@
-import os
-from matplotlib import pyplot as plt
-import cv2
-import numpy as np
-from pyomrx.core.cv2_utils import *
-from pyomrx.core.vis_utils import show_image, show_circles_on_image
+from pyomrx.utils.env_utils import debug_mode
+from pyomrx.utils.cv2_utils import *
+from pyomrx.utils.vis_utils import show_image
 
 
 class Circle:
     def __init__(self,
                  image,
                  radius,
-                 fill_threshold=0.4,
-                 not_filled_threshold=0.2):
+                 fill_threshold=0.5,
+                 not_filled_threshold=0.3):
+        if not image.size:
+            raise CircleParseError(
+                'tried to intialise a circle with an empty image array')
         self.image = get_one_channel_grey_image(image)
-        assert np.isclose(*self.image.shape, rtol=0.04, atol=1), \
-            f'image must be square, got image with shape {self.image.shape}'
+        if not np.isclose(*self.image.shape, rtol=0.04, atol=1):
+            raise CircleParseError(
+                f'image must be square, got image with shape {self.image.shape}'
+            )
         self.fill_threshold = fill_threshold
         self.not_filled_threshold = not_filled_threshold
         self.radius = radius
@@ -23,10 +25,10 @@ class Circle:
         self._relative_fill = None
 
     @property
-    def is_filled(self):
-        if self._is_filled is None:
+    def relative_fill(self):
+        if self._relative_fill is None:
             blurred_image = cv2.blur(self.image, (5, 5))
-            sharp_image = cv2.addWeighted(self.image, 1.9, blurred_image, -0.1,
+            sharp_image = cv2.addWeighted(self.image, 1.4, blurred_image, -0.4,
                                           0)
             binary_image = cv2.threshold(
                 sharp_image, 0, 255,
@@ -44,15 +46,22 @@ class Circle:
             relative_fill_in_circle = cv2.countNonZero(mask) / (
                 self.area * circle_shrink_factor**2)
             relative_fill_total = cv2.countNonZero(binary_image) / self.area
-            if relative_fill_in_circle >= self.fill_threshold or relative_fill_total > 0.9:
+            self._relative_fill = relative_fill_in_circle, relative_fill_total
+        return self._relative_fill
+
+    @property
+    def is_filled(self):
+        if self._is_filled is None:
+            relative_fill_in_circle, relative_fill_total = self.relative_fill
+            if relative_fill_in_circle >= self.fill_threshold or \
+                (relative_fill_in_circle > self.not_filled_threshold and relative_fill_total > 1):
                 self._is_filled = True
             elif self.not_filled_threshold <= relative_fill_in_circle < self.fill_threshold:
                 self._is_filled = None
             else:
                 self._is_filled = False
 
-            if self._is_filled is None and os.environ.get(
-                    'debug').lower() == 'true':
+            if self._is_filled is None and debug_mode():
                 print(f'total area relative fill: {relative_fill_total}')
                 print(f'radius: {self.radius}')
                 debug_image = cv2.cvtColor(self.image, cv2.COLOR_GRAY2RGB)
@@ -65,16 +74,17 @@ class Circle:
                     thickness=1)
                 show_image(
                     self.image,
-                    f'fill:{self.relative_fill}, filled: {self.is_filled}',
+                    f'original.fill:{relative_fill_in_circle}, filled: {self._is_filled}',
                     delayed_show=True)
                 show_image(
                     debug_image,
-                    f'fill:{self.relative_fill}, filled: {self.is_filled}',
-                    delayed_show=True)
-                show_image(binary_image, 'binary boi', delayed_show=True)
-                show_image(
-                    mask,
-                    f'final circle image, relative fill: {self._relative_fill}',
+                    f'originial w/ circle. fill:{relative_fill_in_circle}, filled: {self._is_filled}',
                     delayed_show=False)
+                # show_image(sharp_image, 'sharp boi', delayed_show=True)
+                # show_image(binary_image, 'binary boi', delayed_show=True)
+                # show_image(
+                #     mask,
+                #     f'final circle image, relative fill: {relative_fill_in_circle}',
+                #     delayed_show=False)
 
         return self._is_filled

@@ -44,5 +44,4 @@ def extract_rectangle_image(image, rectangle):
     bottom = int(image_height * rectangle['bottom'])
     left = int(image_width * rectangle['left'])
     right = int(image_width * rectangle['right'])
-    # TODO: add a buffer outside the specified rectangle to avoid cropping circles if there's skew
     return image[top:bottom, left:right]

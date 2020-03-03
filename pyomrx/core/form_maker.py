@@ -1,4 +1,5 @@
 # atexit.register(plt.show)
+from pyomrx.core.exceptions import CircleParseError
 from pyomrx.gui import FORM_GENERATION_TOPIC
 from pubsub import pub
 import shutil
@@ -20,14 +21,10 @@ import pandas as pd
 import re
 import openpyxl as pyxl
 import matplotlib.pyplot as plt
-import atexit
-from collections import defaultdict
 import pyomrx
-from openpyxl.styles.colors import COLOR_INDEX
 from pyomrx.core.meta import Abortable
 
-#### Long grass features
-# TODO: support all possible circles arrangements:
+# NOTE: supported arrangements of circle groups:
 #  - [x] ones circles above-below ones-circles (sf -> one row of ints)
 #  - [x] many circles left-right of many-circles (sf -> many rows of bools)
 #  - [ ] ones-circles above-below many-circles (sf -> many rows of bools, ones ints on each row)
@@ -36,14 +33,6 @@ from pyomrx.core.meta import Abortable
 #  - [ ] ones-circles left-right of ones-circles (sf -> one row of values)
 
 #### Extra robustness
-# TODO: clean this script into more modular functions, with tests and better error messages
-# TODO: check the circles are looking to be the correct size now
-# TODO: asert that all form components are completely inside their parent component
-# TODO: sort left & right aligned text margins more robustly
-# TODO: make font size fixed in pixel space to improve robustness
-# TODO: assert that metadata ranges are fully inside page 1
-# TODO: brush up all the regex to be as robust as possible
-# TODO: work out how to deal with cells which contain dates...
 # TODO: check if any used cell range is actually multiple ranges (e.g. template!A1:A3+template!B1:B3) and raise a useful error message
 
 LANDSCAPE = 'landscape'
@@ -167,10 +156,6 @@ def get_relative_rectangle(inner_rectangle, outer_rectangle):
     return relative_inner_rectangle
 
 
-class CircleParseError(Exception):
-    pass
-
-
 def parse_circles_from_range(metadata_range_cells,
                              orient=None,
                              assert_1d=False,
@@ -234,9 +219,15 @@ def get_merged_cells(worksheet):
     return merged_cells
 
 
+def assert_cells_contain_cells(outer_cells, inner_cells):
+    assert cells_contain_cells(
+        outer_cells,
+        inner_cells), f'cells {inner_cells} not inside {outer_cells}'
+
+
 def cells_contain_cells(outer_cells, inner_cells):
-    assert '!' in outer_cells, 'outer cells dont have worksheet prefix'
-    assert '!' in inner_cells, 'inner cells dont have worksheet prefix'
+    assert '!' in outer_cells, f'outer cells {outer_cells} dont have worksheet prefix'
+    assert '!' in inner_cells, f'inner cells {inner_cells} dont have worksheet prefix'
     outer_cells = copy.deepcopy(outer_cells).replace('$', '')
     inner_cells = copy.deepcopy(inner_cells).replace('$', '')
     inner_cells_sheet, inner_range_text = inner_cells.split('!')
@@ -504,7 +495,7 @@ class FormMaker(Abortable):
             pub.sendMessage(
                 f'{self.id}.{FORM_GENERATION_TOPIC}', progress=progress)
 
-    def plot_form_page_image(self, page_number, make_template_dict=True):
+    def plot_form_page_image(self, page_number):
         page_name = f'page_{page_number}'
         if page_name not in self.range_names:
             raise ValueError(f'{page_name} not found in named ranges')
@@ -520,6 +511,7 @@ class FormMaker(Abortable):
             range_cells=form_template_range_cells,
             row_dims=self.row_dims,
             col_dims=self.col_dims)
+        assert_cells_contain_cells(page_range.attr_text, form_template_range)
         form_template_fig, form_template_ax = plt.subplots(1, 1, frameon=False)
         form_template_fig.set_size_inches(15.98, 11.93)  # A4
         form_template_ax.set_aspect('equal')
@@ -535,6 +527,8 @@ class FormMaker(Abortable):
             new_parent=page_range.attr_text)
         sub_form_template_cells = form_sheet[sub_form_template_range.split('!')
                                              [1]]
+        assert_cells_contain_cells(form_template_range,
+                                   sub_form_template_range)
         sub_form_template_rectangle = get_rectangle_from_range(
             range_cells=sub_form_template_cells,
             row_dims=self.row_dims,
@@ -554,6 +548,7 @@ class FormMaker(Abortable):
                 child=sub_form_range.attr_text,
                 old_parent=self.form_template_range.attr_text,
                 new_parent=page_range.attr_text)
+            assert_cells_contain_cells(form_template_range, sub_form_range)
             sub_form_range_cells = form_sheet[sub_form_range.split('!')[1]]
             sub_form_rectangle = get_rectangle_from_range(
                 range_cells=sub_form_range_cells,
@@ -569,6 +564,7 @@ class FormMaker(Abortable):
                     child=template_circles_range.attr_text,
                     old_parent=self.sub_form_template_range.attr_text,
                     new_parent=sub_form_range)
+                assert_cells_contain_cells(sub_form_range, circles_range_str),
                 circles_name = re.findall('circles_(.+)',
                                           template_circles_range.name)[0]
                 print(f'processing circles {circles_name}')
@@ -600,7 +596,7 @@ class FormMaker(Abortable):
                 child=template_metadata_range.attr_text,
                 old_parent=self.form_template_range.attr_text,
                 new_parent=page_range.attr_text)
-
+            assert_cells_contain_cells(form_template_range, metadata_range_str)
             metadata_name = re.findall('meta_(.+)',
                                        template_metadata_range.name)[0]
             metadata_range_cells = form_sheet[metadata_range_str.split('!')[1]]
@@ -915,7 +911,7 @@ class FormMaker(Abortable):
         assert '!' in child, f'child doesnt have worksheet prefix: {child}'
         assert '!' in old_parent, f'old parent cells dont have worksheet prefix: {old_parent}'
         assert '!' in new_parent, f'new parent cells dont have worksheet prefix: {new_parent}'
-        assert cells_contain_cells(old_parent, child)
+        assert_cells_contain_cells(old_parent, child)
         form_sheet = self.wb['template']
         assert_equal_rectangles(old_parent, new_parent, self.row_dims,
                                 self.col_dims, form_sheet)
@@ -979,7 +975,7 @@ class FormMaker(Abortable):
         description = self.description
         name = self.name
         form_template_fig, form_template_ax, template = self.plot_form_page_image(
-            page_number=1, make_template_dict=True)
+            page_number=1)
         # for page_range_name in filter(lambda range_name: re.match('(page_[2-9][0-9]*)|(page_1[0-9]+)',
         #                                                           range_name), self.wb.get_named_ranges()):
         #     # plot the exact same circles, but filled correctly, and the correct text for the new range
