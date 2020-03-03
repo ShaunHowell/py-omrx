@@ -166,6 +166,9 @@ class DataCircleGroup(CircleGroup):
                 lambda row: any([value == -3 for value in row]), axis=1)
             df['marker_error'] = df.apply(
                 lambda row: any([value in [-1, -2] for value in row]), axis=1)
+        if self.row_filling == 'many':
+            df['omr_error'] = df.apply(
+                lambda row: any([np.isnan(value) for value in row]), axis=1)
         self._value = df
         return True
 

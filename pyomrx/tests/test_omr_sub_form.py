@@ -1,5 +1,6 @@
 import pytest
 from pyomrx.core.form import *
+from pyomrx.utils.test_utils import *
 
 
 @pytest.fixture
@@ -68,9 +69,10 @@ def test_omr_sub_form_1_data(omr_sub_form_1):
     correct_values.iloc[-1, 0] = True
     correct_values.iloc[-1, 1] = True
     correct_values.iloc[12, 16] = True
+    correct_values['omr_error'] = False
     correct_values = correct_values.sort_index(axis=1)
     print(correct_values.to_string())
-    assert omr_sub_form_1.values.to_dict() == correct_values.to_dict()
+    assert_correct_result(omr_sub_form_1.values, correct_values)
 
 
 def test_dont_add_number_if_only_one_column(omr_sub_form_1):

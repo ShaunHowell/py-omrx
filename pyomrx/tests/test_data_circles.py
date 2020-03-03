@@ -36,11 +36,11 @@ def test_attendance_data_circles_1_values(attendance_data_circles):
     correct_values.iloc[0, 30] = True
     correct_values.iloc[24, 30] = True
     correct_values.iloc[24, 0] = True
+    correct_values['omr_error'] = False
     assert isinstance(attendance_data_circles.value, pd.DataFrame)
-    if not attendance_data_circles.value.equals(correct_values):
-        print(correct_values.to_string())
-        print(attendance_data_circles.value.to_string())
-        assert attendance_data_circles.value.equals(correct_values)
+    print(correct_values.to_string())
+    print(attendance_data_circles.value.to_string())
+    assert_image_fits_circles(attendance_data_circles.value, correct_values)
 
 
 @pytest.fixture
