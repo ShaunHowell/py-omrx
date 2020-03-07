@@ -2,6 +2,7 @@ import pytest
 from pyomrx.core.circle_group import *
 from pathlib import Path
 from pyomrx.utils.cv2_utils import load_and_check_image
+from pyomrx.utils.test_utils import *
 
 
 @pytest.fixture
@@ -40,7 +41,7 @@ def test_attendance_data_circles_1_values(attendance_data_circles):
     assert isinstance(attendance_data_circles.value, pd.DataFrame)
     print(correct_values.to_string())
     print(attendance_data_circles.value.to_string())
-    assert_image_fits_circles(attendance_data_circles.value, correct_values)
+    assert_correct_result(attendance_data_circles.value, correct_values)
 
 
 @pytest.fixture

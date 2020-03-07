@@ -20,8 +20,7 @@ SYSTEM_PYTHON_LIB_FOLDER = str(Path(opcode.__file__).parent.parent / 'Lib')
 options = {
     'build_exe': {
         'includes': [
-            'pyomrx.gui', 'pyomrx.omr', 'pyomrx.default_configs',
-            'pyomrx.omr.vis_utils'
+            'pyomrx'
         ],
         'path':
         sys.path + ['modules'],
@@ -30,16 +29,14 @@ options = {
         "excludes": [
             "scipy.spatial.cKDTree",  # bug: cKDTree causes ckdtree to not copy
             "distutils",  # because of virtualenv
-            "demo",
             "tests",
         ],
         "include_files": [
             (matplotlib.get_data_path(), "mpl-data"),
             os.path.join(SYSTEM_PYTHON_DLLS_FOLDER,
-                         'tk86t.dll'),  # this might not be needed
+                         'tk86t.dll'),
             os.path.join(SYSTEM_PYTHON_DLLS_FOLDER,
-                         'tcl86t.dll'),  # this might not be needed
-            os.path.join(SYSTEM_PYTHON_DLLS_FOLDER, 'sqlite3.dll'),
+                         'tcl86t.dll'),
             (os.path.join(SYSTEM_PYTHON_LIB_FOLDER, 'distutils'), 'distutils')
         ],
         "build_exe":
@@ -59,15 +56,14 @@ setup(
     name="pyomrx",
     version=VERSION,
     description=
-    "Tool for extracting data from attendance registers by optical mark recognition",
+    "Library and GUI for optical mark recognition form generation and data extraction",
     options=options,
     executables=[target])
 
 # hacky workaround for cx_freeze naming multiprocessing.pool incorrectly and files which couldn't be excluded...
-Path('build/lib/multiprocessing/Pool.pyc').rename(
-    Path('build/lib/multiprocessing/pool.pyc'))
-shutil.rmtree(str(Path('build/lib/pyomrx/demo')), ignore_errors=True)
-shutil.rmtree(str(Path('build/lib/pyomrx/tests')), ignore_errors=True)
+# Path('build/lib/multiprocessing/Pool.pyc').rename(
+#     Path('build/lib/multiprocessing/pool.pyc'))
+# shutil.rmtree(str(Path('build/lib/pyomrx/tests')), ignore_errors=True)
 shutil.copy(
     str(Path('lib/vcruntime140.dll')), str(Path('build/vcruntime140.dll')))
 shutil.make_archive(
