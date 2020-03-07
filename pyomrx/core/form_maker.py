@@ -32,8 +32,10 @@ from pyomrx.core.meta import Abortable
 #  - [ ] many-circles above-below many-circles (sf -> many rows of bools, just like bigger many circles)
 #  - [ ] ones-circles left-right of ones-circles (sf -> one row of values)
 
-#### Extra robustness
-# TODO: check if any used cell range is actually multiple ranges (e.g. template!A1:A3+template!B1:B3) and raise a useful error message
+# TODO: make examples folder
+# TODO: make minimal CLI
+# TODO: finish README
+# TODO: check it's pip installable. host on pypi
 
 LANDSCAPE = 'landscape'
 PORTRAIT = 'portrait'
@@ -430,6 +432,11 @@ def assert_circle_ranges_well_formed(circle_ranges):
     assert False
 
 
+def assert_range_is_single_rectangle(named_range):
+    assert '+' not in named_range.attr_text,\
+        f'named range {named_range.name} consists of more than one group of cells: {named_range.attr_text}'
+
+
 class FormMaker(Abortable):
     def __init__(self,
                  excel_file_path,
@@ -448,9 +455,15 @@ class FormMaker(Abortable):
             filename=str(self.excel_file_path), data_only=True)
         if 'template' not in self.wb:
             raise FileNotFoundError('couldnt find worksheet called "template"')
-        self.range_names = [
-            named_range.name for named_range in self.wb.get_named_ranges()
-        ]
+        self.range_names = []
+        form_component_keywords = ['page_', 'meta_', 'circles_', 'sub_form_']
+        for named_range in self.wb.get_named_ranges():
+            if any([
+                    keyword in named_range.name
+                    for keyword in form_component_keywords
+            ]):
+                assert_range_is_single_rectangle(named_range)
+                self.range_names.append(named_range.name)
         self.row_dims, self.col_dims = get_row_and_column_dimensions(
             self.wb['template'])
         self.wb_theme_colours = get_theme_colours_from_wb(self.wb)
@@ -993,7 +1006,7 @@ class FormMaker(Abortable):
         output_folder = self.output_folder
         os.makedirs(str(output_folder), exist_ok=True)
         config_temp_path = str(TEMP_FOLDER / 'omr_config.json')
-        pp(output_config)
+        # pp(output_config)
         json.dump(output_config, open(config_temp_path, 'w'))
         strip_ax_padding(form_template_ax)
         form_template_fig.subplots_adjust(
