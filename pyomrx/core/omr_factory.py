@@ -12,9 +12,18 @@ from threading import Event
 from pyomrx.core.meta import Abortable
 from pubsub import pub
 from pyomrx.gui import DATA_EXTRACTION_TOPIC
+import zipfile
+import json
 
 
 class OmrFactory(Abortable):
+    @classmethod
+    def from_omr_file(cls, omr_file_path):
+        omr_template = zipfile.ZipFile(omr_file_path, 'r')
+        template_json = omr_template.read('omr_config.json')
+        template_dict = json.loads(template_json.decode())
+        return OmrFactory(template_dict)
+
     def __init__(self, form_config, abort_event=None, id=None):
         Abortable.__init__(self, abort_event)
         self.id = id
@@ -52,6 +61,8 @@ class OmrFactory(Abortable):
             'file': file_path.name
         } for file_path in failed_paths],
                                columns=folder_df.columns.tolist())
+        if folder_df.index.name:
+            fail_df.index.name = folder_df.index.name
         fail_df['omr_error'] = True
         folder_df = pd.concat([folder_df, fail_df], axis=0)
         if output_file_path:
