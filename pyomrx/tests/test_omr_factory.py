@@ -84,7 +84,7 @@ class TestExamForms:
         correct_result = correct_result.sort_values(by=['file', 'sub_form'])
         correct_result = correct_result.sort_index(axis=1)
 
-        print('extracted data:')
+        print('extracted sub_form_data:')
         print(df.to_string())
         assert_correct_result(df, correct_result)
 
@@ -103,11 +103,11 @@ class TestExamForms:
                 Path(res_folder) / 'exam_form' / 'old_full_form' /
                 'correct_result.csv'),
             index_col=0)
-        print('extracted data:')
+        print('extracted sub_form_data:')
         df = df.sort_values(by=['file', 'sub_form'])
         df = df.sort_index(axis=1)
         print(df.to_string())
-        print('correct data:')
+        print('correct sub_form_data:')
         correct_result = correct_result.sort_values(by=['file', 'sub_form'])
         correct_result = correct_result.sort_index(axis=1)
         print(correct_result.to_string())
@@ -128,11 +128,11 @@ class TestExamForms:
                 Path(res_folder) / 'exam_form' / 'problem_scans' /
                 'correct_result.csv'),
             index_col=0)
-        print('extracted data:')
+        print('extracted sub_form_data:')
         df = df.sort_values(by=['file', 'sub_form'])
         df = df.sort_index(axis=1)
         print(df.to_string())
-        print('correct data:')
+        print('correct sub_form_data:')
         correct_result = correct_result.sort_values(by=['file', 'sub_form'])
         correct_result = correct_result.sort_index(axis=1)
         print(correct_result.to_string())
@@ -154,11 +154,11 @@ class TestExamForms:
                 Path(res_folder) / 'exam_form' / 'problem_scans_lang_L2' /
                 'correct_result.csv'),
             index_col=0)
-        print('extracted data:')
+        print('extracted sub_form_data:')
         df = df.sort_values(by=['file', 'sub_form'])
         df = df.sort_index(axis=1)
         print(df.to_string())
-        print('correct data:')
+        print('correct sub_form_data:')
         correct_result = correct_result.sort_values(by=['file', 'sub_form'])
         correct_result = correct_result.sort_index(axis=1)
         print(correct_result.to_string())

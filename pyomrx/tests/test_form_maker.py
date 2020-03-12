@@ -6,9 +6,10 @@ from pathlib import Path
 
 
 class TestAbsenceRegisterForms:
-    def test_translate_sub_range_to_new_parent(self, res_folder):
+    def test_translate_sub_range_to_new_parent(self, res_folder, tmpdir):
         form_maker = FormMaker(
-            str(Path(res_folder) / 'Absence register v31.xlsx'), 'temp')
+            str(Path(res_folder) / 'Absence register v31.xlsx'),
+            str(tmpdir / 'temp_config.omr'))
         # wb = openpyxl.load_workbook('pyomrx\\tests\\res\\Absence register v31.xlsx', data_only=True)
         page_1_range = form_maker.wb.get_named_range('page_1').attr_text
         page_2_range = form_maker.wb.get_named_range('page_2').attr_text
@@ -18,14 +19,16 @@ class TestAbsenceRegisterForms:
             circles_att_range, page_1_range, page_2_range)
         assert translated_circles_range == 'template!$D$32:$AH$56'
 
-    def test_make_form_doesnt_crash(self, res_folder):
+    def test_make_form_doesnt_crash(self, res_folder, tmpdir):
         form_maker = FormMaker(
-            str(Path(res_folder) / 'Absence register v31.xlsx'), 'temp')
+            str(Path(res_folder) / 'Absence register v31.xlsx'),
+            str(tmpdir / 'temp_config.omr'))
         config = form_maker.make_form()
 
-    def test_no_prefix_if_none(self, res_folder):
+    def test_no_prefix_if_none(self, res_folder, tmpdir):
         form_maker = FormMaker(
-            str(Path(res_folder) / 'Absence register v31.xlsx'), 'temp')
+            str(Path(res_folder) / 'Absence register v31.xlsx'),
+            str(tmpdir / 'temp_config.omr'))
         config = form_maker.make_form()
         assert next(
             filter(
@@ -35,10 +38,10 @@ class TestAbsenceRegisterForms:
 
 
 class TestExamForms:
-    def test_make_form(self, res_folder):
+    def test_make_form_doesnt_crash(self, res_folder, tmpdir):
         form_maker = FormMaker(
             str(Path(res_folder) / 'exam_form' / 'example_exam_form.xlsx'),
-            'temp')
+            str(tmpdir / 'temp_config.omr'))
         config = form_maker.make_form()
 
 

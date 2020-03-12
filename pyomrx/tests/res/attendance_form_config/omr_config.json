@@ -14,7 +14,6 @@
           "right": 0.8693181818181818
         },
         "name": "class_name",
-        "decides_sub_form": false,
         "quantity": 5,
         "radius": 0.05565217391304348,
         "orientation": "landscape"
@@ -27,7 +26,6 @@
           "right": 0.6297348484848485
         },
         "name": "institution",
-        "decides_sub_form": false,
         "quantity": 7,
         "radius": 0.03975155279503106,
         "orientation": "landscape"
@@ -40,7 +38,6 @@
           "right": 0.978219696969697
         },
         "name": "page",
-        "decides_sub_form": false,
         "quantity": 3,
         "radius": 0.0927536231884058,
         "orientation": "landscape"

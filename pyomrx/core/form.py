@@ -44,23 +44,23 @@ class OmrForm(Abortable):
         return self._metadata_values
 
     @property
-    def data(self):
+    def sub_form_data(self):
         if self._data_values is None:
-            self.extract_data()
+            self._extract_sub_form_data()
         return self._data_values
 
     @property
     def df(self):
         if self._df is None:
             try:
-                self.extract_df()
+                self._extract_df()
             except CircleParseError:
                 if debug_mode():
                     show_image(self.image, self.input_image_path.name)
                 raise
         return self._df
 
-    def extract_data(self):
+    def _extract_sub_form_data(self):
         dfs = []
         for sub_form_number, sub_form in enumerate(self.sub_forms):
             sub_form_df = sub_form.values
@@ -75,8 +75,8 @@ class OmrForm(Abortable):
         self._data_values = df
         return True
 
-    def extract_df(self):
-        df = self.data.copy()
+    def _extract_df(self):
+        df = self.sub_form_data.copy()
         for metadata_name, metadata_value in self.metadata_values.items():
             df.loc[:, metadata_name] = metadata_value
         df['file'] = str(self.input_image_path.name)

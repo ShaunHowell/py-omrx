@@ -3,7 +3,6 @@ import pytest
 from pathlib import Path
 from pyomrx.core.form_maker import FormMaker
 from pyomrx.core.omr_factory import OmrFactory
-import pandas as pd
 from pyomrx.utils.test_utils import *
 
 
@@ -20,8 +19,7 @@ def test_attendance_register_example(request, res_folder):
     request.addfinalizer(delete_temp_files)
     omr_file_path = attendance_example_folder / 'example attendance register.omr'
     example_output_file_path = attendance_example_folder / 'example_output.csv'
-    form_maker = FormMaker(
-        str(excel_file_path), str(attendance_example_folder))
+    form_maker = FormMaker(str(excel_file_path), str(omr_file_path))
     form_maker.make_form()
     omr_factory = OmrFactory.from_omr_file(str(omr_file_path))
     omr_factory.process_images_folder(
@@ -47,7 +45,7 @@ def test_exam_form_example(request, res_folder):
     request.addfinalizer(delete_temp_files)
     omr_file_path = exam_example_folder / 'example exam score form.omr'
     example_output_file_path = exam_example_folder / 'example_output.csv'
-    form_maker = FormMaker(str(excel_file_path), str(exam_example_folder))
+    form_maker = FormMaker(str(excel_file_path), str(omr_file_path))
     form_maker.make_form()
     omr_factory = OmrFactory.from_omr_file(str(omr_file_path))
     omr_factory.process_images_folder(

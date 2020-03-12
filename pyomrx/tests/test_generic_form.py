@@ -1,8 +1,8 @@
 import pytest
 from pyomrx.core import *
 from pyomrx.tests.fixtures import *
-from pyomrx.core.accuracy import *
 from pyomrx.core.form import process_form
+import json
 
 
 def test_blank_form_doesnt_crash(example_attendance_data_path, res_folder):

@@ -36,8 +36,8 @@ def test_omr_form_1_data(omr_form_1):
     print('correct values:')
     print(correct_values.to_string())
     print('extracted:')
-    print(omr_form_1.data.to_string())
-    assert_correct_result(omr_form_1.data, correct_values)
+    print(omr_form_1.sub_form_data.to_string())
+    assert_correct_result(omr_form_1.sub_form_data, correct_values)
 
 
 if __name__ == '__main__':

@@ -4,7 +4,6 @@ import sys
 from cx_Freeze import setup, Executable
 import matplotlib
 import opcode
-import shutil
 import pyomrx
 
 VERSION = pyomrx.__version__
@@ -32,7 +31,7 @@ options = {
             "tests",
         ],
         "include_files": [
-            (matplotlib.get_data_path(), "mpl-data"),
+            (matplotlib.get_data_path(), "mpl-sub_form_data"),
             os.path.join(SYSTEM_PYTHON_DLLS_FOLDER,
                          'tk86t.dll'),
             os.path.join(SYSTEM_PYTHON_DLLS_FOLDER,
@@ -40,7 +39,8 @@ options = {
             (os.path.join(SYSTEM_PYTHON_LIB_FOLDER, 'distutils'), 'distutils')
         ],
         "build_exe":
-        'build'
+        'build',
+        "include_msvcr": True
     }
 }
 
@@ -49,22 +49,20 @@ target = Executable(
     base="Win32GUI" if sys.platform == "win32" else None,
     icon='res/logo.ico',
     targetName='run.exe')
-if Path('build/').exists():
-    shutil.rmtree(str(Path('build/')))
 
 setup(
     name="pyomrx",
     version=VERSION,
+    author='Shaun Howell',
+    author_email='shaunkhowell@gmail.com',
+    url='https://github.com/ShaunHowell/py-omrx',
     description=
-    "Library and GUI for optical mark recognition form generation and data extraction",
+    "Library and GUI for optical mark recognition form generation and sub_form_data extraction",
     options=options,
+    packages=['pyomrx'],
     executables=[target])
 
-# hacky workaround for cx_freeze naming multiprocessing.pool incorrectly and files which couldn't be excluded...
+# workaround for cx_freeze naming multiprocessing.pool incorrectly and files which couldn't be excluded...
 # Path('build/lib/multiprocessing/Pool.pyc').rename(
 #     Path('build/lib/multiprocessing/pool.pyc'))
 # shutil.rmtree(str(Path('build/lib/pyomrx/tests')), ignore_errors=True)
-shutil.copy(
-    str(Path('lib/vcruntime140.dll')), str(Path('build/vcruntime140.dll')))
-shutil.make_archive(
-    str(Path(f'build/py-omrx-{VERSION}')), 'zip', str(Path('build/')))

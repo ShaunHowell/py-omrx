@@ -10,7 +10,6 @@ def binary_circles_1(res_folder):
     image = load_and_check_image(image_path)
     config = {
         "name": "institution",
-        "decides_sub_form": False,
         "quantity": 7,
         "radius": 0.03152709359605912
     }

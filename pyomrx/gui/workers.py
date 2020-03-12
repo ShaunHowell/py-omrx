@@ -69,7 +69,7 @@ class FormGenerationWorker(Thread, Abortable):
     def __init__(self,
                  parent_window,
                  excel_file_path,
-                 output_folder_path,
+                 output_path,
                  description,
                  abort_event=None):
         Thread.__init__(self)
@@ -78,12 +78,12 @@ class FormGenerationWorker(Thread, Abortable):
         self._parent_window = parent_window
         self.form_maker = FormMaker(
             excel_file_path=excel_file_path,
-            output_folder=output_folder_path,
+            output_path=output_path,
             description=description,
             abort_event=abort_event,
             id=self.id)
         self.excel_file_path = excel_file_path
-        self.output_folder_path = output_folder_path
+        self.output_folder_path = output_path
 
     def run(self):
         try:
