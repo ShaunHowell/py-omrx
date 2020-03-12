@@ -121,12 +121,7 @@ ENV/
 *.css
 
 # add exceptions to the data protection rules for demo & test folders which have been anonymised
-!pyomrx/demo/attendance_register/**
-!pyomrx/tests/res/attendance_register/**
-!pyomrx/tests/res/exam_marksheet/**
-!pyomrx/tests/res/example_images_folder/**
-!pyomrx/tests/res/form_config/**
-!pyomrx/tests/res/*
+!pyomrx/tests/res/**
 
 *.zip
 **errors.txt

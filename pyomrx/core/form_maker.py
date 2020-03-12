@@ -32,7 +32,6 @@ from pyomrx.core.meta import Abortable
 #  - [ ] many-circles above-below many-circles (sf -> many rows of bools, just like bigger many circles)
 #  - [ ] ones-circles left-right of ones-circles (sf -> one row of values)
 
-# TODO: make minimal CLI (pip install should install pyomrx command)
 # TODO: finish README
 # TODO: make pip installable. should add CLI as an alias. host on pypi. Ideally test that it installs properly with pytest?
 # TODO: tidy up test resources
@@ -1086,7 +1085,7 @@ def plot_rectangle(rectangle, ax=None, thickness=W_DEFAULT):
 def main():
     # DESCRIPTION = 'testing form by shaun from dev work'
     # NAME = 'testing_exam_form'
-    form_maker = FormMaker('pyomrx/tests/res/Absence register v31.xlsx',
+    form_maker = FormMaker('pyomrx/tests/res/attendance_form/Absence register v31.xlsx',
                            'temp/example_exam_form')
     form_maker.make_form()
 

@@ -12,14 +12,15 @@ def attendance_omr_factory_1(res_folder):
     config = json.load(
         open(
             str(
-                Path(res_folder) / 'attendance_form_config' /
-                'omr_config.json')))
+                Path(res_folder) / 'attendance_form' / 'attendance_form_config'
+                / 'omr_config.json')))
     return OmrFactory(config)
 
 
 class TestAttendanceForms:
     def test_process_images_folder(self, res_folder, attendance_omr_factory_1):
-        image_folder_path = str(Path(res_folder) / 'example_images_folder')
+        image_folder_path = str(
+            Path(res_folder) / 'attendance_form' / 'example_images_folder')
         df = attendance_omr_factory_1.process_images_folder(image_folder_path)
         trues = [(0, 'A01'), (-1, 'A01'), (0, 'dropout'), (-1, 'dropout')]
         for i, j in trues:
@@ -27,15 +28,21 @@ class TestAttendanceForms:
 
     def test_process_example_folder(self, res_folder):
         config = json.load(
-            open(str(Path(res_folder) / 'feb_example' / 'omr_config.json')))
+            open(
+                str(
+                    Path(res_folder) / 'attendance_form' / 'feb_example' /
+                    'omr_config.json')))
         omr_factory = OmrFactory(config)
-        image_folder_path = str(Path(res_folder) / 'feb_example' / 'images')
+        image_folder_path = str(
+            Path(res_folder) / 'attendance_form' / 'feb_example' / 'images')
         df = omr_factory.process_images_folder(image_folder_path)
         df = df.sort_values(by=['file', 'sub_form'])
         df = df.sort_index(axis=1)
 
         correct_result = pd.read_csv(
-            str(Path(res_folder) / 'feb_example' / 'correct_result.csv'),
+            str(
+                Path(res_folder) / 'attendance_form' / 'feb_example' /
+                'correct_result.csv'),
             index_col=0)
         correct_result = correct_result.sort_values(by=['file', 'sub_form'])
         correct_result = correct_result.sort_index(axis=1)
@@ -45,15 +52,21 @@ class TestAttendanceForms:
 
     def test_process_example_scan_folder(self, res_folder):
         config = json.load(
-            open(str(Path(res_folder) / 'scan_example' / 'omr_config.json')))
+            open(
+                str(
+                    Path(res_folder) / 'attendance_form' / 'scan_example' /
+                    'omr_config.json')))
         omr_factory = OmrFactory(config)
-        image_folder_path = str(Path(res_folder) / 'scan_example' / 'images')
+        image_folder_path = str(
+            Path(res_folder) / 'attendance_form' / 'scan_example' / 'images')
         df = omr_factory.process_images_folder(image_folder_path)
         df = df.sort_values(by=['file', 'sub_form'])
         df = df.sort_index(axis=1)
 
         correct_result = pd.read_csv(
-            str(Path(res_folder) / 'scan_example' / 'correct_result.csv'),
+            str(
+                Path(res_folder) / 'attendance_form' / 'scan_example' /
+                'correct_result.csv'),
             index_col=0)
         correct_result = correct_result.sort_values(by=['file', 'sub_form'])
         correct_result = correct_result.sort_index(axis=1)

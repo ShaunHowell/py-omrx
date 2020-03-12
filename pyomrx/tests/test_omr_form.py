@@ -10,8 +10,8 @@ def omr_form_1(res_folder):
     config = json.load(
         open(
             str(
-                Path(res_folder) / 'attendance_form_config' /
-                'omr_config.json')))
+                Path(res_folder) / 'attendance_form' / 'attendance_form_config'
+                / 'omr_config.json')))
     return OmrForm(image_path, config)
 
 

@@ -7,9 +7,12 @@ import json
 
 def test_blank_form_doesnt_crash(example_attendance_data_path, res_folder):
     input_image_path = Path(
-        res_folder) / 'attendance_form_config/blank_omr_form.png'
+        res_folder
+    ) / 'attendance_form' / 'attendance_form_config/blank_omr_form.png'
     form_config = json.load(
-        open(Path(res_folder) / 'attendance_form_config/omr_config.json'))
+        open(
+            Path(res_folder) / 'attendance_form' /
+            'attendance_form_config/omr_config.json'))
     process_form(str(input_image_path), form_config)
     # print(form_data)
     # accuracy_results = find_omr_accuracy(

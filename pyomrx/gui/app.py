@@ -26,13 +26,14 @@ class PyomrxMainFrame(wx.Frame, Abortable):
         Abortable.__init__(self, None)
         sys.excepthook = handle_exception
         self.input_folder_path = Path(
-            'pyomrx/tests/res/example_images_folder') if DEBUG else ''
+            'pyomrx/tests/res/attendance_form/example_images_folder'
+        ) if DEBUG else ''
         self.omr_data_output_path = Path(
             'pyomrx/tests/res/temp_output_file') if DEBUG else ''
         self.omr_config_path = Path(
             'pyomrx/tests/res/testing_form.omr') if DEBUG else ''
         self.excel_file_path = Path(
-            'pyomrx/tests/res/Absence register v31.xlsx') if DEBUG else ''
+            'pyomrx/tests/res/attendance_form/Absence register v31.xlsx') if DEBUG else ''
         self.convert_output_path = Path('pyomrx/temp/forms') if DEBUG else ''
         self.buttons = defaultdict(lambda: dict())
         self.tabs = {}
@@ -87,10 +88,10 @@ class PyomrxMainFrame(wx.Frame, Abortable):
 
         self.add_button("extract_data", "template", "Open template",
                         self.choose_template)
-        self.add_button("extract_data", "images",
-                        "Choose images folder", self.choose_images_folder)
-        self.add_button("extract_data", "output",
-                        "Choose output path", self.choose_output_path)
+        self.add_button("extract_data", "images", "Choose images folder",
+                        self.choose_images_folder)
+        self.add_button("extract_data", "output", "Choose output path",
+                        self.choose_output_path)
         self.add_button(
             'extract_data',
             'process',
@@ -103,8 +104,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
         self.sizers['extract_data'] = vbox
         vbox.Add((-1, 20), proportion=0, border=border_width)
 
-        for button_type, button_dict in self.buttons[
-                'extract_data'].items():
+        for button_type, button_dict in self.buttons['extract_data'].items():
             hbox = wx.BoxSizer(wx.HORIZONTAL)
             hbox.Add(
                 button_dict['button'],
@@ -274,8 +274,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
             dialog.Destroy()
         if len(path) > 0:
             self.input_folder_path = Path(path)
-            text_objext = self.buttons['extract_data']['images'][
-                'text']
+            text_objext = self.buttons['extract_data']['images']['text']
             text_objext.SetLabel('...{}'.format(str(path)[-20:]))
         self.update_layout()
 
@@ -295,8 +294,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
             self.omr_data_output_path = Path(path)
             if self.omr_data_output_path.suffix != '.csv':
                 self.omr_data_output_path = Path(f'{path}.csv')
-            text_objext = self.buttons['extract_data']['output'][
-                'text']
+            text_objext = self.buttons['extract_data']['output']['text']
             text_objext.SetLabel('...{}'.format(str(path)[-30:]))
         self.update_layout()
 
@@ -318,8 +316,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
             dialog.Destroy()
         if len(path) > 0:
             self.omr_config_path = Path(path)
-            text_objext = self.buttons['extract_data']['template'][
-                'text']
+            text_objext = self.buttons['extract_data']['template']['text']
             text_objext.SetLabel(f'...{str(path)[-30:]}')
         self.update_layout()
 
@@ -370,8 +367,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
             return
         if convert_output_path[-4:] != '.omr':
             convert_output_path += '.omr'
-        output_omr_file_path = Path(
-            f'{convert_output_path}')
+        output_omr_file_path = Path(f'{convert_output_path}')
         if output_omr_file_path.exists():
             replace_file = wx.MessageDialog(
                 self,
