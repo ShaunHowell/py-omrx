@@ -33,7 +33,8 @@ class PyomrxMainFrame(wx.Frame, Abortable):
         self.omr_config_path = Path(
             'pyomrx/tests/res/testing_form.omr') if DEBUG else ''
         self.excel_file_path = Path(
-            'pyomrx/tests/res/attendance_form/Absence register v31.xlsx') if DEBUG else ''
+            'pyomrx/tests/res/attendance_form/Absence register v31.xlsx'
+        ) if DEBUG else ''
         self.convert_output_path = Path('pyomrx/temp/forms') if DEBUG else ''
         self.buttons = defaultdict(lambda: dict())
         self.tabs = {}
@@ -67,7 +68,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
         self.tabs['extract_data'] = wx.Panel(self.tab_holder)
         self.tabs['generate_forms'] = wx.Panel(self.tab_holder)
         self.tab_holder.AddPage(self.tabs['extract_data'],
-                                "Extract sub_form_data")
+                                "Extract data")
         self.tab_holder.AddPage(self.tabs['generate_forms'],
                                 "Generate template")
         sizer = wx.BoxSizer()

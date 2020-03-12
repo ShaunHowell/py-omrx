@@ -17,10 +17,24 @@ To use as a python package:
 To build the windows executable, from the repo route run `python build_exe_zip.py`, which uses cx_Freeze to bundle requirements.
 
 # Quickstart
-EXAMPLES FOLDER
+The examples folder contains an attendance form and and exam marksheet folder. 
+This quickstart will guide you through the full process of making and extracting from a form via the GUI. There is also a CLI, described below.
+To run the examples with the GUI follow these steps:
+1. Start the GUI (either `python app.py` or if you downloaded a release, unzip the build folder and rouble click `run.exe`)
+2. Click the `Generate template` tab
+3. Choose the excel file in one of the example folders as the template file, and choose an output file path for the `.omr` file. 
+4. Click `Process` and wait for completion
+5. Open the output location you chose: there should be an image (or 2 in the attendance form case) and a .omr file
+6. Fill in one of the images: either print, complete and scan (as an image not a pdf), or use the fill tool in paint. See the form filling guide below.
+7. Put the image in a new folder
+8. Start the GUI again, this time click the `Extract data` tab
+9. Choose the previously generated `.omr` template file, select the new images folder, and choose an output path
+10. Click `Process` and wait for completion. Your extracted data should now be ready as a csv file.
 
 # Parts of an OMR form
 Visual breakdown of parts of a form
+A pyomrx form contains the following heirarchy of components:
+
 
 # Creating a form in excel
 Instructions on named ranges and comments etc
@@ -31,6 +45,8 @@ Instructions on named ranges and comments etc
 ## API
 factory, forms, sub forms, circle groups, etc
 
+## Filling in a pyomrx form for best results
+
 # Output
 - The output of the tool is as follows:
 ```
@@ -38,6 +54,9 @@ box_no,class_code,file_name,marker_error,omr_error,school_code,sheet_number,1,2,
 1,3,sample_form,p2,,,1,2,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,46
 1,3,sample_form,p2,,,1,2,1.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,47
 ```
+
+# FAQ / Troubleshooting
+1. File path too long: this is a limitation on Windows
 
 # Tests
 `pytest`

@@ -8,8 +8,9 @@ from pathlib import Path
 class TestAbsenceRegisterForms:
     def test_translate_sub_range_to_new_parent(self, res_folder, tmpdir):
         form_maker = FormMaker(
-            str(Path(res_folder) /'attendance_form'/ 'Absence register v31.xlsx'),
-            str(tmpdir / 'temp_config.omr'))
+            str(
+                Path(res_folder) / 'attendance_form' /
+                'Absence register v31.xlsx'), str(tmpdir / 'temp_config.omr'))
         page_1_range = form_maker.wb.get_named_range('page_1').attr_text
         page_2_range = form_maker.wb.get_named_range('page_2').attr_text
         circles_att_range = form_maker.wb.get_named_range(
@@ -20,14 +21,16 @@ class TestAbsenceRegisterForms:
 
     def test_make_form_doesnt_crash(self, res_folder, tmpdir):
         form_maker = FormMaker(
-            str(Path(res_folder)/'attendance_form' / 'Absence register v31.xlsx'),
-            str(tmpdir / 'temp_config.omr'))
+            str(
+                Path(res_folder) / 'attendance_form' /
+                'Absence register v31.xlsx'), str(tmpdir / 'temp_config.omr'))
         config = form_maker.make_form()
 
     def test_no_prefix_if_none(self, res_folder, tmpdir):
         form_maker = FormMaker(
-            str(Path(res_folder)/'attendance_form' / 'Absence register v31.xlsx'),
-            str(tmpdir / 'temp_config.omr'))
+            str(
+                Path(res_folder) / 'attendance_form' /
+                'Absence register v31.xlsx'), str(tmpdir / 'temp_config.omr'))
         config = form_maker.make_form()
         assert next(
             filter(
