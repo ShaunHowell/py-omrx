@@ -24,14 +24,6 @@ import matplotlib.pyplot as plt
 import pyomrx
 from pyomrx.core.meta import Abortable
 
-# NOTE: supported arrangements of circle groups:
-#  - [x] ones circles above-below ones-circles (sf -> one row of ints)
-#  - [x] many circles left-right of many-circles (sf -> many rows of bools)
-#  - [ ] ones-circles above-below many-circles (sf -> many rows of bools, ones ints on each row)
-#  - [ ] ones-circles left-right of many-circles (sf -> many rows of bools, ones ints in single column of different values)
-#  - [ ] many-circles above-below many-circles (sf -> many rows of bools, just like bigger many circles)
-#  - [ ] ones-circles left-right of ones-circles (sf -> one row of values)
-
 # TODO: finish README
 # TODO: make pip installable. should add CLI as an alias. host on pypi. Ideally test that it installs properly with pytest?
 # TODO: tidy up test resources

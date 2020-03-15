@@ -67,8 +67,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
         self.tab_holder = wx.Notebook(self.top_panel)
         self.tabs['extract_data'] = wx.Panel(self.tab_holder)
         self.tabs['generate_forms'] = wx.Panel(self.tab_holder)
-        self.tab_holder.AddPage(self.tabs['extract_data'],
-                                "Extract data")
+        self.tab_holder.AddPage(self.tabs['extract_data'], "Extract data")
         self.tab_holder.AddPage(self.tabs['generate_forms'],
                                 "Generate template")
         sizer = wx.BoxSizer()
