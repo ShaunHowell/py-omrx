@@ -1,12 +1,14 @@
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent.resolve()))
-import argparse
-from pyomrx.core.form_maker import FormMaker
-from pyomrx.core.omr_factory import OmrFactory
+#! python3
 
 
 def main():
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent.parent.resolve()))
+    import argparse
+    from pyomrx.core.form_maker import FormMaker
+    from pyomrx.core.omr_factory import OmrFactory
+
     parser = argparse.ArgumentParser(
         description='Tool for generating and extracting sub_form_data '
         'from optical mark recognition forms')

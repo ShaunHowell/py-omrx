@@ -51,7 +51,7 @@ class OmrFactory(Abortable):
                 print(f'error: {e}')
                 failed_paths.append(image_path)
         if not dfs:
-            raise EmptyFolderException(
+            raise OmrException(
                 f'no data extracted from images in {input_folder_path}')
         folder_df = pd.concat(dfs, axis=0)
         fail_df = pd.DataFrame([{

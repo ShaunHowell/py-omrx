@@ -10,7 +10,7 @@ import json
 def test_cli_round_trip(tmpdir, res_folder):
     config_output_path = Path(tmpdir) / 'example exam score form.omr'
     subprocess.check_call(
-        f'python ./bin/pyomrx_cli.py make '
+        f'python ./bin/omrx.py make '
         f'--input "examples/example_exam_score_form/example exam score form.xlsx" '
         f'--output "{config_output_path}"')
     omr_template = zipfile.ZipFile(config_output_path, 'r')
@@ -20,7 +20,7 @@ def test_cli_round_trip(tmpdir, res_folder):
         open(Path(res_folder) / 'exam_form/example_exam_form.json'))
     assert config_dict['template'] == correct_config['template']
     csv_output_path = Path(tmpdir) / 'example_output.csv'
-    subprocess.check_call(f'python ./bin/pyomrx_cli.py extract '
+    subprocess.check_call(f'python ./bin/omrx.py extract '
                           f'--template "{config_output_path}" '
                           f'--input "{tmpdir}" '
                           f'--output "{csv_output_path}"')

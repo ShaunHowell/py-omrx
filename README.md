@@ -86,7 +86,7 @@ circle group (row fill: one) above-below circle group (row fill: one)
 
 
 # CLI
-`python pyomrx_cli.py [-h] [-i INPUT] [-o OUTPUT] [-t TEMPLATE] [make|extract]`
+`omrx [-h] [-i INPUT] [-o OUTPUT] [-t TEMPLATE] [make|extract]`
 (template only needed to extract data)
 
 # Completing a printed pyomrx form for best results

@@ -24,9 +24,8 @@ import matplotlib.pyplot as plt
 import pyomrx
 from pyomrx.core.meta import Abortable
 
-# TODO: finish README
-# TODO: make pip installable. should add CLI as an alias. host on pypi. Ideally test that it installs properly with pytest?
-# TODO: tidy up test resources
+# TODO: make pip installable. should add CLI as an alias. host on pypi
+# TODO: currently too large for PyPi; work out why so big and reduce
 
 LANDSCAPE = 'landscape'
 PORTRAIT = 'portrait'

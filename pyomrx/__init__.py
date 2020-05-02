@@ -1,4 +1,6 @@
-__version__ = "2.7.0"
+from pathlib import Path
+with open(str(Path(__file__).parent.parent / 'VERSION.txt')) as version_file:
+    __version__ = version_file.read()
 
 IMAGE_SUFFIXES = ['.png', '.jpg', 'jpeg', '.PNG', '.JPG', '.JPEG']
 
