@@ -75,16 +75,19 @@ Notes:
  must use the characters ○ (U+25CB) and ● (U+25CF) to denote empty and filled circles respectively. 
 
 
-Currently the following arrangements of circle groups are supported:
-circle group (row fill: many) left-right of circle group (row fill: many)
-![circle group many filled per row](res/circle_group_output_many.jpg)
+Currently the following 2 arrangements of circle groups are supported:
 
-circle group (row fill: one) above-below circle group (row fill: one)
-![circle group one filled per row](res/circle_group_output_one.jpg)
+ 1. circle groups all with the property of (row fill: many) located left or right of each other as shown below
+
+    ![circle group many filled per row](res/circle_group_output_many.jpg)
+
+ 2. circle groups all with the property of (row fill: one) located above-below each other as shown below
+
+    ![circle group one filled per row](res/circle_group_output_one.jpg)
 
 
 # CLI
-`omrx [-h] [-i INPUT] [-o OUTPUT] [-t TEMPLATE] [make|extract]`
+`python -m <path-to-pyomrx>/bin/omrx.py [-h] [-i INPUT] [-o OUTPUT] [-t TEMPLATE] [make|extract]`
 (template only needed to extract data)
 
 # Completing a printed pyomrx form for best results
