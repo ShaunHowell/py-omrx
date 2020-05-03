@@ -10,9 +10,7 @@ contexts where digital data collection isn't possible.
 
 # Install
 To just use the graphical user interface on windows, click on releases above and download the latest version as a zip file, extract it, and use run.exe to start the tool.
-To use as a python package:
-
-`pip install pyomrx`
+To use as a python package, clone the repository and add it to your python path. You may wish to also add `<path-to-pyomrx>/bin/` to your pythonpath, to use the CLI.
 
 To build the windows executable, from the repo root run `python build_exe_zip.py`, which uses cx_Freeze to bundle requirements.
 
