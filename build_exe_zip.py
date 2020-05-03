@@ -12,25 +12,21 @@ from cx_Freeze import setup, Executable
 import matplotlib
 import opcode
 
-
 if Path('build/').exists():
     shutil.rmtree(str(Path('build/')))
 
-version_file_path = str(Path(__file__).parent/'VERSION.txt')
-VIRTUALENV_PYTHON_DIR = os.path.dirname(os.path.dirname(os.__file__))
-os.environ['TCL_LIBRARY'] = os.path.join(VIRTUALENV_PYTHON_DIR, 'tcl',
-                                         'tcl8.6')
-os.environ['TK_LIBRARY'] = os.path.join(VIRTUALENV_PYTHON_DIR, 'tcl', 'tk8.6')
+version_file_path = str(Path(__file__).parent / 'VERSION.txt')
+PYTHON_FOLDER_ROOT = Path(os.__file__).parent.parent
+os.environ['TCL_LIBRARY'] = str(PYTHON_FOLDER_ROOT / 'tcl' / 'tcl8.6')
+os.environ['TK_LIBRARY'] = str(PYTHON_FOLDER_ROOT / 'tcl' / 'tk8.6')
 
 SYSTEM_PYTHON_DLLS_FOLDER = str(Path(opcode.__file__).parent.parent / 'DLLs')
 SYSTEM_PYTHON_LIB_FOLDER = str(Path(opcode.__file__).parent.parent / 'Lib')
 options = {
     'build_exe': {
-        'includes': [
-            'pyomrx'
-        ],
+        'includes': ['pyomrx'],
         'path':
-            sys.path + ['modules'],
+        sys.path + ['modules'],
         # explicitly include packages which cx_freeze doesn't find
         'packages': ["numpy", "scipy", "matplotlib.backends.backend_tkagg"],
         "excludes": [
@@ -38,18 +34,16 @@ options = {
             "distutils",  # because of virtualenv
             "tests",
         ],
-        "include_files": [
-            (matplotlib.get_data_path(), "mpl-sub_form_data"),
-            os.path.join(SYSTEM_PYTHON_DLLS_FOLDER,
-                         'tk86t.dll'),
-            os.path.join(SYSTEM_PYTHON_DLLS_FOLDER,
-                         'tcl86t.dll'),
-            (os.path.join(SYSTEM_PYTHON_LIB_FOLDER, 'distutils'), 'distutils'),
-            (version_file_path, 'lib/VERSION.txt')
-        ],
+        "include_files": [(matplotlib.get_data_path(), "mpl-sub_form_data"),
+                          str(Path(SYSTEM_PYTHON_DLLS_FOLDER) / 'tk86t.dll'),
+                          str(Path(SYSTEM_PYTHON_DLLS_FOLDER) / 'tcl86t.dll'),
+                          (os.path.join(SYSTEM_PYTHON_LIB_FOLDER,
+                                        'distutils'), 'distutils'),
+                          (version_file_path, 'lib/VERSION.txt')],
         "build_exe":
-            'build',
-        "include_msvcr": True
+        'build',
+        "include_msvcr":
+        True
     }
 }
 target = Executable(
@@ -60,7 +54,6 @@ target = Executable(
 
 with open(version_file_path) as version_file:
     VERSION = version_file.read()
-
 
 setup(
     name="pyomrx",
@@ -74,14 +67,12 @@ setup(
     packages=find_packages(include=['pyomrx', 'pyomrx.*']),
     executables=[target],
     install_requires=Path('requirements.txt').read_text(),
-    tests_require=['pytest']
-)
+    tests_require=['pytest'])
 
 # workaround for cx_freeze naming multiprocessing.pool incorrectly and files which couldn't be excluded...
 # Path('build/lib/multiprocessing/Pool.pyc').rename(
 #     Path('build/lib/multiprocessing/pool.pyc'))
 # shutil.rmtree(str(Path('build/lib/pyomrx/tests')), ignore_errors=True)
-
 
 shutil.make_archive(
     str(Path(f'build/py-omrx-{VERSION}')), 'zip', str(Path('build/')))

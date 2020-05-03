@@ -122,6 +122,7 @@ ENV/
 
 # add exceptions to the data protection rules for demo & test folders which have been anonymised
 !pyomrx/tests/res/**
+!res/**
 
 *.zip
 **errors.txt
