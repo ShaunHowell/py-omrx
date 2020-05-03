@@ -30,7 +30,7 @@ To run the examples with the GUI follow these steps:
 10. Click `Process` and wait for completion. Your extracted data should now be ready as a csv file.
 
 # Parts of an OMR form
-A pyomrx form contains the following heirarchy of components:
+A pyomrx form contains the following heirarchy of components (which can be structured/configured as needed):
 ![parts of a form](res/form_components.jpg)
 
 | Component     | Named range format  | Example       |
