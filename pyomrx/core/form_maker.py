@@ -24,7 +24,6 @@ import matplotlib.pyplot as plt
 import pyomrx
 from pyomrx.core.meta import Abortable
 
-
 LANDSCAPE = 'landscape'
 PORTRAIT = 'portrait'
 W_THICK = 5
