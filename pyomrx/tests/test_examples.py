@@ -3,6 +3,7 @@ import pytest
 from pathlib import Path
 from pyomrx.core.form_maker import FormMaker
 from pyomrx.core.omr_factory import OmrFactory
+import pandas as pd
 from pyomrx.utils.test_utils import *
 
 
