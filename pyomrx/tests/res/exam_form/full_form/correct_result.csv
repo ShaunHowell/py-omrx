@@ -1,0 +1,7 @@
+,sub_form,omr_error,marker_error,C01,C02,C03,C04,A01,A02,A03,A04,A05,A06,A07,A08,A09,A10,A11,paper_code,file
+0,1,FALSE,TRUE,1,0,9,9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,6,example_exam_1.png
+0,2,FALSE,TRUE,1,2,3,4,1,1,1,0,0,0,-1,-1,-1,-1,2,6,example_exam_1.png
+0,3,FALSE,TRUE,0,3,4,4,0,-2,-1,-1,-1,-1,-1,-1,0,-1,6,6,example_exam_1.png
+0,1,FALSE,FALSE,6,6,6,6,0,1,0,1,0,1,0,1,0,1,6,6,example_exam_2.png
+0,2,FALSE,FALSE,9,8,7,6,1,1,1,1,1,1,1,1,1,1,0,6,example_exam_2.png
+0,3,FALSE,TRUE,8,7,6,5,0,-1,-1,-1,-1,-1,-2,-1,-1,-1,0,6,example_exam_2.png

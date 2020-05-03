@@ -1,6 +1,7 @@
 from pyomrx.utils.env_utils import debug_mode
 from pyomrx.utils.cv2_utils import *
 from pyomrx.utils.vis_utils import show_image
+import cv2
 
 
 class Circle:

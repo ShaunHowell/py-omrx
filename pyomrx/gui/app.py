@@ -14,9 +14,10 @@ from pyomrx.gui.dialogs import *
 from pyomrx.gui.utils import handle_exception, open_folder
 from pyomrx.gui.workers import *
 from pyomrx import IMAGE_SUFFIXES
+from pyomrx.utils.env_utils import debug_mode
 import wx
 
-DEBUG = True
+DEBUG = debug_mode()
 
 
 class PyomrxMainFrame(wx.Frame, Abortable):
@@ -25,15 +26,16 @@ class PyomrxMainFrame(wx.Frame, Abortable):
         Abortable.__init__(self, None)
         sys.excepthook = handle_exception
         self.input_folder_path = Path(
-            'pyomrx/tests/res/example_images_folder') if DEBUG else ''
+            'pyomrx/tests/res/attendance_form/example_images_folder'
+        ) if DEBUG else ''
         self.omr_data_output_path = Path(
             'pyomrx/tests/res/temp_output_file') if DEBUG else ''
         self.omr_config_path = Path(
             'pyomrx/tests/res/testing_form.omr') if DEBUG else ''
         self.excel_file_path = Path(
-            'pyomrx/tests/res/Absence register v31.xlsx') if DEBUG else ''
-        self.convert_output_folder_path = Path(
-            'pyomrx/temp/forms') if DEBUG else ''
+            'pyomrx/tests/res/attendance_form/Absence register v31.xlsx'
+        ) if DEBUG else ''
+        self.convert_output_path = Path('pyomrx/temp/forms') if DEBUG else ''
         self.buttons = defaultdict(lambda: dict())
         self.tabs = {}
         self.sizers = {}
@@ -136,8 +138,8 @@ class PyomrxMainFrame(wx.Frame, Abortable):
 
         self.add_button("generate_forms", "excel_file", "Choose template file",
                         self.choose_excel_file)
-        self.add_button("generate_forms", "output", "Choose output folder",
-                        self.choose_convert_output_folder)
+        self.add_button("generate_forms", "output", "Choose output path",
+                        self.choose_convert_output_path)
         self.add_button(
             'generate_forms',
             'process',
@@ -219,20 +221,20 @@ class PyomrxMainFrame(wx.Frame, Abortable):
         self.statusbar.SetStatusWidths([-1, len(version_string) * 5])
         self.statusbar.SetStatusText(version_string, 1)
 
-    def choose_convert_output_folder(self, event):
-        dialog = wx.DirDialog(
-            self, 'Choose output folder', '', style=wx.DD_DEFAULT_STYLE)
+    def choose_convert_output_path(self, event):
+        dialog = wx.FileDialog(
+            self, 'Save omr template  as...', '', style=wx.DD_DEFAULT_STYLE)
         try:
             if dialog.ShowModal() == wx.ID_CANCEL:
                 return
             path = dialog.GetPath()
         except Exception:
-            wx.LogError('Failed to open directory!')
+            wx.LogError('Failed to choose desired path')
             raise
         finally:
             dialog.Destroy()
         if len(path) > 0:
-            self.convert_output_folder_path = Path(path)
+            self.convert_output_path = Path(path)
             text_objext = self.buttons['generate_forms']['output']['text']
             text_objext.SetLabel('...{}'.format(str(path)[-20:]))
 
@@ -284,7 +286,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
                 return
             path = dialog.GetPath()
         except Exception:
-            wx.LogError('Failed to choose desired path!')
+            wx.LogError('Failed to choose desired path')
             raise
         finally:
             dialog.Destroy()
@@ -355,16 +357,17 @@ class PyomrxMainFrame(wx.Frame, Abortable):
 
     def generate_forms(self, event):
         excel_file_path = self.excel_file_path
-        convert_output_folder_path = self.convert_output_folder_path
+        convert_output_path = self.convert_output_path
         description = self.new_form_description_widget.GetValue()
-        if not excel_file_path or not convert_output_folder_path:
+        if not excel_file_path or not convert_output_path:
             wx.MessageDialog(
                 self,
-                'Please choose an input file, name, description and output folder',
+                'Please choose an input file, name, description and output path',
                 style=wx.ICON_INFORMATION).ShowModal()
             return
-        output_omr_file_path = Path(
-            f'{convert_output_folder_path}/{excel_file_path.stem}.omr')
+        if convert_output_path[-4:] != '.omr':
+            convert_output_path += '.omr'
+        output_omr_file_path = Path(f'{convert_output_path}')
         if output_omr_file_path.exists():
             replace_file = wx.MessageDialog(
                 self,
@@ -380,7 +383,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
         worker_thread = FormGenerationWorker(
             self,
             excel_file_path=excel_file_path,
-            output_folder_path=convert_output_folder_path,
+            output_path=convert_output_path,
             description=description)
         self.worker_abort_events[worker_thread.id] = worker_thread.abort_event
         progress_dialog = FormGenerationProgressDialog(

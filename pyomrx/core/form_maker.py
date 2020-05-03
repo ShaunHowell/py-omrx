@@ -24,19 +24,6 @@ import matplotlib.pyplot as plt
 import pyomrx
 from pyomrx.core.meta import Abortable
 
-# NOTE: supported arrangements of circle groups:
-#  - [x] ones circles above-below ones-circles (sf -> one row of ints)
-#  - [x] many circles left-right of many-circles (sf -> many rows of bools)
-#  - [ ] ones-circles above-below many-circles (sf -> many rows of bools, ones ints on each row)
-#  - [ ] ones-circles left-right of many-circles (sf -> many rows of bools, ones ints in single column of different values)
-#  - [ ] many-circles above-below many-circles (sf -> many rows of bools, just like bigger many circles)
-#  - [ ] ones-circles left-right of ones-circles (sf -> one row of values)
-
-# TODO: make examples folder
-# TODO: make minimal CLI
-# TODO: finish README
-# TODO: check it's pip installable. host on pypi
-
 LANDSCAPE = 'landscape'
 PORTRAIT = 'portrait'
 W_THICK = 5
@@ -440,15 +427,15 @@ def assert_range_is_single_rectangle(named_range):
 class FormMaker(Abortable):
     def __init__(self,
                  excel_file_path,
-                 output_folder,
+                 output_path,
                  description=None,
                  abort_event=None,
                  id=None):
         Abortable.__init__(self, abort_event)
         print(f'generating form for excel file at {excel_file_path}')
         self.excel_file_path = Path(excel_file_path)
-        self.output_folder = Path(output_folder)
-        self.name = self.excel_file_path.stem
+        self.output_path = Path(output_path)
+        self.name = self.output_path.stem
         self.description = description or ''
         self.id = id
         self.wb = pyxl.load_workbook(
@@ -602,8 +589,6 @@ class FormMaker(Abortable):
         form_metadata_circles_config = []
         self.raise_for_abort()
         form_metadata_values = {}
-        # Removed this functionality as not required
-        # decides_sub_form_regex = COMMENT_PROP_START_REGEX + 'decides sub form: (yes|no)' + COMMENT_PROP_END_REGEX
         for template_metadata_range in self.metadata_ranges:
             metadata_range_str = self.translate_sub_range_to_new_parent(
                 child=template_metadata_range.attr_text,
@@ -625,26 +610,6 @@ class FormMaker(Abortable):
             # plot_rectangle(metadata_rectangle, form_template_ax, thickness=W_THIN)
             metadata_circles_config = dict(
                 rectangle=metadata_relative_rectangle, name=metadata_name)
-            # decides_sub_form = re.findall(decides_sub_form_regex,
-            #                               str(template_metadata_range.comment))
-            # if decides_sub_form:
-            #     decides_sub_form = decides_sub_form[0]
-            #     if decides_sub_form == 'yes':
-            #         decides_sub_form = True
-            #     elif decides_sub_form == 'no':
-            #         decides_sub_form = False
-            #     else:
-            #         raise ValueError(
-            #             f'decide sub form is {decides_sub_form}, must be yes or no'
-            #         )
-            # else:
-            #     print(
-            #         f'WARNING: metadata field called {metadata_name} doesnt specify whether it decides the sub form, '
-            #         f'will assume that it does not (eg page number). '
-            #         f'To make the sub form depend on this metadata (eg exam type) add "decides sub form: yes"'
-            #         f'to the cell group\'s comment via the name manager')
-            #     decides_sub_form = False
-            # metadata_circles_config['decides_sub_form'] = decides_sub_form
             metadata_dict = parse_circles_from_range(
                 metadata_range_cells, assert_1d=True)
             metadata_circles_config['orientation'] = metadata_dict['orient']
@@ -654,8 +619,6 @@ class FormMaker(Abortable):
             for bit_index, cell_value in enumerate(
                     reversed(metadata_arr.tolist())):
                 metadata_value = metadata_value + bit_index**2 if cell_value else metadata_value
-            # if decides_sub_form:
-            #     form_metadata_values[metadata_name] = metadata_value
             metadata_circles_config['quantity'] = metadata_arr.size
             form_metadata_values[metadata_name] = metadata_value
             max_metadata_dimension = max([
@@ -1003,7 +966,7 @@ class FormMaker(Abortable):
         output_config['pyomrx_version'] = VERSION
         # pp(output_config)
         # output_folder = Path('pyomrx/tests/res/form_config')
-        output_folder = self.output_folder
+        output_folder = self.output_path.parent
         os.makedirs(str(output_folder), exist_ok=True)
         config_temp_path = str(TEMP_FOLDER / 'omr_config.json')
         # pp(output_config)
@@ -1105,15 +1068,3 @@ def plot_rectangle(rectangle, ax=None, thickness=W_DEFAULT):
                  [top, top, bottom, bottom, top],
                  c='black',
                  linewidth=thickness)
-
-
-def main():
-    # DESCRIPTION = 'testing form by shaun from dev work'
-    # NAME = 'testing_exam_form'
-    form_maker = FormMaker('pyomrx/tests/res/Absence register v31.xlsx',
-                           'temp/example_exam_form')
-    form_maker.make_form()
-
-
-if __name__ == '__main__':
-    main()

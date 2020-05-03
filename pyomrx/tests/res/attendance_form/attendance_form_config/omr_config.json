@@ -1,9 +1,9 @@
 {
-  "author": "KCooper",
-  "description": "Benni test 1",
-  "name": "Absence register v38-Benni test 1",
-  "created_on": "2020-02-07 14:01:28.381235",
-  "id": "4e9d38e4-7db2-46fc-814a-cbac7c5ef083",
+  "author": "shaun",
+  "description": "",
+  "name": "Absence register v31",
+  "created_on": "2020-02-02 00:05:27.579150",
+  "id": "f425cb26-4946-412b-8923-c68185bd0a9e",
   "template": {
     "metadata_circles": [
       {
@@ -14,7 +14,6 @@
           "right": 0.8693181818181818
         },
         "name": "class_name",
-        "decides_sub_form": false,
         "quantity": 5,
         "radius": 0.05565217391304348,
         "orientation": "landscape"
@@ -27,7 +26,6 @@
           "right": 0.6297348484848485
         },
         "name": "institution",
-        "decides_sub_form": false,
         "quantity": 7,
         "radius": 0.03975155279503106,
         "orientation": "landscape"
@@ -40,7 +38,6 @@
           "right": 0.978219696969697
         },
         "name": "page",
-        "decides_sub_form": false,
         "quantity": 3,
         "radius": 0.0927536231884058,
         "orientation": "landscape"
@@ -144,5 +141,5 @@
       ]
     }
   },
-  "pyomrx_version": "2.1.1"
+  "pyomrx_version": "2.0.0"
 }

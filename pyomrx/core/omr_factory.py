@@ -1,14 +1,11 @@
 import cv2
 from pyomrx.core.exceptions import *
-import datetime
 import os
-from pathlib import Path
 import pandas as pd
 from pyomrx.core.form import OmrForm
 from pathlib import Path
 import pyomrx
 from pyomrx.core.exceptions import EmptyFolderException
-from threading import Event
 from pyomrx.core.meta import Abortable
 from pubsub import pub
 from pyomrx.gui import DATA_EXTRACTION_TOPIC
@@ -54,7 +51,7 @@ class OmrFactory(Abortable):
                 print(f'error: {e}')
                 failed_paths.append(image_path)
         if not dfs:
-            raise EmptyFolderException(
+            raise OmrException(
                 f'no data extracted from images in {input_folder_path}')
         folder_df = pd.concat(dfs, axis=0)
         fail_df = pd.DataFrame([{
