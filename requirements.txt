@@ -4,10 +4,11 @@ matplotlib==3.0.2
 Pillow==5.4.1
 opencv-python==4.1.0.25
 imutils==0.5.2
-cx_Freeze==5.1.1
+cx_Freeze==6.1
 yapf==0.26.0
 pytest==4.3.0
 openpyxl==3.0.0
 lxml==4.4.1
 PyPubSub==4.0.3
 wxPython==4.0.4
+scipy==1.4.1
