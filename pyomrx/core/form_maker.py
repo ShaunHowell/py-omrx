@@ -1069,16 +1069,3 @@ def plot_rectangle(rectangle, ax=None, thickness=W_DEFAULT):
                  [top, top, bottom, bottom, top],
                  c='black',
                  linewidth=thickness)
-
-
-def main():
-    # DESCRIPTION = 'testing form by shaun from dev work'
-    # NAME = 'testing_exam_form'
-    form_maker = FormMaker(
-        'pyomrx/tests/res/attendance_form/Absence register v31.xlsx',
-        'temp/example_exam_form')
-    form_maker.make_form()
-
-
-if __name__ == '__main__':
-    main()
