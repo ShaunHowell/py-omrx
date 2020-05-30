@@ -45,6 +45,9 @@ if TCL_DLL_PATH.exists():
 else:
     raise FileNotFoundError(f'{TCL_DLL_PATH} does not exist')
 
+with open(version_file_path) as version_file:
+    VERSION = version_file.read()
+build_root = f'build/pyomrx_{VERSION}'
 options = {
     'build_exe': {
         'includes': ['pyomrx', 'tkinter', 'matplotlib.backends.backend_tkagg'],
@@ -55,7 +58,7 @@ options = {
         "excludes": [
             "scipy.spatial.cKDTree",  # bug: cKDTree causes ckdtree to not copy
             "distutils",  # because of virtualenv
-            "tests",
+            "tests"
         ],
         "include_files": [(matplotlib.get_data_path(), "mpl-sub_form_data"),
                           str(TK_DLL_PATH),
@@ -64,7 +67,7 @@ options = {
                                         'distutils'), 'distutils'),
                           (version_file_path, 'lib/VERSION.txt')],
         "build_exe":
-        'build',
+        build_root,
         "include_msvcr":
         True
     }
@@ -74,9 +77,6 @@ target = Executable(
     base="Win32GUI" if sys.platform == "win32" else None,
     icon='res/logo.ico',
     targetName='run.exe')
-
-with open(version_file_path) as version_file:
-    VERSION = version_file.read()
 
 setup(
     name="pyomrx",
@@ -93,9 +93,10 @@ setup(
     tests_require=['pytest'])
 
 # workaround for cx_freeze naming multiprocessing.pool incorrectly
-Path('build/lib/multiprocessing/Pool.pyc').rename(
-    Path('build/lib/multiprocessing/pool.pyc'))
+Path(f'{build_root}/lib/multiprocessing/Pool.pyc').rename(
+    Path(f'{build_root}/lib/multiprocessing/pool.pyc'))
 # workaround for tkinter being called Tkinter
-os.rename('build/lib/Tkinter', 'build/lib/tkinter')
+os.rename(f'{build_root}/lib/Tkinter', f'{build_root}/lib/tkinter')
+os.makedirs('dist', exist_ok=True)
 shutil.make_archive(
-    str(Path(f'build/py-omrx-{VERSION}')), 'zip', str(Path('build/')))
+    str(Path(f'dist/py-omrx-{VERSION}')), 'zip', build_root)

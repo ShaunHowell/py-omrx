@@ -9,10 +9,15 @@ Made originally for the education team at Save the Children UK for capturing sch
 contexts where digital data collection isn't possible.
 
 # Install
-To just use the graphical user interface on windows, click on releases above and download the latest version as a zip file, extract it, and use run.exe to start the tool.
+To just use the graphical user interface on windows, click on releases above and download the latest version as a zip file then extract it, then double click run.exe
+To avoid using the executable, you can clone the repository, install [python3.7](https://www.python.org/downloads/release/python-377/),
+ use `pip install -r requirements.txt` from the repo root to install dependencies, then run `python3.7 app.py` from the repo root.
+ 
 To use as a python package, clone the repository and add it to your python path. You may wish to also add `<path-to-pyomrx>/bin/` to your pythonpath, to use the CLI.
 
 To build the windows executable, from the repo root run `python build_exe_zip.py build_exe`, which uses cx_Freeze to bundle requirements.
+
+Note that only compatibility with python3.7 has been checked. Python 2.x won't work and any other 3.x may not work.
 
 # Quickstart
 The examples folder contains an attendance form and and exam marksheet folder. 
