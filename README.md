@@ -1,6 +1,6 @@
 ![pyomrx overview](res/overview_image.jpg)
 ------
-![travis master build status](https://travis-ci.com/ShaunHowell/py-omrx.svg?token=qa3pqsZkoC8q17Ekgz3K&branch=master)
+![travis master build status](https://travis-ci.com/ShaunHowell/py-omrx.svg?branch=master)
 
 Python Optical Mark Recognition eXtraction tool is a library and GUI for generating OMR forms and extracting data from them. 
 Form design is done in excel, then the tool converts this into an image and a .omr file. 
