@@ -357,7 +357,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
 
     def generate_forms(self, event):
         excel_file_path = self.excel_file_path
-        convert_output_path = self.convert_output_path
+        convert_output_path = Path(self.convert_output_path)
         description = self.new_form_description_widget.GetValue()
         if not excel_file_path or not convert_output_path:
             wx.MessageDialog(
@@ -365,8 +365,8 @@ class PyomrxMainFrame(wx.Frame, Abortable):
                 'Please choose an input file, name, description and output path',
                 style=wx.ICON_INFORMATION).ShowModal()
             return
-        if convert_output_path[-4:] != '.omr':
-            convert_output_path += '.omr'
+        if convert_output_path.suffix != '.omr':
+            convert_output_path = Path(str(convert_output_path)+'.omr')
         output_omr_file_path = Path(f'{convert_output_path}')
         if output_omr_file_path.exists():
             replace_file = wx.MessageDialog(

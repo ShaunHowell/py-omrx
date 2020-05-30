@@ -17,26 +17,49 @@ if Path('build/').exists():
 
 version_file_path = str(Path(__file__).parent / 'VERSION.txt')
 PYTHON_FOLDER_ROOT = Path(os.__file__).parent.parent
-os.environ['TCL_LIBRARY'] = str(PYTHON_FOLDER_ROOT / 'tcl' / 'tcl8.6')
-os.environ['TK_LIBRARY'] = str(PYTHON_FOLDER_ROOT / 'tcl' / 'tk8.6')
+print(f'python root folder: {PYTHON_FOLDER_ROOT}')
+TCL_PATH = PYTHON_FOLDER_ROOT / 'tcl' / 'tcl8.6'
+TK_PATH = PYTHON_FOLDER_ROOT / 'tcl' / 'tk8.6'
+if TCL_PATH.exists():
+    print(f'tcl8.6 exists at path {TCL_PATH}')
+else:
+    raise FileNotFoundError(f'{TCL_PATH} does not exist')
+if TK_PATH.exists():
+    print(f'tk8.6 exists at path {TK_PATH}')
+else:
+    raise FileNotFoundError(f'{TK_PATH} does not exist')
+
+os.environ['TCL_LIBRARY'] = str(TCL_PATH)
+os.environ['TK_LIBRARY'] = str(TK_PATH)
 
 SYSTEM_PYTHON_DLLS_FOLDER = str(Path(opcode.__file__).parent.parent / 'DLLs')
 SYSTEM_PYTHON_LIB_FOLDER = str(Path(opcode.__file__).parent.parent / 'Lib')
+TK_DLL_PATH = Path(SYSTEM_PYTHON_DLLS_FOLDER) / 'tk86t.dll'
+TCL_DLL_PATH = Path(SYSTEM_PYTHON_DLLS_FOLDER) / 'tcl86t.dll'
+if TK_DLL_PATH.exists():
+    print(f'tk8.6t.dll exists at path {TK_DLL_PATH}')
+else:
+    raise FileNotFoundError(f'{TK_DLL_PATH} does not exist')
+if TCL_DLL_PATH.exists():
+    print(f'tcl86t.dll exists at path {TCL_DLL_PATH}')
+else:
+    raise FileNotFoundError(f'{TCL_DLL_PATH} does not exist')
+
 options = {
     'build_exe': {
-        'includes': ['pyomrx'],
+        'includes': ['pyomrx', 'tkinter', 'matplotlib.backends.backend_tkagg'],
         'path':
         sys.path + ['modules'],
         # explicitly include packages which cx_freeze doesn't find
-        'packages': ["numpy", "scipy", "matplotlib.backends.backend_tkagg"],
+        'packages': ["numpy", "scipy", "matplotlib.backends.backend_tkagg", 'tkinter'],
         "excludes": [
             "scipy.spatial.cKDTree",  # bug: cKDTree causes ckdtree to not copy
             "distutils",  # because of virtualenv
             "tests",
         ],
         "include_files": [(matplotlib.get_data_path(), "mpl-sub_form_data"),
-                          str(Path(SYSTEM_PYTHON_DLLS_FOLDER) / 'tk86t.dll'),
-                          str(Path(SYSTEM_PYTHON_DLLS_FOLDER) / 'tcl86t.dll'),
+                          str(TK_DLL_PATH),
+                          str(TCL_DLL_PATH),
                           (os.path.join(SYSTEM_PYTHON_LIB_FOLDER,
                                         'distutils'), 'distutils'),
                           (version_file_path, 'lib/VERSION.txt')],
@@ -69,10 +92,10 @@ setup(
     install_requires=Path('requirements.txt').read_text(),
     tests_require=['pytest'])
 
-# workaround for cx_freeze naming multiprocessing.pool incorrectly and files which couldn't be excluded...
-# Path('build/lib/multiprocessing/Pool.pyc').rename(
-#     Path('build/lib/multiprocessing/pool.pyc'))
-# shutil.rmtree(str(Path('build/lib/pyomrx/tests')), ignore_errors=True)
-
+# workaround for cx_freeze naming multiprocessing.pool incorrectly
+Path('build/lib/multiprocessing/Pool.pyc').rename(
+    Path('build/lib/multiprocessing/pool.pyc'))
+# workaround for tkinter being called Tkinter
+os.rename('build/lib/Tkinter', 'build/lib/tkinter')
 shutil.make_archive(
     str(Path(f'build/py-omrx-{VERSION}')), 'zip', str(Path('build/')))
