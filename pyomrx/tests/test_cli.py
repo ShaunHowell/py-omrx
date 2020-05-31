@@ -13,7 +13,7 @@ from pathlib import Path
 # TODO: make this work on travis
 @pytest.mark.skipif(
     bool(os.environ.get('TRAVIS')),
-    'python in subprocess gives a not found error on travis')
+    reason='python in subprocess gives a not found error on travis')
 def test_cli_round_trip(tmpdir, res_folder):
     config_output_path = Path(tmpdir) / 'example exam score form.omr'
     env = os.environ
