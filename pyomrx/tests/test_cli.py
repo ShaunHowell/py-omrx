@@ -20,7 +20,7 @@ def test_cli_round_trip(tmpdir, res_folder):
 
     subprocess.check_call(
         f'python {cli_path} make '
-        f'--input "{excel_file_path}"'
+        f'--input "{excel_file_path}" '
         f'--output "{config_output_path}"',
         env=env)
     omr_template = zipfile.ZipFile(config_output_path, 'r')
