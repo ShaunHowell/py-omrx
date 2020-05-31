@@ -3,18 +3,20 @@ sudo: false
 language: python
 
 python:
-  - "3.6"
+  - "3.7"
 
 env:
   - TRAVIS=true
 
 before_install:
+  - sudo apt-get -y install libgtk-3-dev libwebkit2gtk-4.0-dev
   - sudo add-apt-repository ppa:nilarimogard/webupd8 -y
   - sudo apt-get update
   - sudo apt-get install python-wxgtk2.8
-  -
+
 install:
-  - pip install -r requirements.txt
+  - cat requirements.txt | grep -v wxPython > travis_requirements.txt
+  - pip install -r travis_requirements.txt
 
 script:
   - pytest && exit 0
