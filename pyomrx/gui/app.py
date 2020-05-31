@@ -366,7 +366,7 @@ class PyomrxMainFrame(wx.Frame, Abortable):
                 style=wx.ICON_INFORMATION).ShowModal()
             return
         if convert_output_path.suffix != '.omr':
-            convert_output_path = Path(str(convert_output_path)+'.omr')
+            convert_output_path = Path(str(convert_output_path) + '.omr')
         output_omr_file_path = Path(f'{convert_output_path}')
         if output_omr_file_path.exists():
             replace_file = wx.MessageDialog(

@@ -7,6 +7,7 @@ import zipfile
 import json
 import os
 import sys
+from pathlib import Path
 
 
 def test_cli_round_trip(tmpdir, res_folder):
@@ -14,7 +15,7 @@ def test_cli_round_trip(tmpdir, res_folder):
     env = os.environ
     env['PYTHONPATH'] = ';'.join(sys.path)
     subprocess.check_call(
-        f'python ./bin/omrx.py make '
+        f'python {Path(__file__).parent.parent.parent/"bin"/"omrx.py"} make '
         f'--input "examples/example_exam_score_form/example exam score form.xlsx" '
         f'--output "{config_output_path}"',
         env=env)
