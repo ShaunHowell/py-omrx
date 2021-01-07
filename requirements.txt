@@ -8,7 +8,7 @@ cx_Freeze==6.1
 yapf==0.26.0
 pytest==4.3.0
 openpyxl==3.0.0
-lxml==4.4.1
+lxml==4.6.2
 PyPubSub==4.0.3
 wxPython==4.0.4
 scipy==1.4.1
