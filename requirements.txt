@@ -2,7 +2,7 @@ pandas==0.23.4
 numpy==1.16.1
 matplotlib==3.0.2
 Pillow==6.2.2
-opencv-python==4.1.0.25
+opencv-python==4.2.0.32
 imutils==0.5.2
 cx_Freeze==6.1
 yapf==0.26.0
